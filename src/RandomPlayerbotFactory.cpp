@@ -623,11 +623,31 @@ void RandomPlayerbotFactory::CreateRandomBots()
     if (bot_creation)
     {
         LOG_INFO("playerbots", "Waiting for {} characters loading into database ({} queries)...", bot_creation, CharacterDatabase.QueueSize());
-        /* wait for characters load into database, or characters will fail to loggin */
+    
+        // 添加超时变量
+        uint32 last_queue_size = CharacterDatabase.QueueSize();
+        uint32 stalled_time_ms = 0;
+    
         while (CharacterDatabase.QueueSize())
         {
             std::this_thread::sleep_for(1s);
+        
+            // 检查队列大小是否发生变化
+            uint32 current_queue_size = CharacterDatabase.QueueSize();
+            if (current_queue_size == last_queue_size) {
+                stalled_time_ms += 1000;
+                // 如果队列大小10秒内没有变化，认为已卡死
+                if (stalled_time_ms >= 10000) {
+                    LOG_ERROR("playerbots", "Database queue stalled at {} items for 10 seconds. Breaking wait loop.", current_queue_size);
+                    break;
+                }
+            } else {
+                // 如果队列大小变化，重置卡死计时器
+                stalled_time_ms = 0;
+                last_queue_size = current_queue_size;
+            }
         }
+    
         LOG_INFO("playerbots", ">> {} Characters loaded into database in {} ms", bot_creation, GetMSTimeDiffToNow(timer));
     }
 
