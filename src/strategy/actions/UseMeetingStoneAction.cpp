@@ -244,6 +244,7 @@ bool SummonAction::Teleport(Player* summoner, Player* player)
         }
     }
 
-    botAI->TellError("Not enough place to summon");
+    if(summoner != player)
+         botAI->TellError("Not enough place to summon");
     return false;
 }
