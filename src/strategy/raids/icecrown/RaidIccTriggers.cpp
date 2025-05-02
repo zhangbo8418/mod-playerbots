@@ -978,25 +978,7 @@ bool IccLichKingShadowTrapTrigger::IsActive()
     if (!boss)
         return false;
 
-    if (boss->HealthBelowPct(70))
-        return false;
-
-    // search for all nearby traps
-    GuidVector npcs = AI_VALUE(GuidVector, "nearest hostile npcs");
-    std::vector<Unit*> nearbyTraps;
-    bool needToMove = false;
-
-    for (auto& npc : npcs)
-    {
-        Unit* unit = botAI->GetUnit(npc);
-        if (!unit || !unit->IsAlive())
-            continue;
-
-        if (unit->GetEntry() == 39137)  // shadow trap
-            return true;
-    }
-
-    return false;
+    return true;
 }
 
 bool IccLichKingNecroticPlagueTrigger::IsActive()
@@ -1035,8 +1017,9 @@ bool IccLichKingWinterTrigger::IsActive()
 bool IccLichKingAddsTrigger::IsActive()
 {
     Unit* boss = AI_VALUE2(Unit*, "find target", "the lich king");
+    Unit* spiritWarden = AI_VALUE2(Unit*, "find target", "spirit warden");
 
-    if (!boss) 
+    if (!boss && !spiritWarden)  
         return false;
 
     return true;
