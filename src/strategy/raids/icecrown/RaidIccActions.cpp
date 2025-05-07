@@ -37,14 +37,28 @@ bool IccLmTankPositionAction::Execute(Event event)
     if (!boss)
         return false;
 
-    if (botAI->IsTank(bot) || botAI->IsMainTank(bot) || botAI->IsAssistTank(bot))
+    if (botAI->IsTank(bot))
     {
-        if (bot->GetExactDist2d(ICC_LM_TANK_POSITION) > 15.0f)
-            return MoveTo(bot->GetMapId(), ICC_LM_TANK_POSITION.GetPositionX(),
-                          ICC_LM_TANK_POSITION.GetPositionY(), ICC_LM_TANK_POSITION.GetPositionZ(), 
-                          false, false, false, false, MovementPriority::MOVEMENT_COMBAT);
-        else
-            return false;
+        if ((botAI->HasAggro(boss) && botAI->IsMainTank(bot)) || botAI->IsAssistTank(bot))
+        {
+            float distance = bot->GetExactDist2d(ICC_LM_TANK_POSITION.GetPositionX(), ICC_LM_TANK_POSITION.GetPositionY());
+            if (distance > 3.0f)
+            {
+                // Calculate direction vector
+                float dirX = ICC_LM_TANK_POSITION.GetPositionX() - bot->GetPositionX();
+                float dirY = ICC_LM_TANK_POSITION.GetPositionY() - bot->GetPositionY();
+                float length = sqrt(dirX * dirX + dirY * dirY);
+                dirX /= length;
+                dirY /= length;
+
+                // Move in increments of 3.0f
+                float moveX = bot->GetPositionX() + dirX * 3.0f;
+                float moveY = bot->GetPositionY() + dirY * 3.0f;
+
+                return MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(), false, false, false, false,
+                              MovementPriority::MOVEMENT_COMBAT);
+            }
+        }
     }
 
     return false;
@@ -214,10 +228,34 @@ bool IccAddsLadyDeathwhisperAction::Execute(Event event)
 
     if (botAI->IsTank(bot) && boss->GetHealthPct() < 95.0f)
     {
-        if (bot->GetExactDist2d(ICC_LDW_TANK_POSTION) > 20.0f)
-        return MoveTo(bot->GetMapId(), ICC_LDW_TANK_POSTION.GetPositionX(),
-                      ICC_LDW_TANK_POSTION.GetPositionY(), ICC_LDW_TANK_POSTION.GetPositionZ(), false,
-                      false, false, false, MovementPriority::MOVEMENT_COMBAT);
+        // Check if the bot is not the victim of a shade with entry 38222
+        GuidVector npcs = AI_VALUE(GuidVector, "nearest hostile npcs");
+        for (auto& npc : npcs)
+        {
+            Unit* unit = botAI->GetUnit(npc);
+            if (unit && unit->GetEntry() == 38222 && unit->GetVictim() == bot)
+            {
+                return false;  // Exit if the bot is the victim of the shade
+            }
+        }
+
+        float distance = bot->GetExactDist2d(ICC_LDW_TANK_POSTION.GetPositionX(), ICC_LDW_TANK_POSTION.GetPositionY());
+        if (distance > 20.0f)
+        {
+            // Calculate direction vector
+            float dirX = ICC_LDW_TANK_POSTION.GetPositionX() - bot->GetPositionX();
+            float dirY = ICC_LDW_TANK_POSTION.GetPositionY() - bot->GetPositionY();
+            float length = sqrt(dirX * dirX + dirY * dirY);
+            dirX /= length;
+            dirY /= length;
+
+            // Move in increments of 3.0f
+            float moveX = bot->GetPositionX() + dirX * 3.0f;
+            float moveY = bot->GetPositionY() + dirY * 3.0f;
+
+            return MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(), false, false, false, false,
+                          MovementPriority::MOVEMENT_COMBAT);
+        }
     }
 
     if (!botAI->IsTank(bot))
@@ -464,66 +502,104 @@ bool IccGunshipEnterCannonAction::EnterVehicle(Unit* vehicleBase, bool moveIfFar
 
 bool IccGunshipTeleportAllyAction::Execute(Event event)
 {
+    // Find the Battle-Mage boss
     Unit* boss = AI_VALUE2(Unit*, "find target", "kor'kron battle-mage");
-    if (!boss)
-        return false;
 
-    // Only proceed if the mage is channeling Below Zero
-    if (!(boss->HasUnitState(UNIT_STATE_CASTING) && boss->FindCurrentSpellBySpellId(69705)))
+    // Check if we need to remove skull icon when boss is dead
+    if (Group* group = bot->GetGroup())
     {
-        // If not casting and we're too far from waiting position, go there
-        if (bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_ALLY2) > 45.0f)
-            return bot->TeleportTo(bot->GetMapId(), ICC_GUNSHIP_TELEPORT_ALLY2.GetPositionX(),
-                          ICC_GUNSHIP_TELEPORT_ALLY2.GetPositionY(), ICC_GUNSHIP_TELEPORT_ALLY2.GetPositionZ(), bot->GetOrientation());
-        return false;
+        ObjectGuid currentSkullTarget = group->GetTargetIcon(7);
+        if (!currentSkullTarget.IsEmpty())
+        {
+            // If the current skull target is dead or doesn't exist, remove the icon
+            if (Unit* skullTarget = ObjectAccessor::GetUnit(*bot, currentSkullTarget))
+            {
+                if (!skullTarget->IsAlive())
+                    group->SetTargetIcon(7, bot->GetGUID(), ObjectGuid::Empty);
+            }
+            else
+            {
+                // Target not found, might have despawned, remove icon
+                group->SetTargetIcon(7, bot->GetGUID(), ObjectGuid::Empty);
+            }
+        }
     }
 
-    if (Group* group = bot->GetGroup())
-        if (group->GetTargetIcon(7) != boss->GetGUID())
-            group->SetTargetIcon(7, bot->GetGUID(), boss->GetGUID());
+    // If no boss found or boss is dead, nothing more to do
+    if (!boss || !boss->IsAlive() || !boss->HasUnitState(UNIT_STATE_CASTING))
+    {
+        // If we're too far from waiting position, go there
+        if (bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_ALLY2) > 45.0f)
+            return bot->TeleportTo(bot->GetMapId(), ICC_GUNSHIP_TELEPORT_ALLY2.GetPositionX(),
+                                   ICC_GUNSHIP_TELEPORT_ALLY2.GetPositionY(),
+                                   ICC_GUNSHIP_TELEPORT_ALLY2.GetPositionZ(), bot->GetOrientation());
+    }
+    else if (boss->HasUnitState(UNIT_STATE_CASTING) && boss->FindCurrentSpellBySpellId(69705) && boss->IsAlive())
+    {
+        // Mark the boss with skull icon
+        if (Group* group = bot->GetGroup())
+            if (group->GetTargetIcon(7) != boss->GetGUID())
+                group->SetTargetIcon(7, bot->GetGUID(), boss->GetGUID());
 
-    bot->SetTarget(boss->GetGUID());
-    // Check if the bot is targeting a valid boss before teleporting
-    if (bot->GetTarget() != boss->GetGUID())
-        return false;
-        
-    if (!botAI->IsAssistTank(bot) && bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_ALLY) > 15.0f)
-        return bot->TeleportTo(bot->GetMapId(), ICC_GUNSHIP_TELEPORT_ALLY.GetPositionX(),
-                      ICC_GUNSHIP_TELEPORT_ALLY.GetPositionY(), ICC_GUNSHIP_TELEPORT_ALLY.GetPositionZ(), bot->GetOrientation());
-    
-        return Attack(boss);
+        // Teleport non-tank bots to attack position if not already there
+        if (!botAI->IsAssistTank(bot) && bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_ALLY) > 15.0f)
+            return bot->TeleportTo(bot->GetMapId(), ICC_GUNSHIP_TELEPORT_ALLY.GetPositionX(),
+                                   ICC_GUNSHIP_TELEPORT_ALLY.GetPositionY(), ICC_GUNSHIP_TELEPORT_ALLY.GetPositionZ(),
+                                   bot->GetOrientation());
+    }
+
+    return false;
 }
 
 bool IccGunshipTeleportHordeAction::Execute(Event event)
 {
+    // Find the Sorcerer boss
     Unit* boss = AI_VALUE2(Unit*, "find target", "skybreaker sorcerer");
-    if (!boss)
-        return false;
 
-    // Only proceed if the sorcerer is channeling Below Zero
-    if (!(boss->HasUnitState(UNIT_STATE_CASTING) && boss->FindCurrentSpellBySpellId(69705)))
+    // Check if we need to remove skull icon when boss is dead
+    if (Group* group = bot->GetGroup())
     {
-        // If not casting and we're too far from waiting position, go there
-        if (bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_HORDE2) > 45.0f)
-            return bot->TeleportTo(bot->GetMapId(), ICC_GUNSHIP_TELEPORT_HORDE2.GetPositionX(),
-                          ICC_GUNSHIP_TELEPORT_HORDE2.GetPositionY(), ICC_GUNSHIP_TELEPORT_HORDE2.GetPositionZ(), bot->GetOrientation());
-        return false;
+        ObjectGuid currentSkullTarget = group->GetTargetIcon(7);
+        if (!currentSkullTarget.IsEmpty())
+        {
+            // If the current skull target is dead or doesn't exist, remove the icon
+            if (Unit* skullTarget = ObjectAccessor::GetUnit(*bot, currentSkullTarget))
+            {
+                if (!skullTarget->IsAlive())
+                    group->SetTargetIcon(7, bot->GetGUID(), ObjectGuid::Empty);
+            }
+            else
+            {
+                // Target not found, might have despawned, remove icon
+                group->SetTargetIcon(7, bot->GetGUID(), ObjectGuid::Empty);
+            }
+        }
     }
 
-    if (Group* group = bot->GetGroup())
-        if (group->GetTargetIcon(7) != boss->GetGUID())
-            group->SetTargetIcon(7, bot->GetGUID(), boss->GetGUID());
+    // If no boss found or boss is dead, nothing more to do
+    if (!boss || !boss->IsAlive() || !boss->HasUnitState(UNIT_STATE_CASTING))
+    {
+        // If we're too far from waiting position, go there
+        if (bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_HORDE2) > 45.0f)
+            return bot->TeleportTo(bot->GetMapId(), ICC_GUNSHIP_TELEPORT_HORDE2.GetPositionX(),
+                                   ICC_GUNSHIP_TELEPORT_HORDE2.GetPositionY(),
+                                   ICC_GUNSHIP_TELEPORT_HORDE2.GetPositionZ(), bot->GetOrientation());
+    }
+    else if (boss->HasUnitState(UNIT_STATE_CASTING) && boss->FindCurrentSpellBySpellId(69705) && boss->IsAlive())
+    {
+        // Mark the boss with skull icon
+        if (Group* group = bot->GetGroup())
+            if (group->GetTargetIcon(7) != boss->GetGUID())
+                group->SetTargetIcon(7, bot->GetGUID(), boss->GetGUID());
 
-    bot->SetTarget(boss->GetGUID());
-    // Check if the bot is targeting a valid boss before teleporting
-    if (bot->GetTarget() != boss->GetGUID())
-        return false;
+        // Teleport non-tank bots to attack position if not already there
+        if (!botAI->IsAssistTank(bot) && bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_HORDE) > 15.0f)
+            return bot->TeleportTo(bot->GetMapId(), ICC_GUNSHIP_TELEPORT_HORDE.GetPositionX(),
+                                   ICC_GUNSHIP_TELEPORT_HORDE.GetPositionY(), ICC_GUNSHIP_TELEPORT_HORDE.GetPositionZ(),
+                                   bot->GetOrientation());
+    }
 
-    if (!botAI->IsAssistTank(bot) && bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_HORDE) > 15.0f)
-        return bot->TeleportTo(bot->GetMapId(), ICC_GUNSHIP_TELEPORT_HORDE.GetPositionX(),
-                      ICC_GUNSHIP_TELEPORT_HORDE.GetPositionY(), ICC_GUNSHIP_TELEPORT_HORDE.GetPositionZ(), bot->GetOrientation());
-    
-        return Attack(boss);
+    return false;
 }
 
 //DBS
@@ -1272,6 +1348,20 @@ bool IccPutricideVolatileOozeAction::Execute(Event event)
 
     // Find the ooze
     Unit* ooze = AI_VALUE2(Unit*, "find target", "volatile ooze");
+    if (!ooze)
+        return false;
+
+    Unit* boss = AI_VALUE2(Unit*, "find target", "professor putricide");
+    if (!boss)
+        return false;
+
+    if (botAI->IsTank(bot) && bot->GetExactDist2d(ICC_PUTRICIDE_TANK_POSITION) > 20.0f && !boss->HealthBelowPct(36) && boss->GetVictim() == bot)
+    {
+        return MoveTo(bot->GetMapId(), ICC_PUTRICIDE_TANK_POSITION.GetPositionX(),
+                      ICC_PUTRICIDE_TANK_POSITION.GetPositionY(), ICC_PUTRICIDE_TANK_POSITION.GetPositionZ(), false, false,
+                      false, true, MovementPriority::MOVEMENT_COMBAT, true, false);
+    }
+
     bool botHasAura = botAI->HasAura("Volatile Ooze Adhesive", bot);
     bool botHasAura2 = botAI->HasAura("Gaseous Bloat", bot);
     bool botHasAura3 = botAI->HasAura("Unbound Plague", bot);
@@ -1415,10 +1505,22 @@ bool IccPutricideGasCloudAction::Execute(Event event)
 
     Unit* volatileOoze = AI_VALUE2(Unit*, "find target", "volatile ooze");
 
+    Unit* boss = AI_VALUE2(Unit*, "find target", "professor putricide");
+    if (!boss)
+        return false;
+
     bool botHasAura = botAI->HasAura("Gaseous Bloat", bot);
     
     if(!botHasAura && volatileOoze)
         return false;
+
+    if (botAI->IsTank(bot) && bot->GetExactDist2d(ICC_PUTRICIDE_TANK_POSITION) > 20.0f && !boss->HealthBelowPct(36) &&
+        boss->GetVictim() == bot)
+    {
+        return MoveTo(bot->GetMapId(), ICC_PUTRICIDE_TANK_POSITION.GetPositionX(),
+                      ICC_PUTRICIDE_TANK_POSITION.GetPositionY(), ICC_PUTRICIDE_TANK_POSITION.GetPositionZ(), false,
+                      false, false, true, MovementPriority::MOVEMENT_COMBAT, true, false);
+    }
 
     if (botHasAura)
     {
@@ -1724,7 +1826,7 @@ bool IccBpcMainTankAction::Execute(Event event)
             if (unit->HasAura(71596))
             {
                 if (unit->GetEntry() == 37972 ||    // Keleseth
-                 unit->GetEntry() == 37973 ||    // Taldaram
+                    unit->GetEntry() == 37973 ||    // Taldaram
                     unit->GetEntry() == 37970)      // Valanar
                 {
                 empoweredPrince = unit;
