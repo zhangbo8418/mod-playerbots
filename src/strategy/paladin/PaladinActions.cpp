@@ -12,6 +12,7 @@
 #include "PlayerbotFactory.h"
 #include "Playerbots.h"
 #include "SharedDefines.h"
+#include "../../../../../src/server/scripts/Spells/spell_generic.cpp"
 
 inline std::string const GetActualBlessingOfMight(Unit* target)
 {
@@ -19,6 +20,7 @@ inline std::string const GetActualBlessingOfMight(Unit* target)
     {
         return "blessing of might";
     }
+
     int tab = AiFactory::GetPlayerSpecTab(target->ToPlayer());
     switch (target->getClass())
     {
@@ -88,6 +90,23 @@ inline std::string const GetActualBlessingOfWisdom(Unit* target)
     return "blessing of wisdom";
 }
 
+inline std::string const GetActualBlessingOfSanctuary(Unit* target, Player* bot)
+{
+    Player* targetPlayer = target->ToPlayer();
+
+    if (!targetPlayer)
+    {
+        return "blessing of sanctuary";
+    }
+
+    if (targetPlayer->HasTankSpec() && bot->HasSpell(SPELL_BLESSING_OF_SANCTUARY))
+    {
+        return "blessing of sanctuary";
+    }
+
+    return "blessing of kings";
+}
+
 Value<Unit*>* CastBlessingOnPartyAction::GetTargetValue()
 {
     return context->GetValue<Unit*>("party member without aura", name);
@@ -137,6 +156,20 @@ bool CastBlessingOfWisdomOnPartyAction::Execute(Event event)
         return false;
 
     return botAI->CastSpell(GetActualBlessingOfWisdom(target), target);
+}
+
+Value<Unit*>* CastBlessingOfSanctuaryOnPartyAction::GetTargetValue()
+{
+    return context->GetValue<Unit*>("party member without aura", "blessing of sanctuary,blessing of kings");
+}
+
+bool CastBlessingOfSanctuaryOnPartyAction::Execute(Event event)
+{
+    Unit* target = GetTarget();
+    if (!target)
+        return false;
+
+    return botAI->CastSpell(GetActualBlessingOfSanctuary(target, bot), target);
 }
 
 bool CastSealSpellAction::isUseful() { return AI_VALUE2(bool, "combat", "self target"); }
