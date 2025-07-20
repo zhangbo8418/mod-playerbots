@@ -46,7 +46,6 @@ class CreateSoulShardAction : public Action
 public:
     CreateSoulShardAction(PlayerbotAI* botAI) : Action(botAI, "create soul shard") {}
     bool Execute(Event event) override;
-    bool isUseful() override;
 };
 
 class DestroySoulShardAction : public InventoryAction
