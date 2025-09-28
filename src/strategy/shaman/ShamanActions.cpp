@@ -22,7 +22,7 @@ bool CastMagmaTotemAction::isUseful() {
     if (!target || !bot->IsWithinMeleeRange(target))
         return false;
 
-    return CastTotemAction::isUseful() && !AI_VALUE2(bool, "has totem", name); 
+    return CastTotemAction::isUseful() && !AI_VALUE2(bool, "has totem", name);
 }
 
 bool CastFireNovaAction::isUseful() {
@@ -32,11 +32,11 @@ bool CastFireNovaAction::isUseful() {
     Creature* fireTotem = bot->GetMap()->GetCreature(bot->m_SummonSlot[1]);
     if (!fireTotem)
         return false;
-    
+
     if (target->GetDistance(fireTotem) > 8.0f)
         return false;
-    
-    return CastMeleeSpellAction::isUseful(); 
+
+    return CastMeleeSpellAction::isUseful();
 }
 
 bool CastCleansingTotemAction::isUseful()
@@ -93,19 +93,26 @@ bool CastSpiritWalkAction::Execute(Event event)
 
 bool SetTotemAction::Execute(Event event)
 {
-    size_t spellIdsCount = sizeof(totemSpellIds) / sizeof(uint32);
+    const size_t spellIdsCount = sizeof(totemSpellIds) / sizeof(uint32);
+    if (spellIdsCount == 0)
+        return false;  // early return
 
     uint32 totemSpell = 0;
-    for (int i = spellIdsCount - 1; i >= 0; --i)
+
+    // Iterate backwards to prioritize the highest-rank totem spell the bot knows
+    for (size_t i = spellIdsCount; i-- > 0;)
     {
-        if (bot->HasSpell(totemSpellIds[i]))
+        const uint32 spellId = totemSpellIds[i];
+        if (bot->HasSpell(spellId))
         {
-            totemSpell = totemSpellIds[i];
+            totemSpell = spellId;
             break;
         }
     }
-    if (!totemSpell)
+
+    if (totemSpell == 0)
         return false;
+
     bot->addActionButton(actionButtonId, totemSpell, ACTION_BUTTON_SPELL);
     return true;
 }
