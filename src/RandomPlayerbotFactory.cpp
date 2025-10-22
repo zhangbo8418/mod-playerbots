@@ -898,7 +898,7 @@ void RandomPlayerbotFactory::CreateRandomGuilds()
                 const uint32 guildId   = f[0].Get<uint32>();
                 const uint32 accountId = f[1].Get<uint32>();
 
-                // Boss considered 'bot' if his account is in botAccounts
+                // Determine if guild leader's account is a bot account.
                 if (botAccounts.find(accountId) != botAccounts.end())
                 {
                     ++guildNumber;
