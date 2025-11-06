@@ -86,8 +86,8 @@ bool GuildInviteAction::isUseful()
 
 void GuildInviteAction::SendPacket(WorldPacket packet)
 {
-    WorldPackets::Guild::GuildInviteByName data = WorldPacket(packet);
-    bot->GetSession()->HandleGuildInviteOpcode(data);
+    WorldPacket* data = new WorldPacket(packet);
+    bot->GetSession()->QueuePacket(data);
 }
 
 bool GuildInviteAction::PlayerIsValid(Player* member)
@@ -103,8 +103,8 @@ bool GuildPromoteAction::isUseful()
 
 void GuildPromoteAction::SendPacket(WorldPacket packet)
 {
-    WorldPackets::Guild::GuildPromoteMember data = WorldPacket(packet);
-    bot->GetSession()->HandleGuildPromoteOpcode(data);
+    WorldPacket* data = new WorldPacket(packet);
+    bot->GetSession()->QueuePacket(data);
 }
 
 bool GuildPromoteAction::PlayerIsValid(Player* member)
@@ -119,8 +119,8 @@ bool GuildDemoteAction::isUseful()
 
 void GuildDemoteAction::SendPacket(WorldPacket packet)
 {
-    WorldPackets::Guild::GuildDemoteMember data = WorldPacket(packet);
-    bot->GetSession()->HandleGuildDemoteOpcode(data);
+    WorldPacket* data = new WorldPacket(packet);
+    bot->GetSession()->QueuePacket(data);
 }
 
 bool GuildDemoteAction::PlayerIsValid(Player* member)
@@ -135,8 +135,8 @@ bool GuildRemoveAction::isUseful()
 
 void GuildRemoveAction::SendPacket(WorldPacket packet)
 {
-    WorldPackets::Guild::GuildOfficerRemoveMember data = WorldPacket(packet);
-    bot->GetSession()->HandleGuildRemoveOpcode(data);
+    WorldPacket* data = new WorldPacket(packet);
+    bot->GetSession()->QueuePacket(data);
 }
 
 bool GuildRemoveAction::PlayerIsValid(Player* member)
