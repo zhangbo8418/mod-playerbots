@@ -8,6 +8,7 @@
 
 #include "Common.h"
 #include "ObjectGuid.h"
+#include <memory>
 
 /**
  * @brief Base class for thread-unsafe operations that must be executed in the world thread
