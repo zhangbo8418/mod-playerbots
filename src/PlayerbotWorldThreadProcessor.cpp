@@ -137,9 +137,7 @@ void PlayerbotWorldThreadProcessor::ProcessBatch()
             // Update statistics
             std::lock_guard<std::mutex> statsLock(m_statsMutex);
             if (success)
-            {
                 m_stats.totalOperationsProcessed++;
-            }
             else
             {
                 m_stats.totalOperationsFailed++;
