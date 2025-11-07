@@ -132,9 +132,7 @@ void PlayerbotWorldThreadProcessor::ProcessBatch()
 
             // Log slow operations
             if (executionTime > 100)
-            {
                 LOG_WARN("playerbots", "Slow operation: {} took {}ms", operation->GetName(), executionTime);
-            }
 
             // Update statistics
             std::lock_guard<std::mutex> statsLock(m_statsMutex);
@@ -201,9 +199,7 @@ void PlayerbotWorldThreadProcessor::ClearQueue()
 
     uint32 cleared = static_cast<uint32>(m_operationQueue.size());
     if (cleared > 0)
-    {
         LOG_INFO("playerbots", "Clearing {} queued operations", cleared);
-    }
 
     // Clear the queue
     while (!m_operationQueue.empty())
