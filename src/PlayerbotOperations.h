@@ -333,10 +333,8 @@ public:
                          member->GetName());
             }
             else
-            {
                 LOG_ERROR("playerbots", "ArenaGroupFormationOperation: Failed to add {} to arena group",
                          member->GetName());
-            }
         }
 
         if (addedMembers == 0)
@@ -416,9 +414,7 @@ public:
 
         Group* group = bot->GetGroup();
         if (group && !bot->InBattleground() && !bot->InBattlegroundQueue() && botAI->HasActivePlayerMaster())
-        {
             sPlayerbotDbStore->Save(botAI);
-        }
 
         return true;
     }
