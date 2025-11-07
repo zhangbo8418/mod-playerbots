@@ -12,6 +12,8 @@
 #include "GroupMgr.h"
 #include "PlayerbotAI.h"
 #include "Playerbots.h"
+#include "PlayerbotOperations.h"
+#include "PlayerbotWorldThreadProcessor.h"
 #include "PositionValue.h"
 #include "UpdateTime.h"
 
@@ -114,11 +116,6 @@ bool BGJoinAction::gatherArenaTeam(ArenaType type)
 
             if (member->InBattlegroundQueue())
                 continue;
-
-            if (member->GetGroup())
-                member->GetGroup()->RemoveMember(member->GetGUID());
-
-            memberBotAI->Reset();
         }
 
         if (member)
@@ -132,71 +129,20 @@ bool BGJoinAction::gatherArenaTeam(ArenaType type)
         return false;
     }
 
-    Group* group = new Group();
+    auto arenaOp = std::make_unique<ArenaGroupFormationOperation>(
+        bot->GetGUID(),
+        members,
+        (uint32)arenateam->GetType(),
+        arenateam->GetId(),
+        arenateam->GetName()
+    );
+    sPlayerbotWorldProcessor->QueueOperation(std::move(arenaOp));
 
-    // disband leaders group
-    if (bot->GetGroup())
-        bot->GetGroup()->Disband(true);
+    LOG_INFO("playerbots", "Bot {} <{}>: Queued arena group formation for <{}>",
+             bot->GetGUID().ToString().c_str(), bot->GetName(), arenateam->GetName());
 
-    if (!group->Create(bot))
-    {
-        LOG_INFO("playerbots", "Team #{} <{}>: Can't create group for arena queue", arenateam->GetId(),
-                 arenateam->GetName());
-        return false;
-    }
-    else
-        sGroupMgr->AddGroup(group);
-
-    LOG_INFO("playerbots", "Bot {} <{}>: Leader of <{}>", bot->GetGUID().ToString().c_str(), bot->GetName(),
-             arenateam->GetName());
-
-    for (auto i = begin(members); i != end(members); ++i)
-    {
-        if (*i == bot->GetGUID())
-            continue;
-
-        // if (count >= (int)arenateam->GetType())
-        // break;
-
-        if (group->GetMembersCount() >= (uint32)arenateam->GetType())
-            break;
-
-        Player* member = ObjectAccessor::FindConnectedPlayer(*i);
-        if (!member)
-            continue;
-
-        if (member->GetLevel() < 70)
-            continue;
-
-        if (!group->AddMember(member))
-            continue;
-
-        PlayerbotAI* memberBotAI = GET_PLAYERBOT_AI(member);
-        if (!memberBotAI)
-            continue;
-
-        memberBotAI->Reset();
-        member->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
-        member->TeleportTo(bot->GetMapId(), bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), 0);
-
-        LOG_INFO("playerbots", "Bot {} <{}>: Member of <{}>", member->GetGUID().ToString().c_str(),
-                 member->GetName().c_str(), arenateam->GetName().c_str());
-    }
-
-    if (group && group->GetMembersCount() >= (uint32)arenateam->GetType())
-    {
-        LOG_INFO("playerbots", "Team #{} <{}> Group is ready for match", arenateam->GetId(),
-                 arenateam->GetName().c_str());
-        return true;
-    }
-    else
-    {
-        LOG_INFO("playerbots", "Team #{} <{}> Group is not ready for match (not enough members)", arenateam->GetId(),
-                 arenateam->GetName().c_str());
-        group->Disband();
-    }
-
-    return false;
+    // Return true optimistically - the operation will handle success/failure asynchronously
+    return true;
 }
 
 bool BGJoinAction::canJoinBg(BattlegroundQueueTypeId queueTypeId, BattlegroundBracketId bracketId)
