@@ -337,7 +337,8 @@ public:
     void OnUpdate(uint32 diff) override
     {
         sPlayerbotWorldProcessor->Update(diff);
-        sRandomPlayerbotMgr->UpdateAI(diff);  // World thread only
+        sRandomPlayerbotMgr->UpdateAI(diff);
+        sRandomPlayerbotMgr->UpdateSessions();
     }
 };
 
@@ -399,7 +400,7 @@ public:
 
     void OnPlayerbotUpdate(uint32 diff) override
     {
-        sRandomPlayerbotMgr->UpdateSessions();  // Per-bot updates only
+        // UpdateSessions moved to world thread (OnUpdate)
     }
 
     void OnPlayerbotUpdateSessions(Player* player) override
