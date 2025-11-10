@@ -465,4 +465,36 @@ private:
     uint32 m_masterAccountId;
 };
 
+class OnBotLoginOperation : public PlayerbotOperation
+{
+public:
+    OnBotLoginOperation(ObjectGuid botGuid, PlayerbotHolder* holder)
+        : m_botGuid(botGuid), m_holder(holder)
+    {
+    }
+
+    bool Execute() override
+    {
+        Player* bot = ObjectAccessor::FindConnectedPlayer(m_botGuid);
+        if (!bot || !m_holder)
+            return false;
+
+        m_holder->OnBotLogin(bot);
+        return true;
+    }
+
+    ObjectGuid GetBotGuid() const override { return m_botGuid; }
+    uint32 GetPriority() const override { return 100; }
+    std::string GetName() const override { return "OnBotLogin"; }
+
+    bool IsValid() const override
+    {
+        return ObjectAccessor::FindConnectedPlayer(m_botGuid) != nullptr;
+    }
+
+private:
+    ObjectGuid m_botGuid;
+    PlayerbotHolder* m_holder;
+};
+
 #endif

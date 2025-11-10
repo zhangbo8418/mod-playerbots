@@ -196,7 +196,9 @@ void PlayerbotHolder::HandlePlayerBotLoginCallback(PlayerbotLoginQueryHolder con
     }
 
     sRandomPlayerbotMgr->OnPlayerLogin(bot);
-    OnBotLogin(bot);
+
+    auto op = std::make_unique<OnBotLoginOperation>(bot->GetGUID(), this);
+    sPlayerbotWorldProcessor->QueueOperation(std::move(op));
 
     botLoading.erase(holder.GetGuid());
 }
