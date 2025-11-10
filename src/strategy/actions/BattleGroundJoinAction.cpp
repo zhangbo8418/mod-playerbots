@@ -91,7 +91,10 @@ bool BGJoinAction::gatherArenaTeam(ArenaType type)
         //     continue;
 
         if (offline)
-            sRandomPlayerbotMgr->AddPlayerBot(itr->Guid, 0);
+        {
+            auto op = std::make_unique<AddPlayerBotOperation>(itr->Guid, 0);
+            sPlayerbotWorldProcessor->QueueOperation(std::move(op));
+        }
 
         if (member)
         {

@@ -15,6 +15,7 @@
 #include "PlayerbotAI.h"
 #include "PlayerbotMgr.h"
 #include "PlayerbotDbStore.h"
+#include "RandomPlayerbotMgr.h"
 
 // Group invite operation
 class GroupInviteOperation : public PlayerbotOperation
@@ -431,6 +432,37 @@ public:
 
 private:
     ObjectGuid m_botGuid;
+};
+
+// Add player bot operation (for logging in bots from map threads)
+class AddPlayerBotOperation : public PlayerbotOperation
+{
+public:
+    AddPlayerBotOperation(ObjectGuid botGuid, uint32 masterAccountId)
+        : m_botGuid(botGuid), m_masterAccountId(masterAccountId)
+    {
+    }
+
+    bool Execute() override
+    {
+        sRandomPlayerbotMgr->AddPlayerBot(m_botGuid, m_masterAccountId);
+        return true;
+    }
+
+    ObjectGuid GetBotGuid() const override { return m_botGuid; }
+
+    uint32 GetPriority() const override { return 50; }  // High priority
+
+    std::string GetName() const override { return "AddPlayerBot"; }
+
+    bool IsValid() const override
+    {
+        return !ObjectAccessor::FindConnectedPlayer(m_botGuid);
+    }
+
+private:
+    ObjectGuid m_botGuid;
+    uint32 m_masterAccountId;
 };
 
 #endif

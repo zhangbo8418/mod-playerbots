@@ -87,7 +87,6 @@ public:
 
 void PlayerbotHolder::AddPlayerBot(ObjectGuid playerGuid, uint32 masterAccountId)
 {
-    // bot is loading
     if (botLoading.find(playerGuid) != botLoading.end())
         return;
 
