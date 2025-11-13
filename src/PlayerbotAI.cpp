@@ -106,14 +106,14 @@ void PacketHandlingHelper::AddPacket(WorldPacket const& packet)
 PlayerbotAI::PlayerbotAI()
     : PlayerbotAIBase(true),
       bot(nullptr),
+      master(nullptr),
+      accountId(0),
       aiObjectContext(nullptr),
       currentEngine(nullptr),
+      currentState(BOT_STATE_NON_COMBAT),
       chatHelper(this),
       chatFilter(this),
-      accountId(0),
-      security(nullptr),
-      master(nullptr),
-      currentState(BOT_STATE_NON_COMBAT)
+      security(nullptr)
 {
     for (uint8 i = 0; i < BOT_STATE_MAX; i++)
         engines[i] = nullptr;
@@ -128,9 +128,9 @@ PlayerbotAI::PlayerbotAI()
 PlayerbotAI::PlayerbotAI(Player* bot)
     : PlayerbotAIBase(true),
       bot(bot),
+      master(nullptr),
       chatHelper(this),
       chatFilter(this),
-      master(nullptr),
       security(bot)  // reorder args - whipowill
 {
     if (!bot->isTaxiCheater() && HasCheat((BotCheatMask::taxi)))
@@ -1801,11 +1801,11 @@ int32 PlayerbotAI::GetAssistTankIndex(Player* player)
     {
         return -1;
     }
+
     int counter = 0;
     for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
     {
         Player* member = ref->GetSource();
-
         if (!member)
         {
             continue;
@@ -1815,11 +1815,13 @@ int32 PlayerbotAI::GetAssistTankIndex(Player* player)
         {
             return counter;
         }
+
         if (IsTank(member, true) && group->IsAssistant(member->GetGUID()))
         {
             counter++;
         }
     }
+
     return 0;
 }
 
@@ -2132,14 +2134,15 @@ bool PlayerbotAI::IsMainTank(Player* player)
             break;
         }
     }
+
     if (mainTank != ObjectGuid::Empty)
     {
         return player->GetGUID() == mainTank;
     }
+
     for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
     {
         Player* member = ref->GetSource();
-
         if (!member)
         {
             continue;
@@ -2150,6 +2153,7 @@ bool PlayerbotAI::IsMainTank(Player* player)
             return player->GetGUID() == member->GetGUID();
         }
     }
+
     return false;
 }
 
@@ -2171,8 +2175,7 @@ bool PlayerbotAI::IsBotMainTank(Player* player)
         return true;  // If no group, consider the bot as main tank
     }
 
-    uint32 botAssistTankIndex = GetAssistTankIndex(player);
-
+    int32 botAssistTankIndex = GetAssistTankIndex(player);
     if (botAssistTankIndex == -1)
     {
         return false;
@@ -2186,8 +2189,7 @@ bool PlayerbotAI::IsBotMainTank(Player* player)
             continue;
         }
 
-        uint32 memberAssistTankIndex = GetAssistTankIndex(member);
-
+        int32 memberAssistTankIndex = GetAssistTankIndex(member);
         if (memberAssistTankIndex == -1)
         {
             continue;
