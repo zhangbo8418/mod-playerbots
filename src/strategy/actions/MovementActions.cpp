@@ -951,7 +951,7 @@ bool MovementAction::IsMovingAllowed()
         return false;
 
     if (bot->isFrozen() || bot->IsPolymorphed() || (bot->isDead() && !bot->HasPlayerFlag(PLAYER_FLAGS_GHOST)) ||
-        bot->IsBeingTeleported() || bot->HasRootAura() || bot->HasSpiritOfRedemptionAura() || bot->HasConfuseAura() ||
+        bot->IsBeingTeleported() || bot->IsRooted() || bot->HasSpiritOfRedemptionAura() || bot->HasConfuseAura() ||
         bot->IsCharmed() || bot->HasStunAura() || bot->IsInFlight() || bot->HasUnitState(UNIT_STATE_LOST_CONTROL))
         return false;
 
@@ -974,7 +974,7 @@ void MovementAction::UpdateMovementState()
     const bool isCurrentlyRestricted = // see if the bot is currently slowed, rooted, or otherwise unable to move
         bot->isFrozen() ||
         bot->IsPolymorphed() ||
-        bot->HasRootAura() ||
+        bot->IsRooted() ||
         bot->HasStunAura() ||
         bot->HasConfuseAura() ||
         bot->HasUnitState(UNIT_STATE_LOST_CONTROL);
