@@ -1459,7 +1459,7 @@ void PlayerbotAI::ApplyInstanceStrategies(uint32 mapId, bool tellMaster)
             strategyName = "onyxia";  // Onyxia's Lair
             break;
         case 409:
-            strategyName = "mc";  // Molten Core
+            strategyName = "moltencore";  // Molten Core
             break;
         case 469:
             strategyName = "bwl";  // Blackwing Lair
@@ -2247,7 +2247,7 @@ uint32 PlayerbotAI::GetGroupTankNum(Player* player)
 
 bool PlayerbotAI::IsAssistTank(Player* player) { return IsTank(player) && !IsMainTank(player); }
 
-bool PlayerbotAI::IsAssistTankOfIndex(Player* player, int index)
+bool PlayerbotAI::IsAssistTankOfIndex(Player* player, int index, bool ignoreDeadPlayers)
 {
     Group* group = player->GetGroup();
     if (!group)
@@ -2263,6 +2263,9 @@ bool PlayerbotAI::IsAssistTankOfIndex(Player* player, int index)
         {
             continue;
         }
+
+        if (ignoreDeadPlayers && !member->IsAlive())
+            continue;
 
         if (group->IsAssistant(member->GetGUID()) && IsAssistTank(member))
         {
@@ -2282,6 +2285,9 @@ bool PlayerbotAI::IsAssistTankOfIndex(Player* player, int index)
         {
             continue;
         }
+
+        if (ignoreDeadPlayers && !member->IsAlive())
+            continue;
 
         if (!group->IsAssistant(member->GetGUID()) && IsAssistTank(member))
         {
