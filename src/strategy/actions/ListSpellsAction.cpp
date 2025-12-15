@@ -11,53 +11,39 @@
 std::map<uint32, SkillLineAbilityEntry const*> ListSpellsAction::skillSpells;
 std::set<uint32> ListSpellsAction::vendorItems;
 
-bool CompareSpells(const std::pair<uint32, std::string>& s1, const std::pair<uint32, std::string>& s2)
+bool CompareSpells(std::pair<uint32, std::string> const& lhs, std::pair<uint32, std::string> const& rhs)
 {
-    SpellInfo const* si1 = sSpellMgr->GetSpellInfo(s1.first);
-    SpellInfo const* si2 = sSpellMgr->GetSpellInfo(s2.first);
-    if (!si1 || !si2)
+    SpellInfo const* lhsInfo = sSpellMgr->GetSpellInfo(lhs.first);
+    SpellInfo const* rhsInfo = sSpellMgr->GetSpellInfo(rhs.first);
+
+    // Если почему-то нет SpellInfo — логируем и сортируем по id,
+    // чтобы компаратор оставался строгим и детерминированным.
+    if (!lhsInfo || !rhsInfo)
     {
-        LOG_ERROR("playerbots", "SpellInfo missing. {} {}", s1.first, s2.first);
-        return false;
-    }
-    uint32 p1 = si1->SchoolMask * 20000;
-    uint32 p2 = si2->SchoolMask * 20000;
-
-    uint32 skill1 = 0, skill2 = 0;
-    uint32 skillValue1 = 0, skillValue2 = 0;
-    for (uint32 j = 0; j < sSkillLineAbilityStore.GetNumRows(); ++j)
-    {
-        if (SkillLineAbilityEntry const* skillLine = sSkillLineAbilityStore.LookupEntry(j))
-        {
-            if (skillLine->Spell == s1.first)
-            {
-                skill1 = skillLine->SkillLine;
-                skillValue1 = skillLine->TrivialSkillLineRankLow;
-            }
-
-            if (skillLine->Spell == s2.first)
-            {
-                skill2 = skillLine->SkillLine;
-                skillValue2 = skillLine->TrivialSkillLineRankLow;
-            }
-        }
-
-        if (skill1 && skill2)
-            break;
+        LOG_ERROR("playerbots", "SpellInfo missing. {} {}", lhs.first, rhs.first);
+        return lhs.first < rhs.first;
     }
 
-    p1 += skill1 * 500;
-    p2 += skill2 * 500;
+    // Основной ключ сортировки – школа (как и раньше через SchoolMask,
+    // только без SkillLine/TrivialSkillLineRankLow, чтобы не лазить по DBC)
+    uint32 lhsKey = lhsInfo->SchoolMask;
+    uint32 rhsKey = rhsInfo->SchoolMask;
 
-    p1 += skillValue1;
-    p2 += skillValue2;
+    if (lhsKey != rhsKey)
+        return lhsKey > rhsKey;  // > — чтобы порядок «по убыванию» был ближе к старому поведению
 
-    if (p1 == p2)
-    {
-        return strcmp(si1->SpellName[0], si2->SpellName[0]) > 0;
-    }
+    // DBC защита: если имя спелла в DBC битое (nullptr),
+    // не вызываем std::strcmp вообще.
+    if (!lhsInfo->SpellName[0] || !rhsInfo->SpellName[0])
+        return lhs.first < rhs.first;
 
-    return p1 > p2;
+    int cmp = std::strcmp(lhsInfo->SpellName[0], rhsInfo->SpellName[0]);
+    if (cmp != 0)
+        return cmp > 0;  // > — оставить тот же «направленный» порядок, что и раньше
+
+    // Фолбэк: если имена совпали (или пустые/странные),
+    // упорядочим по id, чтобы компаратор был строгим.
+    return lhs.first < rhs.first;
 }
 
 std::vector<std::pair<uint32, std::string>> ListSpellsAction::GetSpellList(std::string filter)
