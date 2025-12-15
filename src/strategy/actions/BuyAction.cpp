@@ -224,38 +224,42 @@ bool BuyAction::Execute(Event event)
 
 bool BuyAction::BuyItem(VendorItemData const* tItems, ObjectGuid vendorguid, ItemTemplate const* proto)
 {
-    if (!tItems || !proto)
+    uint32 oldCount = AI_VALUE2(uint32, "item count", proto->Name1);
+
+    if (!tItems)
         return false;
 
     uint32 itemId = proto->ItemId;
-
-    // ВАЖНО: не создаём "item count::<Name1>" value в AiObjectContext
-    uint32 oldCount = bot->GetItemCount(itemId, false);
-
-    for (uint32 slot = 0; slot < tItems->GetItemCount(); ++slot)
+    for (uint32 slot = 0; slot < tItems->GetItemCount(); slot++)
     {
-        if (tItems->GetItem(slot)->item != itemId)
-            continue;
-
-        uint32 botMoney = bot->GetMoney();
-        if (botAI->HasCheat(BotCheatMask::gold))
-            bot->SetMoney(10000000);
-
-        bot->BuyItemFromVendorSlot(vendorguid, slot, itemId, 1, NULL_BAG, NULL_SLOT);
-
-        if (botAI->HasCheat(BotCheatMask::gold))
-            bot->SetMoney(botMoney);
-
-        uint32 newCount = bot->GetItemCount(itemId, false);
-        if (newCount > oldCount)
+        if (tItems->GetItem(slot)->item == itemId)
         {
-            std::ostringstream out;
-            out << "Buying " << ChatHelper::FormatItem(proto);
-            botAI->TellMaster(out.str());
-            return true;
-        }
+            uint32 botMoney = bot->GetMoney();
+            if (botAI->HasCheat(BotCheatMask::gold))
+            {
+                bot->SetMoney(10000000);
+            }
 
-        return false;
+            bot->BuyItemFromVendorSlot(vendorguid, slot, itemId, 1, NULL_BAG, NULL_SLOT);
+
+            if (botAI->HasCheat(BotCheatMask::gold))
+            {
+                bot->SetMoney(botMoney);
+            }
+
+            if (oldCount <
+                AI_VALUE2(
+                    uint32, "item count",
+                    proto->Name1))  // BuyItem Always returns false (unless unique) so we have to check the item counts.
+            {
+                std::ostringstream out;
+                out << "Buying " << ChatHelper::FormatItem(proto);
+                botAI->TellMaster(out.str());
+                return true;
+            }
+
+            return false;
+        }
     }
 
     return false;

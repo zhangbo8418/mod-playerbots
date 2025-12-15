@@ -9,7 +9,6 @@
 #include "Group.h"
 #include "GroupMgr.h"
 #include "GuildMgr.h"
-#include "Playerbots.h"
 #include "ObjectAccessor.h"
 #include "PlayerbotOperation.h"
 #include "Player.h"
@@ -17,8 +16,6 @@
 #include "PlayerbotMgr.h"
 #include "PlayerbotDbStore.h"
 #include "RandomPlayerbotMgr.h"
-#include "WorldSession.h"
-#include "WorldSessionMgr.h"
 
 // Group invite operation
 class GroupInviteOperation : public PlayerbotOperation
@@ -471,34 +468,18 @@ private:
 class OnBotLoginOperation : public PlayerbotOperation
 {
 public:
-    OnBotLoginOperation(ObjectGuid botGuid, uint32 masterAccountId)
-        : m_botGuid(botGuid), m_masterAccountId(masterAccountId)
+    OnBotLoginOperation(ObjectGuid botGuid, PlayerbotHolder* holder)
+        : m_botGuid(botGuid), m_holder(holder)
     {
     }
 
     bool Execute() override
     {
         Player* bot = ObjectAccessor::FindConnectedPlayer(m_botGuid);
-        if (!bot)
+        if (!bot || !m_holder)
             return false;
 
-        PlayerbotHolder* holder = nullptr;
-        if (m_masterAccountId)
-        {
-            WorldSession* masterSession = sWorldSessionMgr->FindSession(m_masterAccountId);
-            Player* masterPlayer = masterSession ? masterSession->GetPlayer() : nullptr;
-            if (masterPlayer)
-                holder = GET_PLAYERBOT_MGR(masterPlayer);
-        }
-        else
-        {
-            holder = sRandomPlayerbotMgr;
-        }
-
-        if (!holder)
-            return false;
-
-        holder->OnBotLogin(bot);
+        m_holder->OnBotLogin(bot);
         return true;
     }
 
@@ -513,7 +494,7 @@ public:
 
 private:
     ObjectGuid m_botGuid;
-    uint32 m_masterAccountId = 0;
+    PlayerbotHolder* m_holder;
 };
 
 #endif
