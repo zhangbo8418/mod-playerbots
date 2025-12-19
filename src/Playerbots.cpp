@@ -25,6 +25,7 @@
 #include "Metric.h"
 #include "PlayerScript.h"
 #include "PlayerbotAIConfig.h"
+#include "PlayerbotSpellCache.h"
 #include "PlayerbotWorldThreadProcessor.h"
 #include "RandomPlayerbotMgr.h"
 #include "ScriptMgr.h"
@@ -347,6 +348,9 @@ public:
 
         LOG_INFO("server.loading", ">> Loaded playerbots config in {} ms", GetMSTimeDiffToNow(oldMSTime));
         LOG_INFO("server.loading", " ");
+
+        sPlayerbotSpellCache->Initialize();
+
         LOG_INFO("server.loading", "Playerbots World Thread Processor initialized");
     }
 
