@@ -3,7 +3,6 @@
 ## Summary
 
 Describe what this change does and why it is needed.
-PULL_REQUEST_TEMPLATE
 ---
 
 ## Design Philosophy
