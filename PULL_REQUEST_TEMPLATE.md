@@ -1,8 +1,7 @@
 # Pull Request
 
-## Summary
+Describe what this change does and why it is needed...
 
-Describe what this change does and why it is needed.
 ---
 
 ## Design Philosophy
