@@ -109,6 +109,7 @@ If yes, please specify:
 AI assistance is allowed, but all submitted code must be fully understood, reviewed, and owned by the contributor.
 Any AI-influenced changes must be verified against existing CORE and PB logic. We expect contributors to be honest
 about what they do and do not understand.
+
 ---
 
 ## Final Checklist
