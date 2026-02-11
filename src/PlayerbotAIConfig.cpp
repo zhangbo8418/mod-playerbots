@@ -419,64 +419,86 @@ bool PlayerbotAIConfig::Initialize()
 
     LOG_INFO("server.loading", "Loading TalentSpecs...");
 
-    for (uint32 cls = 1; cls < MAX_CLASSES; ++cls)
+    // Skip heavy TalentSpec parsing in dry-run (e.g. worldserver -d for DB updates);
+    // it does thousands of DBC iterations and can take many minutes.
+    if (!sConfigMgr->isDryRun())
     {
-        if (cls == 10)
+        using SpecLinkCache = std::map<std::pair<uint32, std::string>, std::vector<std::vector<uint32>>>;
+        SpecLinkCache specLinkCache;
+        std::map<std::pair<uint32, std::string>, std::vector<std::vector<uint32>>> petLinkCache;
+
+        for (uint32 cls = 1; cls < MAX_CLASSES; ++cls)
         {
-            continue;
-        }
-        for (uint32 spec = 0; spec < MAX_SPECNO; ++spec)
-        {
-            std::ostringstream os;
-            os << "AiPlayerbot.PremadeSpecName." << cls << "." << spec;
-            premadeSpecName[cls][spec] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
-            os.str("");
-            os.clear();
-            os << "AiPlayerbot.PremadeSpecGlyph." << cls << "." << spec;
-            premadeSpecGlyph[cls][spec] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
-            std::vector<std::string> splitSpecGlyph = split(premadeSpecGlyph[cls][spec], ',');
-            for (std::string& split : splitSpecGlyph)
+            if (cls == 10)
+                continue;
+
+            for (uint32 spec = 0; spec < MAX_SPECNO; ++spec)
             {
-                if (split.size() != 0)
+                std::ostringstream os;
+                os << "AiPlayerbot.PremadeSpecName." << cls << "." << spec;
+                premadeSpecName[cls][spec] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
+                os.str("");
+                os.clear();
+                os << "AiPlayerbot.PremadeSpecGlyph." << cls << "." << spec;
+                premadeSpecGlyph[cls][spec] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
+                for (std::string const& part : split(premadeSpecGlyph[cls][spec], ','))
                 {
-                    parsedSpecGlyph[cls][spec].push_back(atoi(split.c_str()));
+                    if (!part.empty())
+                        parsedSpecGlyph[cls][spec].push_back(atoi(part.c_str()));
+                }
+
+                for (uint32 level = 0; level < MAX_LEVEL; ++level)
+                {
+                    os.str("");
+                    os.clear();
+                    os << "AiPlayerbot.PremadeSpecLink." << cls << "." << spec << "." << level;
+                    premadeSpecLink[cls][spec][level] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
+                    std::string const& link = premadeSpecLink[cls][spec][level];
+                    if (link.empty())
+                        parsedSpecLinkOrder[cls][spec][level].clear();
+                    else
+                    {
+                        auto key = std::make_pair(cls, link);
+                        auto it = specLinkCache.find(key);
+                        if (it == specLinkCache.end())
+                            it = specLinkCache.emplace(key, ParseTempTalentsOrder(cls, link)).first;
+                        parsedSpecLinkOrder[cls][spec][level] = it->second;
+                    }
                 }
             }
-            for (uint32 level = 0; level < MAX_LEVEL; ++level)
+
+            for (uint32 spec = 0; spec < 3; ++spec)
+            {
+                for (uint32 points = 0; points < 21; ++points)
+                {
+                    std::ostringstream os;
+                    os << "AiPlayerbot.PremadeHunterPetLink." << spec << "." << points;
+                    premadeHunterPetLink[spec][points] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
+                    std::string const& link = premadeHunterPetLink[spec][points];
+                    if (link.empty())
+                        parsedHunterPetLinkOrder[spec][points].clear();
+                    else
+                    {
+                        auto key = std::make_pair(spec, link);
+                        auto it = petLinkCache.find(key);
+                        if (it == petLinkCache.end())
+                            it = petLinkCache.emplace(key, ParseTempPetTalentsOrder(spec, link)).first;
+                        parsedHunterPetLinkOrder[spec][points] = it->second;
+                    }
+                }
+            }
+
+            for (uint32 spec = 0; spec < MAX_SPECNO; ++spec)
             {
                 std::ostringstream os;
-                os << "AiPlayerbot.PremadeSpecLink." << cls << "." << spec << "." << level;
-                premadeSpecLink[cls][spec][level] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
-                parsedSpecLinkOrder[cls][spec][level] = ParseTempTalentsOrder(cls, premadeSpecLink[cls][spec][level]);
+                os << "AiPlayerbot.RandomClassSpecProb." << cls << "." << spec;
+                uint32 def = (spec <= 1) ? 33 : (spec == 2 ? 34 : 0);
+                randomClassSpecProb[cls][spec] = sConfigMgr->GetOption<uint32>(os.str().c_str(), def, false);
+                os.str("");
+                os.clear();
+                os << "AiPlayerbot.RandomClassSpecIndex." << cls << "." << spec;
+                randomClassSpecIndex[cls][spec] = sConfigMgr->GetOption<uint32>(os.str().c_str(), spec, false);
             }
-        }
-        for (uint32 spec = 0; spec < 3; ++spec)
-        {
-            for (uint32 points = 0; points < 21; ++points)
-            {
-                std::ostringstream os;
-                os << "AiPlayerbot.PremadeHunterPetLink." << spec << "." << points;
-                premadeHunterPetLink[spec][points] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
-                parsedHunterPetLinkOrder[spec][points] =
-                    ParseTempPetTalentsOrder(spec, premadeHunterPetLink[spec][points]);
-            }
-        }
-        for (uint32 spec = 0; spec < MAX_SPECNO; ++spec)
-        {
-            std::ostringstream os;
-            os << "AiPlayerbot.RandomClassSpecProb." << cls << "." << spec;
-            uint32 def;
-            if (spec <= 1)
-                def = 33;
-            else if (spec == 2)
-                def = 34;
-            else
-                def = 0;
-            randomClassSpecProb[cls][spec] = sConfigMgr->GetOption<uint32>(os.str().c_str(), def, false);
-            os.str("");
-            os.clear();
-            os << "AiPlayerbot.RandomClassSpecIndex." << cls << "." << spec;
-            randomClassSpecIndex[cls][spec] = sConfigMgr->GetOption<uint32>(os.str().c_str(), spec, false);
         }
     }
 
@@ -877,9 +899,11 @@ static std::vector<std::string> split(const std::string& str, const std::string&
 
 std::vector<std::vector<uint32>> PlayerbotAIConfig::ParseTempTalentsOrder(uint32 cls, std::string tab_link)
 {
-    // check bad link
-    uint32 classMask = 1 << (cls - 1);
     std::vector<std::vector<uint32>> res;
+    if (tab_link.empty())
+        return res;
+
+    uint32 classMask = 1 << (cls - 1);
     std::vector<std::string> tab_links = split(tab_link, "-");
     std::map<uint32, std::vector<TalentEntry const*>> spells;
     std::vector<std::vector<std::vector<uint32>>> orders(3);
@@ -930,10 +954,11 @@ std::vector<std::vector<uint32>> PlayerbotAIConfig::ParseTempTalentsOrder(uint32
 
 std::vector<std::vector<uint32>> PlayerbotAIConfig::ParseTempPetTalentsOrder(uint32 spec, std::string tab_link)
 {
-    // check bad link
-    // uint32 classMask = 1 << (cls - 1);
-    std::vector<TalentEntry const*> spells;
     std::vector<std::vector<uint32>> orders;
+    if (tab_link.empty())
+        return orders;
+
+    std::vector<TalentEntry const*> spells;
     for (uint32 i = 0; i < sTalentStore.GetNumRows(); ++i)
     {
         TalentEntry const* talentInfo = sTalentStore.LookupEntry(i);
