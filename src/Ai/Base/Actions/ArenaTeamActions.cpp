@@ -12,6 +12,8 @@ bool ArenaTeamAcceptAction::Execute(Event event)
 {
     WorldPacket p(event.getPacket());
     p.rpos(0);
+    if (p.empty())
+        return false;
     Player* inviter = nullptr;
     std::string Invitedname;
     p >> Invitedname;
