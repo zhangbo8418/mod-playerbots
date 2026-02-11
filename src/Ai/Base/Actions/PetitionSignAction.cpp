@@ -13,6 +13,8 @@ bool PetitionSignAction::Execute(Event event)
 {
     WorldPacket p(event.getPacket());
     p.rpos(0);
+    if (p.size() < 16)  // petitionGuid + inviter (8+8 bytes)
+        return false;
     ObjectGuid petitionGuid;
     ObjectGuid inviter;
     uint8 unk = 0;
@@ -66,7 +68,7 @@ bool PetitionSignAction::Execute(Event event)
         */
     }
 
-    Player* _inviter = ObjectAccessor::FindPlayer(inviter);
+    Player* _inviter = ObjectAccessor::FindConnectedPlayer(inviter);
     if (!_inviter)
         return false;
 

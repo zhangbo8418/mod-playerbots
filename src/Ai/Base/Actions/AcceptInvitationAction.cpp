@@ -18,13 +18,19 @@ bool AcceptInvitationAction::Execute(Event event)
     if (!grp)
         return false;
     WorldPacket packet = event.getPacket();
+    if (packet.empty() || packet.size() < (1 + 1))  // at least flag (1) + name length byte or first char
+        return false;
     uint8 flag;
     std::string name;
     packet >> flag >> name;
 
-    Player* inviter = ObjectAccessor::FindPlayer(grp->GetLeaderGUID());
+    // Use FindConnectedPlayer so GMs (who may not be IsInWorld() in some states) can still be found
+    Player* inviter = ObjectAccessor::FindConnectedPlayer(grp->GetLeaderGUID());
     if (!inviter)
+    {
+        bot->UninviteFromGroup();
         return false;
+    }
 
     if (!botAI->GetSecurity()->CheckLevelFor(PLAYERBOT_SECURITY_INVITE, false, inviter))
     {

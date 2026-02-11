@@ -4295,7 +4295,7 @@ Player* PlayerbotAI::GetGroupLeader()
 {
     if (!bot->InBattleground())
         if (Group* group = bot->GetGroup())
-            if (Player* player = ObjectAccessor::FindPlayer(group->GetLeaderGUID()))
+            if (Player* player = ObjectAccessor::FindConnectedPlayer(group->GetLeaderGUID()))
                 return player;
 
     return master;

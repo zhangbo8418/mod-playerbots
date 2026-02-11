@@ -22,6 +22,8 @@ bool PartyCommandAction::Execute(Event event)
 {
     WorldPacket& p = event.getPacket();
     p.rpos(0);
+    if (p.empty() || p.size() < 4)  // at least operation (uint32)
+        return false;
     uint32 operation;
     std::string member;
 
@@ -53,6 +55,8 @@ bool UninviteAction::Execute(Event event)
     if (p.GetOpcode() == CMSG_GROUP_UNINVITE)
     {
         p.rpos(0);
+        if (p.empty())
+            return false;
         std::string memberName;
         p >> memberName;
 
@@ -69,6 +73,8 @@ bool UninviteAction::Execute(Event event)
     if (p.GetOpcode() == CMSG_GROUP_UNINVITE_GUID)
     {
         p.rpos(0);
+        if (p.size() < 8)  // ObjectGuid
+            return false;
         ObjectGuid guid;
         p >> guid;
 
