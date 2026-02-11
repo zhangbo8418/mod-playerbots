@@ -140,6 +140,8 @@ public:
     uint32 randomBotsPerInterval;
     uint32 minRandomBotsPriceChangeInterval, maxRandomBotsPriceChangeInterval;
     uint32 disabledWithoutRealPlayerLoginDelay, disabledWithoutRealPlayerLogoutDelay;
+    // Delay (seconds) before bots leave group when no real player remains (avoids disband on accidental disconnect)
+    uint32 botLeaveGroupDelayWhenNoRealPlayer;
     bool randomBotJoinLfg;
 
     // Buff system
