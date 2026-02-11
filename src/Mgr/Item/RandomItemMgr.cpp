@@ -5,6 +5,7 @@
 
 #include "RandomItemMgr.h"
 
+#include "DBCStores.h"
 #include "ItemTemplate.h"
 #include "LootValues.h"
 #include "Playerbots.h"
@@ -2821,37 +2822,14 @@ inline bool IsCraftedBy(ItemTemplate const* proto, uint32 spellId)
 
 inline bool ContainsInternal(ItemTemplate const* proto, uint32 skillId)
 {
-    for (uint32 j = 0; j < sSkillLineAbilityStore.GetNumRows(); ++j)
+    // 1) 使用 SkillLineAbility 的按技能线索引，精准、快速地查找由该专业技能制造的物品
+    for (SkillLineAbilityEntry const* ability : GetSkillLineAbilitiesBySkillLine(skillId))
     {
-        SkillLineAbilityEntry const* skillLine = sSkillLineAbilityStore.LookupEntry(j);
-        if (!skillLine || skillLine->ID != skillId)
-            continue;
-
-        if (IsCraftedBy(proto, skillLine->Spell))
+        if (IsCraftedBy(proto, ability->Spell))
             return true;
     }
 
-    CreatureTemplateContainer const* creatures = sObjectMgr->GetCreatureTemplates();
-    for (CreatureTemplateContainer::const_iterator itr = creatures->begin(); itr != creatures->end(); ++itr)
-    {
-        Trainer::Trainer* trainer = sObjectMgr->GetTrainer(itr->first);
-
-        if (!trainer)
-            continue;
-
-        if (trainer->GetTrainerType() != Trainer::Type::Tradeskill)
-            continue;
-
-        for (auto& spell : trainer->GetSpells())
-        {
-            if (spell.ReqSkillLine != skillId)
-                continue;
-
-            if (IsCraftedBy(proto, spell.SpellId))
-                return true;
-        }
-    }
-
+    // 2) 保留原先对“配方物品”的检查逻辑，保证功能行为不变
     std::vector<ItemTemplate*> const* itemTemplates = sObjectMgr->GetItemTemplateStoreFast();
     for (ItemTemplate const* recipe : *itemTemplates)
     {

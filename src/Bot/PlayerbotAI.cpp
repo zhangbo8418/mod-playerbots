@@ -1151,10 +1151,9 @@ void PlayerbotAI::HandleBotOutgoingPacket(WorldPacket const& packet)
                 {
                     time_t lastChat = GetAiObjectContext()->GetValue<time_t>("last said", "chat")->Get();
                     bool isPaused = time(0) < lastChat;
-                    bool isFromFreeBot = false;
                     sCharacterCache->GetCharacterNameByGuid(guid1, name);
                     uint32 accountId = sCharacterCache->GetCharacterAccountIdByGuid(guid1);
-                    isFromFreeBot = sPlayerbotAIConfig.IsInRandomAccountList(accountId);
+                    bool isFromFreeBot = sPlayerbotAIConfig.IsInRandomAccountList(accountId);
                     bool isMentioned = message.find(bot->GetName()) != std::string::npos;
 
                     // ChatChannelSource chatChannelSource = GetChatChannelSource(bot, msgtype, chanName);
@@ -1172,9 +1171,11 @@ void PlayerbotAI::HandleBotOutgoingPacket(WorldPacket const& packet)
                     if (lang == LANG_ADDON)
                         return;
 
+                    auto const& itemIds = GetChatHelper()->ExtractAllItemIds(message);
+                    auto const& questIds = GetChatHelper()->ExtractAllQuestIds(message);
+
                     if (message.starts_with(sPlayerbotAIConfig.toxicLinksPrefix) &&
-                        (GetChatHelper()->ExtractAllItemIds(message).size() > 0 ||
-                         GetChatHelper()->ExtractAllQuestIds(message).size() > 0) &&
+                        (!itemIds.empty() || !questIds.empty()) &&
                         sPlayerbotAIConfig.toxicLinksRepliesChance)
                     {
                         if (urand(0, 50) > 0 || urand(1, 100) > sPlayerbotAIConfig.toxicLinksRepliesChance)
@@ -1182,7 +1183,7 @@ void PlayerbotAI::HandleBotOutgoingPacket(WorldPacket const& packet)
                             return;
                         }
                     }
-                    else if ((GetChatHelper()->ExtractAllItemIds(message).count(19019) &&
+                    else if ((itemIds.count(19019) &&
                               sPlayerbotAIConfig.thunderfuryRepliesChance))
                     {
                         if (urand(0, 60) > 0 || urand(1, 100) > sPlayerbotAIConfig.thunderfuryRepliesChance)

@@ -270,6 +270,9 @@ private:
     std::vector<uint32> rndBotTypeAccounts;             // Accounts marked as RNDbot (type 1)
     std::vector<uint32> addClassTypeAccounts;           // Accounts marked as AddClass (type 2)
 
+    // Cached mapping of account_id -> account_type (0 = unassigned, 1 = RNDbot, 2 = AddClass)
+    std::unordered_map<uint32, uint8> _accountTypes;
+
     //void ScaleBotActivity();      // Deprecated function
     static inline uint32 NowSeconds() { return static_cast<uint32>(GameTime::GetGameTime().count()); }
 };
