@@ -190,6 +190,8 @@ public:
     void AssignAccountTypes();
     bool IsAccountType(uint32 accountId, uint8 accountType);
 
+    void ScheduleGroupDelayedLeave(Group* group);
+
 protected:
     void OnBotLoginInternal(Player* const bot) override;
 
@@ -270,7 +272,6 @@ private:
 
     // Groups scheduled for bot leave when no real player remains (groupGuidLow -> leave at time)
     std::map<ObjectGuid::LowType, time_t> m_groupsScheduledToLeave;
-    void ScheduleGroupDelayedLeave(Group* group);
     void ProcessScheduledGroupLeaves();
 
     // Account lists
