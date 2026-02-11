@@ -8,6 +8,7 @@
 #include "Event.h"
 #include "PlayerbotAIConfig.h"
 #include "Playerbots.h"
+#include "RandomPlayerbotMgr.h"
 
 bool LeaveGroupAction::Execute(Event event)
 {
@@ -42,6 +43,13 @@ bool PartyCommandAction::Execute(Event event)
                 return false;
             }
         }
+
+        if (sPlayerbotAIConfig.botLeaveGroupDelayWhenNoRealPlayer > 0)
+        {
+            sRandomPlayerbotMgr.ScheduleGroupDelayedLeave(bot->GetGroup());
+            return false;
+        }
+
         return Leave();
     }
     return false;
