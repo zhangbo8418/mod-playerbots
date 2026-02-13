@@ -440,7 +440,7 @@ std::vector<std::pair<T, WorldPosition>> GetPosList(std::vector<T> oList)
     for (auto& obj : oList)
         retList.push_back(std::make_pair(obj, WorldPosition(obj)));
 
-    return std::move(retList);
+    return retList;
 };
 
 template <class T>
@@ -450,7 +450,7 @@ std::vector<std::pair<T, WorldPosition>> GetPosVector(std::vector<T> oList)
     for (auto& obj : oList)
         retList.push_back(make_pair(obj, WorldPosition(obj)));
 
-    return std::move(retList);
+    return retList;
 };
 
 class mapTransfer
