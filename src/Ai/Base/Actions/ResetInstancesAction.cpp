@@ -6,11 +6,22 @@
 #include "ResetInstancesAction.h"
 
 #include "Playerbots.h"
+#include "Group.h"
+#include "Player.h"
+#include "SharedDefines.h"
 
-bool ResetInstancesAction::Execute(Event event)
+bool ResetInstancesAction::Execute(Event /*event*/)
 {
-    WorldPacket packet(CMSG_RESET_INSTANCES, 0);
-    bot->GetSession()->HandleResetInstancesOpcode(packet);
+    // Mirror WorldSession::HandleResetInstancesOpcode logic without relying on packet type
+    if (Group* group = bot->GetGroup())
+    {
+        if (group->IsLeader(bot->GetGUID()))
+            group->ResetInstances(INSTANCE_RESET_ALL, false, bot);
+    }
+    else
+    {
+        Player::ResetInstances(bot->GetGUID(), INSTANCE_RESET_ALL, false);
+    }
 
     botAI->TellMaster(botAI->BotTextForMaster("tell_reset_instances", "Resetting all instances"));
     return true;
