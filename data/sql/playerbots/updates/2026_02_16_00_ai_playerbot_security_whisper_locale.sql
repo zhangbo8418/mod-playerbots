@@ -55,6 +55,8 @@ INSERT INTO `ai_playerbot_texts` (`name`, `text`, `say_type`, `reply_type`, `tex
 ('tell_ready_flight', 'I am ready for the next flight', 0, 0, '', '', '', '准备好下一班飞行了', '', '', '', '', ''),
 ('tell_taxi_header', '=== Taxi ===', 0, 0, '', '', '', '=== 飞行 ===', '', '', '', '', ''),
 ('tell_quest_accepted', 'Quest accepted', 0, 0, '', '', '', '任务已接受', '', '', '', '', ''),
+('tell_quest_failed_timer_link', 'Failed timer for %quest_link, abandoning', 0, 0, '', '', '', '%quest_link 的计时失败，正在放弃任务。', '', '', '', '', ''),
+('tell_quest_failed_timer_id', 'Failed timer for quest %quest_id, abandoning', 0, 0, '', '', '', '任务 %quest_id 的计时失败，正在放弃任务。', '', '', '', '', ''),
 
 -- More TellMaster (trainer, craft, trade, bank, follow, chat shortcuts)
 ('tell_maintaining', 'I''m maintaining', 0, 0, '', '', '', '我在维护', '', '', '', '', ''),

@@ -454,12 +454,14 @@ bool QuestUpdateFailedTimerAction::Execute(Event event)
     {
         std::map<std::string, std::string> placeholders;
         placeholders["%quest_link"] = botAI->GetChatHelper()->FormatQuest(qInfo);
-        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotText("Failed timer for %quest_link, abandoning", placeholders));
+        botAI->TellMaster(botAI->BotTextForMaster("tell_quest_failed_timer_link", "Failed timer for %quest_link, abandoning", placeholders));
         BroadcastHelper::BroadcastQuestUpdateFailedTimer(botAI, bot, qInfo);
     }
     else
     {
-        botAI->TellMaster("Failed timer for " + std::to_string(questId));
+        std::map<std::string, std::string> placeholders;
+        placeholders["%quest_id"] = std::to_string(questId);
+        botAI->TellMaster(botAI->BotTextForMaster("tell_quest_failed_timer_id", "Failed timer for quest %quest_id, abandoning", placeholders));
     }
 
     //drop quest
