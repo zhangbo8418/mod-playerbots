@@ -22,7 +22,7 @@ bool ReleaseSpiritAction::Execute(Event event)
     {
         if (!bot->InBattleground())
         {
-            botAI->TellMasterNoFacing("I am not dead, will wait here");
+            botAI->TellMasterNoFacing(botAI->BotTextForMaster("tell_not_dead_wait", "I am not dead, will wait here"));
             // -follow in bg is overwriten each tick with +follow
             // +stay in bg causes stuttering effect as bot is cycled between +stay and +follow each tick
             botAI->ChangeStrategy("-follow,+stay", BOT_STATE_NON_COMBAT);
@@ -33,7 +33,7 @@ bool ReleaseSpiritAction::Execute(Event event)
 
     if (bot->GetCorpse() && bot->HasPlayerFlag(PLAYER_FLAGS_GHOST))
     {
-        botAI->TellMasterNoFacing("I am already a spirit");
+        botAI->TellMasterNoFacing(botAI->BotTextForMaster("tell_already_spirit", "I am already a spirit"));
         return false;
     }
 

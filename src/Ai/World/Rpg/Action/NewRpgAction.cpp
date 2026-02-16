@@ -20,6 +20,7 @@
 #include "PathGenerator.h"
 #include "Player.h"
 #include "PlayerbotAI.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 #include "Position.h"
 #include "QuestDef.h"
@@ -51,13 +52,22 @@ bool StartRpgDoQuestAction::Execute(Event event)
     PlayerbotChatHandler ch(owner);
     uint32 questId = ch.extractQuestId(text);
     const Quest* quest = sObjectMgr->GetQuestTemplate(questId);
+    uint32 locale = owner->GetSession() ? owner->GetSession()->GetSessionDbLocaleIndex() : 0;
+    if (locale >= MAX_LOCALES)
+        locale = 0;
     if (quest)
     {
         botAI->rpgInfo.ChangeToDoQuest(questId, quest);
-        bot->Whisper("Start to do quest " + std::to_string(questId), LANG_UNIVERSAL, owner);
+        std::map<std::string, std::string> ph;
+        ph["%quest_id"] = std::to_string(questId);
+        std::string msg = PlayerbotTextMgr::instance().GetBotText("tell_quest_start", ph, locale);
+        bot->Whisper(msg.empty() ? "Start to do quest " + std::to_string(questId) : msg, LANG_UNIVERSAL, owner);
         return true;
     }
-    bot->Whisper("Invalid quest " + text, LANG_UNIVERSAL, owner);
+    std::map<std::string, std::string> ph;
+    ph["%text"] = text;
+    std::string msg = PlayerbotTextMgr::instance().GetBotText("tell_quest_invalid", ph, locale);
+    bot->Whisper(msg.empty() ? "Invalid quest " + text : msg, LANG_UNIVERSAL, owner);
     return false;
 }
 

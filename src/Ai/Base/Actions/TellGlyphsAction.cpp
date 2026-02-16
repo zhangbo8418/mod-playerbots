@@ -105,7 +105,7 @@ bool TellGlyphsAction::Execute(Event event)
     // 4. Send chat messages
     //-----------------------------------------------------------------
     if (first)                                       // no glyphs
-        botAI->TellMaster("No glyphs equipped");
+        botAI->TellMaster(botAI->BotTextForMaster("tell_no_glyphs", "No glyphs equipped"));
     else
         botAI->TellMaster(std::string("Glyphs: ") + list.str());
 

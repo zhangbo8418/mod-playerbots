@@ -9,7 +9,9 @@
 #include "Event.h"
 #include "ItemVisitors.h"
 #include "Mail.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
+#include "SharedDefines.h"
 
 bool SendMailAction::Execute(Event event)
 {
@@ -51,16 +53,22 @@ bool SendMailAction::Execute(Event event)
     if (!tellTo)
         tellTo = receiver;
 
+    uint32 tellToLocale = tellTo->GetSession() ? tellTo->GetSession()->GetSessionDbLocaleIndex() : 0;
+    if (tellToLocale >= MAX_LOCALES)
+        tellToLocale = 0;
+
     if (!mailboxFound && !randomBot)
     {
-        bot->Whisper("There is no mailbox nearby", LANG_UNIVERSAL, tellTo);
+        std::string msg = PlayerbotTextMgr::instance().GetBotText("tell_no_mailbox", tellToLocale);
+        bot->Whisper(msg.empty() ? "There is no mailbox nearby" : msg, LANG_UNIVERSAL, tellTo);
         return false;
     }
 
     ItemIds ids = chat->parseItems(text);
     if (ids.size() > 1)
     {
-        bot->Whisper("You can not request more than one item", LANG_UNIVERSAL, tellTo);
+        std::string msg = PlayerbotTextMgr::instance().GetBotText("tell_one_item_only", tellToLocale);
+        bot->Whisper(msg.empty() ? "You can not request more than one item" : msg, LANG_UNIVERSAL, tellTo);
         return false;
     }
 
@@ -72,7 +80,8 @@ bool SendMailAction::Execute(Event event)
 
         if (randomBot)
         {
-            bot->Whisper("I cannot send money", LANG_UNIVERSAL, tellTo);
+            std::string msg = PlayerbotTextMgr::instance().GetBotText("tell_cannot_send_money", tellToLocale);
+            bot->Whisper(msg.empty() ? "I cannot send money" : msg, LANG_UNIVERSAL, tellTo);
             return false;
         }
 

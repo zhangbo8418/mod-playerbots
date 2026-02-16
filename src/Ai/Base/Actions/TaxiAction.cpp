@@ -24,7 +24,7 @@ bool TaxiAction::Execute(Event event)
     {
         movement.taxiNodes.clear();
         movement.Set(nullptr);
-        botAI->TellMaster("I am ready for the next flight");
+        botAI->TellMaster(botAI->BotTextForMaster("tell_ready_flight", "I am ready for the next flight"));
         return true;
     }
 
@@ -82,7 +82,7 @@ bool TaxiAction::Execute(Event event)
 
         if (param == "?")
         {
-            botAI->TellMasterNoFacing("=== Taxi ===");
+            botAI->TellMasterNoFacing(botAI->BotTextForMaster("tell_taxi_header", "=== Taxi ==="));
 
             uint32 index = 1;
             for (uint32 node : nodes)

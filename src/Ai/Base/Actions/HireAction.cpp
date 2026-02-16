@@ -29,13 +29,13 @@ bool HireAction::Execute(Event event)
 
     if (charCount >= 10)
     {
-        botAI->TellMaster("You already have the maximum number of characters");
+        botAI->TellMaster(botAI->BotTextForMaster("tell_max_characters", "You already have the maximum number of characters"));
         return false;
     }
 
     if (bot->GetLevel() > master->GetLevel())
     {
-        botAI->TellMaster("You cannot hire higher level characters than you");
+        botAI->TellMaster(botAI->BotTextForMaster("tell_hire_level", "You cannot hire higher level characters than you"));
         return false;
     }
 
@@ -51,7 +51,7 @@ bool HireAction::Execute(Event event)
         return false;
     }
 
-    botAI->TellMaster("I will join you at your next relogin");
+    botAI->TellMaster(botAI->BotTextForMaster("tell_join_on_relogin", "I will join you at your next relogin"));
 
     bot->SetMoney(moneyReq);
     sRandomPlayerbotMgr.Remove(bot);

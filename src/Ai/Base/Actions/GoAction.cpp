@@ -60,7 +60,7 @@ bool GoAction::Execute(Event event)
         }
         else
         {
-            botAI->TellMasterNoFacing("Clearing travel target");
+            botAI->TellMasterNoFacing(botAI->BotTextForMaster("tell_clear_travel", "Clearing travel target"));
             target->setTarget(TravelMgr::instance().nullTravelDestination, TravelMgr::instance().nullWorldPosition);
             target->setForced(false);
             return true;
@@ -179,7 +179,7 @@ bool GoAction::Execute(Event event)
         if (ServerFacade::instance().IsDistanceGreaterThan(ServerFacade::instance().GetDistance2d(bot, x, y),
                                                  sPlayerbotAIConfig.reactDistance))
         {
-            botAI->TellMaster("It is too far away");
+            botAI->TellMaster(botAI->BotTextForMaster("tell_too_far", "It is too far away"));
             return false;
         }
 
@@ -222,6 +222,6 @@ bool GoAction::Execute(Event event)
         return MoveNear(bot->GetMapId(), pos.x, pos.y, pos.z + 0.5f, sPlayerbotAIConfig.followDistance);
     }
 
-    botAI->TellMaster("Whisper 'go x,y', 'go [game object]', 'go unit' or 'go position' and I will go there");
+    botAI->TellMaster(botAI->BotTextForMaster("tell_go_usage", "Whisper 'go x,y', 'go [game object]', 'go unit' or 'go position' and I will go there"));
     return false;
 }

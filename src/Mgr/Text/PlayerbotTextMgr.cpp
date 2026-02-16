@@ -91,6 +91,31 @@ std::string PlayerbotTextMgr::GetBotText(std::string name)
     return !textEntry.m_text[GetLocalePriority()].empty() ? textEntry.m_text[GetLocalePriority()] : textEntry.m_text[0];
 }
 
+std::string PlayerbotTextMgr::GetBotText(std::string name, uint32 locale)
+{
+    if (botTexts.empty() || botTexts[name].empty())
+        return "";
+
+    if (locale >= MAX_LOCALES)
+        locale = 0;
+
+    std::vector<BotTextEntry>& list = botTexts[name];
+    BotTextEntry textEntry = list[urand(0, list.size() - 1)];
+    return !textEntry.m_text[locale].empty() ? textEntry.m_text[locale] : textEntry.m_text[0];
+}
+
+std::string PlayerbotTextMgr::GetBotText(std::string name, std::map<std::string, std::string> placeholders, uint32 locale)
+{
+    std::string botText = GetBotText(name, locale);
+    if (botText.empty())
+        return "";
+
+    for (std::map<std::string, std::string>::iterator i = placeholders.begin(); i != placeholders.end(); ++i)
+        replaceAll(botText, i->first, i->second);
+
+    return botText;
+}
+
 std::string PlayerbotTextMgr::GetBotText(std::string name, std::map<std::string, std::string> placeholders)
 {
     std::string botText = GetBotText(name);

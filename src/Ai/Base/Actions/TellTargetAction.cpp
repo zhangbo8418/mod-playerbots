@@ -26,7 +26,7 @@ bool TellTargetAction::Execute(Event event)
 
 bool TellAttackersAction::Execute(Event event)
 {
-    botAI->TellMaster("--- Attackers ---");
+    botAI->TellMaster(botAI->BotTextForMaster("tell_attackers_header", "--- Attackers ---"));
 
     GuidVector attackers = context->GetValue<GuidVector>("attackers")->Get();
     int32 count = 0;
@@ -39,7 +39,7 @@ bool TellAttackersAction::Execute(Event event)
         botAI->TellMaster(std::to_string(++count) + std::string(".") + unit->GetName());
     }
 
-    botAI->TellMaster("--- Threat ---");
+    botAI->TellMaster(botAI->BotTextForMaster("tell_threat_header", "--- Threat ---"));
 
     HostileReference* ref = bot->getHostileRefMgr().getFirst();
     if (!ref)

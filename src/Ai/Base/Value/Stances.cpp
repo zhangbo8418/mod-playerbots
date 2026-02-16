@@ -255,7 +255,7 @@ bool SetStanceAction::Execute(Event event)
         std::ostringstream str;
         str << "Invalid stance: |cffff0000" << stance;
         botAI->TellMaster(str);
-        botAI->TellMaster("Please set to any of:|cffffffff near (default), tank, turnback, behind");
+        botAI->TellMaster(botAI->BotTextForMaster("tell_stance_usage", "Please set to any of:|cffffffff near (default), tank, turnback, behind"));
         return false;
     }
 

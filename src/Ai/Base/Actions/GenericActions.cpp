@@ -114,7 +114,7 @@ bool TogglePetSpellAutoCastAction::Execute(Event event)
 
     // Debug message if pet spells have been toggled and debug is enabled
     if (toggled && sPlayerbotAIConfig.petChatCommandDebug == 1)
-        botAI->TellMaster("Pet autocast spells have been toggled.");
+        botAI->TellMaster(botAI->BotTextForMaster("tell_pet_autocast_toggled", "Pet autocast spells have been toggled."));
 
     return toggled;
 }

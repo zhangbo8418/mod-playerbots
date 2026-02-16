@@ -69,6 +69,9 @@ public:
 
     std::string GetBotText(std::string name, std::map<std::string, std::string> placeholders);
     std::string GetBotText(std::string name);
+    /** Get bot text for a specific locale (e.g. receiver's locale for whispers). Falls back to locale 0 if empty. */
+    std::string GetBotText(std::string name, uint32 locale);
+    std::string GetBotText(std::string name, std::map<std::string, std::string> placeholders, uint32 locale);
     std::string GetBotText(ChatReplyType replyType, std::map<std::string, std::string> placeholders);
     std::string GetBotText(ChatReplyType replyType, std::string name);
     bool GetBotText(std::string name, std::string& text);

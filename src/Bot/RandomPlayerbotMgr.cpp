@@ -3204,7 +3204,7 @@ void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
                 {
                     botAI->SetMaster(player);
                     botAI->ResetStrategies();
-                    botAI->TellMaster("Hello");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_hello", "Hello"));
                 }
 
                 break;

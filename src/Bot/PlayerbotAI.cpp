@@ -42,6 +42,7 @@
 #include "PlayerbotRepository.h"
 #include "PlayerbotMgr.h"
 #include "PlayerbotGuildMgr.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 #include "PositionValue.h"
 #include "RandomPlayerbotMgr.h"
@@ -422,9 +423,9 @@ void PlayerbotAI::UpdateAIGroupMaster()
                 botAI->ChangeStrategy("+follow", BOT_STATE_NON_COMBAT);
 
                 if (botAI->GetMaster() == botAI->GetGroupLeader())
-                    botAI->TellMaster("Hello, I follow you!");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_hello_follow", "Hello, I follow you!"));
                 else
-                    botAI->TellMaster(!urand(0, 2) ? "Hello!" : "Hi!");
+                    botAI->TellMaster(!urand(0, 2) ? botAI->BotTextForMaster("tell_hello", "Hello!") : botAI->BotTextForMaster("tell_hi", "Hi!"));
             }
             else
             {
@@ -826,7 +827,7 @@ void PlayerbotAI::Reset(bool full)
     {
         WorldPackets::Character::LogoutCancel data = WorldPacket(CMSG_LOGOUT_CANCEL);
         bot->GetSession()->HandleLogoutCancelOpcode(data);
-        TellMaster("Logout cancelled!");
+        TellMaster(BotTextForMaster("tell_logout_cancelled", "Logout cancelled!"));
     }
 
     currentEngine = engines[BOT_STATE_NON_COMBAT];
@@ -1020,7 +1021,7 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
         if (!bot->GetSession()->isLogingOut())
         {
             if (type == CHAT_MSG_WHISPER)
-                TellMaster("I'm logging out!");
+                TellMaster(BotTextForMaster("tell_logging_out", "I'm logging out!"));
 
             PlayerbotMgr* masterBotMgr = nullptr;
             if (master)
@@ -1034,7 +1035,7 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
         if (bot->GetSession()->isLogingOut())
         {
             if (type == CHAT_MSG_WHISPER)
-                TellMaster("Logout cancelled!");
+                TellMaster(BotTextForMaster("tell_logout_cancelled", "Logout cancelled!"));
 
             WorldPackets::Character::LogoutCancel data = WorldPacket(CMSG_LOGOUT_CANCEL);
             bot->GetSession()->HandleLogoutCancelOpcode(data);
@@ -2794,6 +2795,28 @@ bool PlayerbotAI::Say(const std::string& msg)
     }
 
     return true;
+}
+
+uint32 PlayerbotAI::GetMasterLocale() const
+{
+    Player* m = GetMaster();
+    if (!m || !m->GetSession())
+        return 0;
+    uint32 loc = m->GetSession()->GetSessionDbLocaleIndex();
+    return loc < MAX_LOCALES ? loc : 0;
+}
+
+std::string PlayerbotAI::BotTextForMaster(std::string const& key, std::string const& defaultText) const
+{
+    std::string t = PlayerbotTextMgr::instance().GetBotText(key, GetMasterLocale());
+    return t.empty() ? defaultText : t;
+}
+
+std::string PlayerbotAI::BotTextForMaster(std::string const& key, std::string const& defaultText,
+                                          std::map<std::string, std::string> const& placeholders) const
+{
+    std::string t = PlayerbotTextMgr::instance().GetBotText(key, placeholders, GetMasterLocale());
+    return t.empty() ? defaultText : t;
 }
 
 bool PlayerbotAI::Whisper(const std::string& msg, const std::string& receiverName)

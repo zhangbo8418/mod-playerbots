@@ -75,13 +75,13 @@ bool SummonAction::Execute(Event event)
 
     if (SummonUsingGos(master, bot, true) || SummonUsingNpcs(master, bot, true))
     {
-        botAI->TellMasterNoFacing("Hello!");
+        botAI->TellMasterNoFacing(botAI->BotTextForMaster("tell_hello", "Hello!"));
         return true;
     }
 
     if (SummonUsingGos(bot, master, true) || SummonUsingNpcs(bot, master, true))
     {
-        botAI->TellMasterNoFacing("Welcome!");
+        botAI->TellMasterNoFacing(botAI->BotTextForMaster("tell_welcome", "Welcome!"));
         return true;
     }
 
@@ -201,7 +201,7 @@ bool SummonAction::Teleport(Player* summoner, Player* player, bool preserveAuras
                 {
                     bot->ResurrectPlayer(1.0f, false);
                     bot->SpawnCorpseBones();
-                    botAI->TellMasterNoFacing("I live, again!");
+                    botAI->TellMasterNoFacing(botAI->BotTextForMaster("tell_live_again", "I live, again!"));
                     botAI->GetAiObjectContext()->GetValue<GuidVector>("prioritized targets")->Reset();
                 }
 

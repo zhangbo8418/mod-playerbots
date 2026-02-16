@@ -12,9 +12,11 @@
 #include "ItemVisitors.h"
 #include "PlayerbotMgr.h"
 #include "PlayerbotSecurity.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 #include "RandomPlayerbotMgr.h"
 #include "SetCraftAction.h"
+#include "SharedDefines.h"
 
 bool TradeStatusAction::Execute(Event event)
 {
@@ -26,15 +28,20 @@ bool TradeStatusAction::Execute(Event event)
     PlayerbotAI* traderBotAI = GET_PLAYERBOT_AI(trader);
 
     // Allow the master and group members to trade
+    uint32 traderLocale = trader->GetSession() ? trader->GetSession()->GetSessionDbLocaleIndex() : 0;
+    if (traderLocale >= MAX_LOCALES)
+        traderLocale = 0;
     if (trader != master && !traderBotAI && (!bot->GetGroup() || !bot->GetGroup()->IsMember(trader->GetGUID())))
     {
-        bot->Whisper("I'm kind of busy now", LANG_UNIVERSAL, trader);
+        std::string msg = PlayerbotTextMgr::instance().GetBotText("security_busy", traderLocale);
+        bot->Whisper(msg.empty() ? "I'm kind of busy now" : msg, LANG_UNIVERSAL, trader);
         return false;
     }
 
     if (sPlayerbotAIConfig.enableRandomBotTrading == 0 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-        bot->Whisper("Trading is disabled", LANG_UNIVERSAL, trader);
+        std::string msg = PlayerbotTextMgr::instance().GetBotText("tell_trading_disabled", traderLocale);
+        bot->Whisper(msg.empty() ? "Trading is disabled" : msg, LANG_UNIVERSAL, trader);
         return false;
     }
 
@@ -138,7 +145,7 @@ void TradeStatusAction::BeginTrade()
     ListItemsVisitor visitor;
     IterateItems(&visitor);
 
-    botAI->TellMaster("=== Inventory ===");
+    botAI->TellMaster(botAI->BotTextForMaster("tell_inventory_header", "=== Inventory ==="));
     TellItems(visitor.items, visitor.soulbound);
 
     if (sRandomPlayerbotMgr.IsRandomBot(bot))
@@ -186,7 +193,7 @@ bool TradeStatusAction::CheckTrade()
         {
             if (bot->GetGroup() && bot->GetGroup()->IsMember(bot->GetTrader()->GetGUID()) &&
                 botAI->HasRealPlayerMaster())
-                botAI->TellMasterNoFacing("Thank you " + chat->FormatWorldobject(bot->GetTrader()));
+                botAI->TellMasterNoFacing(botAI->BotTextForMaster("tell_thank_you", "Thank you %target", {{"%target", chat->FormatWorldobject(bot->GetTrader())}}));
             else
                 bot->Say("Thank you " + chat->FormatWorldobject(bot->GetTrader()),
                          (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));
@@ -216,12 +223,14 @@ bool TradeStatusAction::CheckTrade()
     int32 playerMoney = trader->GetTradeData()->GetMoney() + playerItemsMoney;
     if (botItemsMoney > 0 && sPlayerbotAIConfig.enableRandomBotTrading == 2 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-        bot->Whisper("Selling is disabled.", LANG_UNIVERSAL, trader);
+        std::string sellMsg = PlayerbotTextMgr::instance().GetBotText("tell_selling_disabled", traderLocale);
+        bot->Whisper(sellMsg.empty() ? "Selling is disabled." : sellMsg, LANG_UNIVERSAL, trader);
         return false;
     }
     if (playerItemsMoney && sPlayerbotAIConfig.enableRandomBotTrading == 3 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-        bot->Whisper("Buying is disabled.", LANG_UNIVERSAL, trader);
+        std::string buyMsg = PlayerbotTextMgr::instance().GetBotText("tell_buying_disabled", traderLocale);
+        bot->Whisper(buyMsg.empty() ? "Buying is disabled." : buyMsg, LANG_UNIVERSAL, trader);
         return false;
     }
     for (uint32 slot = 0; slot < TRADE_SLOT_TRADED_COUNT; ++slot)
@@ -291,16 +300,16 @@ bool TradeStatusAction::CheckTrade()
         switch (urand(0, 4))
         {
             case 0:
-                botAI->TellMaster("A pleasure doing business with you");
+                botAI->TellMaster(botAI->BotTextForMaster("tell_pleasure_business", "A pleasure doing business with you"));
                 break;
             case 1:
-                botAI->TellMaster("Fair trade");
+                botAI->TellMaster(botAI->BotTextForMaster("tell_fair_trade", "Fair trade"));
                 break;
             case 2:
-                botAI->TellMaster("Thanks");
+                botAI->TellMaster(botAI->BotTextForMaster("tell_thanks", "Thanks"));
                 break;
             case 3:
-                botAI->TellMaster("Off with you");
+                botAI->TellMaster(botAI->BotTextForMaster("tell_off_with_you", "Off with you"));
                 break;
         }
 

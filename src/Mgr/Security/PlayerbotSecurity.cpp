@@ -7,7 +7,9 @@
 
 #include "LFGMgr.h"
 #include "PlayerbotAIConfig.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
+#include "SharedDefines.h"
 
 PlayerbotSecurity::PlayerbotSecurity(Player* const bot) : bot(bot)
 {
@@ -192,85 +194,171 @@ bool PlayerbotSecurity::CheckLevelFor(PlayerbotSecurityLevel level, bool silent,
             if (session->GetSecurity() < SEC_GAMEMASTER)
                 return false;
 
+    // Use receiver's locale for whisper so private chat can be in their language (like party/guild)
+    uint32 locale = from->GetSession()->GetSessionDbLocaleIndex();
+    if (locale >= MAX_LOCALES)
+        locale = 0;
+
     std::ostringstream out;
 
     switch (realLevel)
     {
         case PLAYERBOT_SECURITY_DENY_ALL:
-            out << "I'm kind of busy now";
+        {
+            std::string t = PlayerbotTextMgr::instance().GetBotText("security_busy", locale);
+            out << (t.empty() ? "I'm kind of busy now" : t);
             break;
+        }
         case PLAYERBOT_SECURITY_TALK:
             switch (reason)
             {
                 case PLAYERBOT_DENY_NONE:
-                    out << "I'll do it later";
+                {
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_later", locale);
+                    out << (t.empty() ? "I'll do it later" : t);
                     break;
+                }
                 case PLAYERBOT_DENY_LOW_LEVEL:
-                    out << "You are too low level: |cffff0000" << uint32(from->GetLevel()) << "|cffffffff/|cff00ff00"
-                        << uint32(bot->GetLevel());
+                {
+                    std::map<std::string, std::string> ph;
+                    ph["%from_level"] = std::to_string(from->GetLevel());
+                    ph["%bot_level"] = std::to_string(bot->GetLevel());
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_low_level", ph, locale);
+                    if (t.empty())
+                        out << "You are too low level: |cffff0000" << uint32(from->GetLevel()) << "|cffffffff/|cff00ff00"
+                            << uint32(bot->GetLevel());
+                    else
+                        out << t;
                     break;
+                }
                 case PLAYERBOT_DENY_GEARSCORE:
                 {
                     int botGS = int(botAI->GetEquipGearScore(bot));
                     int fromGS = int(botAI->GetEquipGearScore(from));
                     int diff = (100 * (botGS - fromGS) / botGS);
                     int req = 12 * sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL) / from->GetLevel();
-
-                    out << "Your gearscore is too low: |cffff0000" << fromGS << "|cffffffff/|cff00ff00" << botGS
-                        << " |cffff0000" << diff << "%|cffffffff/|cff00ff00" << req << "%";
+                    std::map<std::string, std::string> ph;
+                    ph["%from_gs"] = std::to_string(fromGS);
+                    ph["%bot_gs"] = std::to_string(botGS);
+                    ph["%diff"] = std::to_string(diff);
+                    ph["%req"] = std::to_string(req);
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_gearscore_low", ph, locale);
+                    if (t.empty())
+                        out << "Your gearscore is too low: |cffff0000" << fromGS << "|cffffffff/|cff00ff00" << botGS
+                            << " |cffff0000" << diff << "%|cffffffff/|cff00ff00" << req << "%";
+                    else
+                        out << t;
                     break;
                 }
                 case PLAYERBOT_DENY_NOT_YOURS:
-                    out << "I have a master already";
+                {
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_has_master", locale);
+                    out << (t.empty() ? "I have a master already" : t);
                     break;
+                }
                 case PLAYERBOT_DENY_IS_BOT:
-                    out << "You are a bot";
+                {
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_you_are_bot", locale);
+                    out << (t.empty() ? "You are a bot" : t);
                     break;
+                }
                 case PLAYERBOT_DENY_OPPOSING:
-                    out << "You are the enemy";
+                {
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_enemy", locale);
+                    out << (t.empty() ? "You are the enemy" : t);
                     break;
+                }
                 case PLAYERBOT_DENY_DEAD:
-                    out << "I'm dead. Will do it later";
+                {
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_dead", locale);
+                    out << (t.empty() ? "I'm dead. Will do it later" : t);
                     break;
+                }
                 case PLAYERBOT_DENY_INVITE:
-                    out << "Invite me to your group first";
+                {
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_invite_first", locale);
+                    out << (t.empty() ? "Invite me to your group first" : t);
                     break;
+                }
                 case PLAYERBOT_DENY_FAR:
                 {
-                    out << "You must be closer to invite me to your group. I am in ";
+                    std::string areaName;
                     if (AreaTableEntry const* entry = sAreaTableStore.LookupEntry(bot->GetAreaId()))
-                        out << " |cffffffff(|cffff0000" << entry->area_name[0] << "|cffffffff)";
+                        areaName = entry->area_name[0];
+                    std::map<std::string, std::string> ph;
+                    ph["%area"] = areaName;
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_too_far", ph, locale);
+                    if (t.empty())
+                    {
+                        out << "You must be closer to invite me to your group. I am in ";
+                        if (!areaName.empty())
+                            out << " |cffffffff(|cffff0000" << areaName << "|cffffffff)";
+                    }
+                    else
+                        out << t;
                     break;
                 }
                 case PLAYERBOT_DENY_FULL_GROUP:
-                    out << "I am in a full group. Will do it later";
+                {
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_full_group", locale);
+                    out << (t.empty() ? "I am in a full group. Will do it later" : t);
                     break;
+                }
                 case PLAYERBOT_DENY_IS_LEADER:
-                    out << "I am currently leading a group. I can invite you if you want.";
+                {
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_leading_group", locale);
+                    out << (t.empty() ? "I am currently leading a group. I can invite you if you want." : t);
                     break;
+                }
                 case PLAYERBOT_DENY_NOT_LEADER:
-                    if (Player* leader = botAI->GetGroupLeader())
-                        out << "I am in a group with " << leader->GetName() << ". You can ask him for invite.";
+                {
+                    std::string leaderName = botAI->GetGroupLeader() ? botAI->GetGroupLeader()->GetName() : "";
+                    std::map<std::string, std::string> ph;
+                    ph["%leader"] = leaderName;
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_not_leader", ph, locale);
+                    if (t.empty())
+                    {
+                        if (!leaderName.empty())
+                            out << "I am in a group with " << leaderName << ". You can ask him for invite.";
+                        else
+                            out << "I am in a group with someone else. You can ask him for invite.";
+                    }
                     else
-                        out << "I am in a group with someone else. You can ask him for invite.";
+                        out << t;
                     break;
+                }
                 case PLAYERBOT_DENY_BG:
-                    out << "I am in a queue for BG. Will do it later";
+                {
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_queue_bg", locale);
+                    out << (t.empty() ? "I am in a queue for BG. Will do it later" : t);
                     break;
+                }
                 case PLAYERBOT_DENY_LFG:
-                    out << "I am in a queue for dungeon. Will do it later";
+                {
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_queue_dungeon", locale);
+                    out << (t.empty() ? "I am in a queue for dungeon. Will do it later" : t);
                     break;
+                }
                 default:
-                    out << "I can't do that";
+                {
+                    std::string t = PlayerbotTextMgr::instance().GetBotText("security_cant_do", locale);
+                    out << (t.empty() ? "I can't do that" : t);
                     break;
+                }
             }
             break;
         case PLAYERBOT_SECURITY_INVITE:
-            out << "Invite me to your group first";
+        {
+            std::string t = PlayerbotTextMgr::instance().GetBotText("security_invite_first", locale);
+            out << (t.empty() ? "Invite me to your group first" : t);
             break;
+        }
         default:
-            out << "I can't do that";
+        {
+            std::string t = PlayerbotTextMgr::instance().GetBotText("security_cant_do", locale);
+            out << (t.empty() ? "I can't do that" : t);
             break;
+        }
     }
 
     std::string const text = out.str();

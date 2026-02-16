@@ -125,7 +125,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
         {
             bool fit = SocketItem(itemTarget, item) || SocketItem(itemTarget, item, true);
             if (!fit)
-                botAI->TellMaster("Socket does not fit");
+                botAI->TellMaster(botAI->BotTextForMaster("tell_socket_no_fit", "Socket does not fit"));
 
             return fit;
         }

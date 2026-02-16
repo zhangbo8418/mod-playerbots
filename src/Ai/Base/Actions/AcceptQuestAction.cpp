@@ -149,7 +149,7 @@ bool AcceptQuestShareAction::Execute(Event event)
             bot->CastSpell(bot, qInfo->GetSrcSpell(), true);
         }
 
-        botAI->TellMaster("Quest accepted");
+        botAI->TellMaster(botAI->BotTextForMaster("tell_quest_accepted", "Quest accepted"));
         return true;
     }
 

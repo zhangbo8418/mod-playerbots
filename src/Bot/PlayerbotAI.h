@@ -532,6 +532,13 @@ public:
     Player* GetMaster() { return master; }
     Player* FindNewMaster();
 
+    /** Locale of the master (for TellMaster text). Returns 0 if no master/session. */
+    uint32 GetMasterLocale() const;
+    /** Get localized text for master (uses master's locale). Returns defaultText if key missing. */
+    std::string BotTextForMaster(std::string const& key, std::string const& defaultText) const;
+    std::string BotTextForMaster(std::string const& key, std::string const& defaultText,
+                                std::map<std::string, std::string> const& placeholders) const;
+
     // Checks if the bot is really a player. Players always have themselves as master.
     bool IsRealPlayer() { return master ? (master == bot) : false; }
     // Bot has a master that is a player.

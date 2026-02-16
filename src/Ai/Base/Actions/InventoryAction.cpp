@@ -130,40 +130,40 @@ void InventoryAction::TellItems(std::map<uint32, uint32> itemMap, std::map<uint3
             switch (proto->Class)
             {
                 case ITEM_CLASS_CONSUMABLE:
-                    botAI->TellMaster("--- consumable ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_consumable", "--- consumable ---"));
                     break;
                 case ITEM_CLASS_CONTAINER:
-                    botAI->TellMaster("--- container ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_container", "--- container ---"));
                     break;
                 case ITEM_CLASS_WEAPON:
-                    botAI->TellMaster("--- weapon ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_weapon", "--- weapon ---"));
                     break;
                 case ITEM_CLASS_ARMOR:
-                    botAI->TellMaster("--- armor ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_armor", "--- armor ---"));
                     break;
                 case ITEM_CLASS_REAGENT:
-                    botAI->TellMaster("--- reagent ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_reagent", "--- reagent ---"));
                     break;
                 case ITEM_CLASS_PROJECTILE:
-                    botAI->TellMaster("--- projectile ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_projectile", "--- projectile ---"));
                     break;
                 case ITEM_CLASS_TRADE_GOODS:
-                    botAI->TellMaster("--- trade goods ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_trade_goods", "--- trade goods ---"));
                     break;
                 case ITEM_CLASS_RECIPE:
-                    botAI->TellMaster("--- recipe ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_recipe", "--- recipe ---"));
                     break;
                 case ITEM_CLASS_QUIVER:
-                    botAI->TellMaster("--- quiver ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_quiver", "--- quiver ---"));
                     break;
                 case ITEM_CLASS_QUEST:
-                    botAI->TellMaster("--- quest items ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_quest", "--- quest items ---"));
                     break;
                 case ITEM_CLASS_KEY:
-                    botAI->TellMaster("--- keys ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_keys", "--- keys ---"));
                     break;
                 case ITEM_CLASS_MISC:
-                    botAI->TellMaster("--- other ---");
+                    botAI->TellMaster(botAI->BotTextForMaster("tell_inv_other", "--- other ---"));
                     break;
             }
         }

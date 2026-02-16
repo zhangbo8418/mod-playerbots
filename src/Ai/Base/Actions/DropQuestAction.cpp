@@ -54,7 +54,7 @@ bool DropQuestAction::Execute(Event event)
         bot->Say("Quest [ " + text_quest + " ] removed", LANG_UNIVERSAL);
     }
 
-    botAI->TellMaster("Quest removed");
+    botAI->TellMaster(botAI->BotTextForMaster("tell_quest_removed", "Quest removed"));
     return true;
 }
 
@@ -63,7 +63,7 @@ bool CleanQuestLogAction::Execute(Event event)
     Player* requester = event.getOwner() ? event.getOwner() : GetMaster();
     if (!requester)
     {
-        botAI->TellMaster("No event owner detected");
+        botAI->TellMaster(botAI->BotTextForMaster("tell_no_event_owner", "No event owner detected"));
         return false;
     }
 
@@ -75,7 +75,7 @@ bool CleanQuestLogAction::Execute(Event event)
     // Only output this message if "debug rpg" strategy is enabled
     if (botAI->HasStrategy("debug rpg", BotState::BOT_STATE_COMBAT))
     {
-        botAI->TellMaster("Clean Quest Log command received, removing grey/trivial quests...");
+        botAI->TellMaster(botAI->BotTextForMaster("tell_clean_quest_log", "Clean Quest Log command received, removing grey/trivial quests..."));
     }
 
     uint8 botLevel = bot->GetLevel();  // Get bot's level
