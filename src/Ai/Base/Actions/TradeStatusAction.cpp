@@ -166,6 +166,11 @@ bool TradeStatusAction::CheckTrade()
     if (!bot->GetTradeData() || !trader || !trader->GetTradeData())
         return false;
 
+    // Use trader's locale for any whisper messages
+    uint32 traderLocale = trader->GetSession() ? trader->GetSession()->GetSessionDbLocaleIndex() : 0;
+    if (traderLocale >= MAX_LOCALES)
+        traderLocale = 0;
+
     if (!botAI->HasActivePlayerMaster() && GET_PLAYERBOT_AI(bot->GetTrader()))
     {
         bool isGivingItem = false;
