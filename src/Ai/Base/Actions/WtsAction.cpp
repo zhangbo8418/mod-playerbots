@@ -50,7 +50,7 @@ bool WtsAction::Execute(Event event)
             continue;
 
         std::string tell = botAI->GetLocalizedBotTextOrDefault("msg_wts_buy", "I'll buy %item for %money",
-            {{"%item", chat->FormatItem(proto)}, {"%money", chat->formatMoney(buyPrice)}});
+            {{"%item", chat->FormatItem(proto)}, {"%money", chat->formatMoney(buyPrice)}}, owner);
 
         // ignore random bot chat filter
         bot->Whisper(tell, LANG_UNIVERSAL, owner);

@@ -462,8 +462,12 @@ public:
     bool TellError(std::string const text, PlayerbotSecurityLevel securityLevel = PLAYERBOT_SECURITY_ALLOW_ALL);
     std::string GetLocalizedBotText(std::string const name,
                                     std::map<std::string, std::string> placeholders = {});
+    std::string GetLocalizedBotText(std::string const name,
+                                    std::map<std::string, std::string> placeholders, Player* forLocale);
     std::string GetLocalizedBotTextOrDefault(std::string const name, std::string const defaultText,
                                              std::map<std::string, std::string> placeholders = {});
+    std::string GetLocalizedBotTextOrDefault(std::string const name, std::string const defaultText,
+                                             std::map<std::string, std::string> placeholders, Player* forLocale);
     bool SayToGuild(const std::string& msg);
     bool SayToWorld(const std::string& msg);
     bool SayToChannel(const std::string& msg, const ChatChannelId& chanId);

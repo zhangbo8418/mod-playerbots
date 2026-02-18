@@ -28,13 +28,13 @@ bool TradeStatusAction::Execute(Event event)
     // Allow the master and group members to trade
     if (trader != master && !traderBotAI && (!bot->GetGroup() || !bot->GetGroup()->IsMember(trader->GetGUID())))
     {
-        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_busy_now", "I'm kind of busy now"), LANG_UNIVERSAL, trader);
+        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_busy_now", "I'm kind of busy now", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
 
     if (sPlayerbotAIConfig.enableRandomBotTrading == 0 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_trading_disabled", "Trading is disabled"), LANG_UNIVERSAL, trader);
+        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_trading_disabled", "Trading is disabled", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
 
@@ -212,12 +212,12 @@ bool TradeStatusAction::CheckTrade()
     int32 playerMoney = trader->GetTradeData()->GetMoney() + playerItemsMoney;
     if (botItemsMoney > 0 && sPlayerbotAIConfig.enableRandomBotTrading == 2 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_selling_disabled", "Selling is disabled."), LANG_UNIVERSAL, trader);
+        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_selling_disabled", "Selling is disabled.", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
     if (playerItemsMoney && sPlayerbotAIConfig.enableRandomBotTrading == 3 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_buying_disabled", "Buying is disabled."), LANG_UNIVERSAL, trader);
+        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_buying_disabled", "Buying is disabled.", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
     for (uint32 slot = 0; slot < TRADE_SLOT_TRADED_COUNT; ++slot)

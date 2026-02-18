@@ -54,7 +54,7 @@ bool WhoAction::Execute(Event event)
         if (!out.str().empty())
             out << ", ";
 
-        out << botAI->GetLocalizedBotTextOrDefault("msg_playing_with", "playing with %name", {{"%name", botAI->GetMaster()->GetName()}});
+        out << botAI->GetLocalizedBotTextOrDefault("msg_playing_with", "playing with %name", {{"%name", botAI->GetMaster()->GetName()}}, owner);
     }
 
     std::string const tell = out.str();

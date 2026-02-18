@@ -2858,17 +2858,28 @@ bool PlayerbotAI::TellError(std::string const text, PlayerbotSecurityLevel secur
 std::string PlayerbotAI::GetLocalizedBotText(std::string const name,
                                              std::map<std::string, std::string> placeholders)
 {
+    return GetLocalizedBotText(name, placeholders, GetMaster());
+}
+
+std::string PlayerbotAI::GetLocalizedBotText(std::string const name,
+                                             std::map<std::string, std::string> placeholders, Player* forLocale)
+{
     uint32 locale = 0;
-    if (Player* master = GetMaster())
-        if (master->GetSession())
-            locale = static_cast<uint32>(master->GetSession()->GetSessionDbcLocale());
+    if (forLocale && forLocale->GetSession())
+        locale = static_cast<uint32>(forLocale->GetSession()->GetSessionDbcLocale());
     return PlayerbotTextMgr::instance().GetBotTextForLocale(name, locale, placeholders);
 }
 
 std::string PlayerbotAI::GetLocalizedBotTextOrDefault(std::string const name, std::string const defaultText,
                                                       std::map<std::string, std::string> placeholders)
 {
-    std::string text = GetLocalizedBotText(name, placeholders);
+    return GetLocalizedBotTextOrDefault(name, defaultText, placeholders, GetMaster());
+}
+
+std::string PlayerbotAI::GetLocalizedBotTextOrDefault(std::string const name, std::string const defaultText,
+                                                      std::map<std::string, std::string> placeholders, Player* forLocale)
+{
+    std::string text = GetLocalizedBotText(name, placeholders, forLocale);
     if (!text.empty())
         return text;
     std::string result = defaultText;

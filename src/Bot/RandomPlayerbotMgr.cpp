@@ -180,6 +180,15 @@ botPIDImpl::botPIDImpl(double dt, double max, double min, double Kp, double Ki, 
 
 double botPIDImpl::calculate(double setpoint, double pv)
 {
+    if (_dt == 0.0)
+    {
+        // Avoid division by zero; treat as no derivative / integral contribution for this tick
+        double error = setpoint - pv;
+        double Pout = _Kp * error;
+        _pre_error = error;
+        return std::clamp(Pout, _min, _max);
+    }
+
     // Calculate error
     double error = setpoint - pv;
 

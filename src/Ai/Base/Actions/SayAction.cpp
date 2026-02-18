@@ -12,6 +12,7 @@
 #include "ChannelMgr.h"
 #include "Event.h"
 #include "GuildMgr.h"
+#include "ObjectAccessor.h"
 #include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 
@@ -53,6 +54,16 @@ static const std::unordered_set<std::string> noReplyMsgs = {
 static const std::unordered_set<std::string> noReplyMsgParts = {
     "+", "-", "@", "follow target", "focus heal", "cast ", "accept [", "e [", "destroy [", "go zone"};
 static const std::unordered_set<std::string> noReplyMsgStarts = {"e ", "accept ", "cast ", "destroy "};
+
+static std::string GetBotTextForWhisperRecipient(std::string const& recipientName, std::string const& textKey,
+                                                  std::map<std::string, std::string> const& placeholders)
+{
+    Player* recipient = ObjectAccessor::FindPlayerByName(recipientName);
+    if (recipient && recipient->GetSession())
+        return PlayerbotTextMgr::instance().GetBotTextForLocale(textKey,
+            static_cast<uint32>(recipient->GetSession()->GetSessionDbcLocale()), placeholders);
+    return PlayerbotTextMgr::instance().GetBotText(textKey, placeholders);
+}
 
 SayAction::SayAction(PlayerbotAI* botAI) : Action(botAI, "say"), Qualified() {}
 
@@ -370,7 +381,7 @@ bool ChatReplyAction::HandleWTBItemsReply(Player* bot, ChatChannelSource chatCha
                 }
                 else
                 {
-                    std::string responseMessage = PlayerbotTextMgr::instance().GetBotText("response_wtb_items_whisper", placeholders);
+                    std::string responseMessage = GetBotTextForWhisperRecipient(name, "response_wtb_items_whisper", placeholders);
                     GET_PLAYERBOT_AI(bot)->Whisper(responseMessage, name);
                 }
                 break;
@@ -385,7 +396,7 @@ bool ChatReplyAction::HandleWTBItemsReply(Player* bot, ChatChannelSource chatCha
                 }
                 else
                 {
-                    std::string responseMessage = PlayerbotTextMgr::instance().GetBotText("response_wtb_items_whisper", placeholders);
+                    std::string responseMessage = GetBotTextForWhisperRecipient(name, "response_wtb_items_whisper", placeholders);
                     GET_PLAYERBOT_AI(bot)->Whisper(responseMessage, name);
                 }
                 break;
@@ -400,7 +411,7 @@ bool ChatReplyAction::HandleWTBItemsReply(Player* bot, ChatChannelSource chatCha
                 }
                 else
                 {
-                    std::string responseMessage = PlayerbotTextMgr::instance().GetBotText("response_wtb_items_whisper", placeholders);
+                    std::string responseMessage = GetBotTextForWhisperRecipient(name, "response_wtb_items_whisper", placeholders);
                     GET_PLAYERBOT_AI(bot)->Whisper(responseMessage, name);
                 }
                 break;
@@ -463,7 +474,7 @@ bool ChatReplyAction::HandleLFGQuestsReply(Player* bot, ChatChannelSource chatCh
                 }
                 else
                 {
-                    std::string responseMessage = PlayerbotTextMgr::instance().GetBotText("response_lfg_quests_whisper", placeholders);
+                    std::string responseMessage = GetBotTextForWhisperRecipient(name, "response_lfg_quests_whisper", placeholders);
                     GET_PLAYERBOT_AI(bot)->Whisper(responseMessage, name);
                 }
                 break;
@@ -478,7 +489,7 @@ bool ChatReplyAction::HandleLFGQuestsReply(Player* bot, ChatChannelSource chatCh
                 }
                 else
                 {
-                    std::string responseMessage = PlayerbotTextMgr::instance().GetBotText("response_lfg_quests_whisper", placeholders);
+                    std::string responseMessage = GetBotTextForWhisperRecipient(name, "response_lfg_quests_whisper", placeholders);
                     GET_PLAYERBOT_AI(bot)->Whisper(responseMessage, name);
                 }
                 break;
@@ -487,7 +498,7 @@ bool ChatReplyAction::HandleLFGQuestsReply(Player* bot, ChatChannelSource chatCh
             {
                 //do not reply to the chat
                 //may whisper
-                std::string responseMessage = PlayerbotTextMgr::instance().GetBotText("response_lfg_quests_whisper", placeholders);
+                std::string responseMessage = GetBotTextForWhisperRecipient(name, "response_lfg_quests_whisper", placeholders);
                 GET_PLAYERBOT_AI(bot)->Whisper(responseMessage, name);
                 break;
             }

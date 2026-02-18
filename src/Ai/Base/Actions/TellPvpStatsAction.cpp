@@ -57,7 +57,7 @@ bool TellPvpStatsAction::Execute(Event event)
     std::string const currencyText = botAI->GetLocalizedBotTextOrDefault(
         "pvp_currency",
         "[PVP] Arena points: %arena_points | Honor Points: %honor_points",
-        currencyPlaceholders);
+        currencyPlaceholders, requester);
 
     bot->Whisper(currencyText, LANG_UNIVERSAL, requester);
 
@@ -80,7 +80,7 @@ bool TellPvpStatsAction::Execute(Event event)
             std::string const teamText = botAI->GetLocalizedBotTextOrDefault(
                 "pvp_arena_team",
                 "[PVP] %bracket: <%team_name> (rating %team_rating)",
-                placeholders);
+                placeholders, requester);
 
             bot->Whisper(teamText, LANG_UNIVERSAL, requester);
         }
@@ -91,7 +91,7 @@ bool TellPvpStatsAction::Execute(Event event)
         std::string const noTeamText = botAI->GetLocalizedBotTextOrDefault(
             "pvp_no_arena_team",
             "[PVP] I have no Arena Team.",
-            std::map<std::string, std::string>());
+            std::map<std::string, std::string>(), requester);
 
         bot->Whisper(noTeamText, LANG_UNIVERSAL, requester);
     }

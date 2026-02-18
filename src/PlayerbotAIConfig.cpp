@@ -394,6 +394,11 @@ bool PlayerbotAIConfig::Initialize()
     }
 
     randomChangeMultiplier = sConfigMgr->GetOption<float>("AiPlayerbot.RandomChangeMultiplier", 1.0);
+    if (randomChangeMultiplier <= 0.0f)
+    {
+        LOG_ERROR("playerbots", "AiPlayerbot.RandomChangeMultiplier must be > 0, resetting to 1.0");
+        randomChangeMultiplier = 1.0f;
+    }
 
     randomBotCombatStrategies = sConfigMgr->GetOption<std::string>("AiPlayerbot.RandomBotCombatStrategies", "");
     randomBotNonCombatStrategies = sConfigMgr->GetOption<std::string>("AiPlayerbot.RandomBotNonCombatStrategies", "");
@@ -608,6 +613,11 @@ bool PlayerbotAIConfig::Initialize()
     enablePeriodicOnlineOffline = sConfigMgr->GetOption<bool>("AiPlayerbot.EnablePeriodicOnlineOffline", false);
     enableRandomBotTrading = sConfigMgr->GetOption<int32>("AiPlayerbot.EnableRandomBotTrading", 1);
     periodicOnlineOfflineRatio = sConfigMgr->GetOption<float>("AiPlayerbot.PeriodicOnlineOfflineRatio", 2.0);
+    if (periodicOnlineOfflineRatio <= 0.0f)
+    {
+        LOG_ERROR("playerbots", "AiPlayerbot.PeriodicOnlineOfflineRatio must be > 0, resetting to 1.0");
+        periodicOnlineOfflineRatio = 1.0f;
+    }
     gearscorecheck = sConfigMgr->GetOption<bool>("AiPlayerbot.GearScoreCheck", false);
     randomBotPreQuests = sConfigMgr->GetOption<bool>("AiPlayerbot.PreQuests", false);
 
