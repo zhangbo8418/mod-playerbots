@@ -53,7 +53,7 @@ void AutoMaintenanceOnLevelupAction::AutoLearnSpell()
     {
         std::string const temp = out.str();
         out.seekp(0);
-        out << "Learned spells: ";
+        out << botAI->GetLocalizedBotTextOrDefault("msg_learned_spells", "Learned spells: ");
         out << temp;
         out.seekp(-2, out.cur);
         out << ".";

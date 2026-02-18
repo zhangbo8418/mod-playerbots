@@ -24,7 +24,7 @@ bool SetCraftAction::Execute(Event event)
     if (link == "reset")
     {
         data.Reset();
-        botAI->TellMaster("I will not craft anything");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_will_not_craft", "I will not craft anything"));
         return true;
     }
 
@@ -37,7 +37,7 @@ bool SetCraftAction::Execute(Event event)
     ItemIds itemIds = chat->parseItems(link);
     if (itemIds.empty())
     {
-        botAI->TellMaster("Usage: 'craft [itemId]' or 'craft reset'");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_craft_usage", "Usage: 'craft [itemId]' or 'craft reset'"));
         return false;
     }
 
@@ -97,7 +97,7 @@ bool SetCraftAction::Execute(Event event)
 
     if (data.required.empty())
     {
-        botAI->TellMaster("I cannot craft this");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_cannot_craft_this", "I cannot craft this"));
         return false;
     }
 
@@ -112,7 +112,7 @@ void SetCraftAction::TellCraft()
     CraftData& data = AI_VALUE(CraftData&, "craft");
     if (data.IsEmpty())
     {
-        botAI->TellMaster("I will not craft anything");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_will_not_craft", "I will not craft anything"));
         return;
     }
 
@@ -121,8 +121,7 @@ void SetCraftAction::TellCraft()
         return;
 
     std::ostringstream out;
-    out << "I will craft " << chat->FormatItem(proto) << " using reagents: ";
-
+    out << botAI->GetLocalizedBotTextOrDefault("msg_will_craft_using_reagents", "I will craft %item using reagents: ", {{"%item", chat->FormatItem(proto)}});
     bool first = true;
     for (std::map<uint32, uint32>::iterator i = data.required.begin(); i != data.required.end(); ++i)
     {
@@ -131,24 +130,16 @@ void SetCraftAction::TellCraft()
 
         if (ItemTemplate const* reagent = sObjectMgr->GetItemTemplate(item))
         {
-            if (first)
-            {
-                first = false;
-            }
-            else
+            if (!first)
                 out << ", ";
-
+            first = false;
             out << chat->FormatItem(reagent, required);
-
             uint32 given = data.obtained[item];
             if (given)
-            {
                 out << "|cffffff00(x" << given << " given)|r ";
-            }
         }
     }
-
-    out << " (craft fee: " << chat->formatMoney(GetCraftFee(data)) << ")";
+    out << botAI->GetLocalizedBotTextOrDefault("msg_craft_fee", " (craft fee: %fee)", {{"%fee", chat->formatMoney(GetCraftFee(data))}});
     botAI->TellMaster(out.str());
 }
 

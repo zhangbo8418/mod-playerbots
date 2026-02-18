@@ -16,7 +16,7 @@ bool TellMasterAction::Execute(Event event)
 
 bool OutOfReactRangeAction::Execute(Event event)
 {
-    botAI->TellMaster("Wait for me!");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_wait_for_me", "Wait for me!"));
     return true;
 }
 

@@ -59,12 +59,12 @@ bool QueryQuestAction::Execute(Event event)
 
         if (bot->GetQuestStatus(questId) == QUEST_STATUS_COMPLETE)
         {
-            out << "|c0000FF00completed|r ---";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_quest_query_completed", "|c0000FF00completed|r ---");
             botAI->TellMaster(out);
         }
         else
         {
-            out << "|c00FF0000not completed|r ---";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_quest_query_not_completed", "|c00FF0000not completed|r ---");
             botAI->TellMaster(out);
             TellObjectives(questId);
         }
@@ -96,7 +96,7 @@ bool QueryQuestAction::Execute(Event event)
                 out << " points.";
 
                 if (!dest->isActive(bot))
-                    out << " not active";
+                    out << botAI->GetLocalizedBotTextOrDefault("msg_quest_query_not_active", " not active");
 
                 botAI->TellMaster(out);
 
@@ -117,7 +117,7 @@ void QueryQuestAction::TellObjectives(uint32 questId)
     // Checks if the questTemplate is valid
     if (!questTemplate)
     {
-        botAI->TellMaster("Quest template not found.");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_quest_template_not_found", "Quest template not found."));
         return;
     }
 

@@ -27,12 +27,10 @@ void UnlockItemAction::UnlockItem(Item* item)
     // Use CastSpell to unlock the item
     if (botAI->CastSpell(PICK_LOCK_SPELL_ID, bot, item))
     {
-        std::ostringstream out;
-        out << "Used Pick Lock on: " << item->GetTemplate()->Name1;
-        botAI->TellMaster(out.str());
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_used_pick_lock_on", "Used Pick Lock on: %item", {{"%item", item->GetTemplate()->Name1}}));
     }
     else
     {
-        botAI->TellError("Failed to cast Pick Lock.");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_failed_cast_pick_lock", "Failed to cast Pick Lock."));
     }
 }

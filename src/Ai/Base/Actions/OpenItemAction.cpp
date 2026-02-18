@@ -35,7 +35,5 @@ void OpenItemAction::OpenItem(Item* item, uint8 bag, uint8 slot)
     lootObject.guid = item->GetGUID();
     botAI->GetAiObjectContext()->GetValue<LootObject>("loot target")->Set(lootObject);
 
-    std::ostringstream out;
-    out << "Opened item: " << item->GetTemplate()->Name1;
-    botAI->TellMaster(out.str());
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_opened_item", "Opened item: %item", {{"%item", item->GetTemplate()->Name1}}));
 }

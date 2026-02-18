@@ -156,9 +156,9 @@ bool QuestAction::CompleteQuest(Player* player, uint32 entry)
     if (botAI->HasStrategy("debug quest", BotState::BOT_STATE_NON_COMBAT) || botAI->HasStrategy("debug rpg", BotState::BOT_STATE_COMBAT))
     {
         LOG_INFO("playerbots", "{} => Quest [ {} ] completed", bot->GetName(), pQuest->GetTitle());
-        bot->Say("Quest [ " + text_quest + " ] completed", LANG_UNIVERSAL);
+        bot->Say(botAI->GetLocalizedBotTextOrDefault("msg_say_quest_completed", "Quest [ %quest ] completed", {{"%quest", text_quest}}), LANG_UNIVERSAL);
     }
-    botAI->TellMasterNoFacing("Quest completed " + text_quest);
+    botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_quest_completed_tell", "Quest completed %quest", {{"%quest", text_quest}}));
 
     player->CompleteQuest(entry);
 
@@ -186,7 +186,7 @@ bool QuestAction::ProcessQuests(WorldObject* questGiver)
     {
         //if (botAI->HasStrategy("debug", BotState::BOT_STATE_COMBAT) || botAI->HasStrategy("debug", BotState::BOT_STATE_NON_COMBAT))
 
-        botAI->TellError("Cannot talk to quest giver");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_cannot_talk_quest_giver", "Cannot talk to quest giver"));
         return false;
     }
 
@@ -218,18 +218,18 @@ bool QuestAction::AcceptQuest(Quest const* quest, ObjectGuid questGiver)
     uint32 questId = quest->GetQuestId();
 
     if (bot->GetQuestStatus(questId) == QUEST_STATUS_COMPLETE)
-        out << "Already completed";
+        out << botAI->GetLocalizedBotTextOrDefault("msg_quest_already_completed", "Already completed");
     else if (!bot->CanTakeQuest(quest, false))
     {
         if (!bot->SatisfyQuestStatus(quest, false))
-            out << "Already on";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_quest_already_on", "Already on");
         else
-            out << "Can't take";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_quest_cant_take", "Can't take");
     }
     else if (!bot->SatisfyQuestLog(false))
-        out << "Quest log is full";
+        out << botAI->GetLocalizedBotTextOrDefault("msg_quest_log_full", "Quest log is full");
     else if (!bot->CanAddQuest(quest, false))
-        out << "Bags are full";
+        out << botAI->GetLocalizedBotTextOrDefault("msg_quest_bags_full", "Bags are full");
     else
     {
         WorldPacket p(CMSG_QUESTGIVER_ACCEPT_QUEST);
@@ -248,16 +248,15 @@ bool QuestAction::AcceptQuest(Quest const* quest, ObjectGuid questGiver)
         if (bot->GetQuestStatus(questId) != QUEST_STATUS_NONE && bot->GetQuestStatus(questId) != QUEST_STATUS_REWARDED)
         {
             BroadcastHelper::BroadcastQuestAccepted(botAI, bot, quest);
-            out << "Accepted " << chat->FormatQuest(quest);
-            botAI->TellMaster(out);
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_accepted_short", "Accepted %quest", {{"%quest", chat->FormatQuest(quest)}}));
             return true;
         }
-        out << "Cannot accept";
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_cannot_accept_quest", "Cannot accept %quest", {{"%quest", chat->FormatQuest(quest)}}));
+        return false;
     }
 
     out << " " << chat->FormatQuest(quest);
     botAI->TellMaster(out);
-
     return false;
 }
 
@@ -286,7 +285,7 @@ bool QuestUpdateCompleteAction::Execute(Event event)
             // }
         const auto format = ChatHelper::FormatQuest(qInfo);
         if (botAI->GetMaster())
-            botAI->TellMasterNoFacing("Quest completed " + format);
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_quest_completed", "Quest completed %quest", {{"%quest", format}}));
         BroadcastHelper::BroadcastQuestUpdateComplete(botAI, bot, qInfo);
         botAI->rpgStatistic.questCompleted++;
         // LOG_DEBUG("playerbots", "[New rpg] {} complete quest {}", bot->GetName(), qInfo->GetQuestId());
@@ -317,11 +316,8 @@ bool QuestUpdateAddKillAction::Execute(Event event)
             std::string infoName = botAI->GetLocalizedGameObjectName(entry);
             BroadcastHelper::BroadcastQuestUpdateAddKill(botAI, bot, qInfo, available, required, infoName);
             if (botAI->GetMaster())
-            {
-                std::ostringstream out;
-                out << infoName << " " << available << "/" << required << " " << ChatHelper::FormatQuest(qInfo);
-                botAI->TellMasterNoFacing(out.str());
-            }
+                botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_quest_progress", "%name %current/%required %quest",
+                    {{"%name", infoName}, {"%current", std::to_string(available)}, {"%required", std::to_string(required)}, {"%quest", ChatHelper::FormatQuest(qInfo)}}));
         }
     }
     else if (qInfo)
@@ -332,11 +328,8 @@ bool QuestUpdateAddKillAction::Execute(Event event)
             std::string infoName = botAI->GetLocalizedCreatureName(entry);
             BroadcastHelper::BroadcastQuestUpdateAddKill(botAI, bot, qInfo, available, required, infoName);
             if (botAI->GetMaster())
-            {
-                std::ostringstream out;
-                out << infoName << " " << available << "/" << required << " " << ChatHelper::FormatQuest(qInfo);
-                botAI->TellMasterNoFacing(out.str());
-            }
+                botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_quest_progress", "%name %current/%required %quest",
+                    {{"%name", infoName}, {"%current", std::to_string(available)}, {"%required", std::to_string(required)}, {"%quest", ChatHelper::FormatQuest(qInfo)}}));
         }
     }
     return false;
@@ -366,7 +359,7 @@ bool QuestUpdateAddItemAction::Execute(Event event)
             placeholders["%quest_obj_required"] = std::to_string(requiredItemsCount);
             if (botAI->HasStrategy("debug quest", BotState::BOT_STATE_COMBAT) || botAI->HasStrategy("debug quest", BotState::BOT_STATE_NON_COMBAT))
             {
-                const auto text = PlayerbotTextMgr::instance().GetBotText("%quest_link - %item_link %quest_obj_available/%quest_obj_required", placeholders);
+                const auto text = botAI->GetLocalizedBotTextOrDefault("msg_debug_quest_item", "%quest_link - %item_link %quest_obj_available/%quest_obj_required", placeholders);
                 botAI->Say(text);
                 LOG_INFO("playerbots", "{} => {}", bot->GetName(), text);
             }
@@ -419,11 +412,10 @@ bool QuestItemPushResultAction::Execute(Event event)
                 if (botAI->GetMaster())
                 {
                     std::string itemLink = ChatHelper::FormatItem(proto);
-                    std::ostringstream out;
                     int32 required = quest->RequiredItemCount[i];
                     int32 available = std::min((int32)itemCount, required);
-                    out << itemLink << " " << available << "/" << required << " " << ChatHelper::FormatQuest(quest);
-                    botAI->TellMasterNoFacing(out.str());
+                    botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_quest_item_progress", "%item %current/%required %quest",
+                        {{"%item", itemLink}, {"%current", std::to_string(available)}, {"%required", std::to_string(required)}, {"%quest", ChatHelper::FormatQuest(quest)}}));
                 }
             }
         }
@@ -452,14 +444,14 @@ bool QuestUpdateFailedTimerAction::Execute(Event event)
 
     if (qInfo)
     {
-        std::map<std::string, std::string> placeholders;
-        placeholders["%quest_link"] = botAI->GetChatHelper()->FormatQuest(qInfo);
-        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotText("Failed timer for %quest_link, abandoning", placeholders));
+        std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_quest_failed_timer", "Failed timer for %quest, abandoning", {{"%quest", botAI->GetChatHelper()->FormatQuest(qInfo)}});
+        botAI->TellMaster(msg);
         BroadcastHelper::BroadcastQuestUpdateFailedTimer(botAI, bot, qInfo);
     }
     else
     {
-        botAI->TellMaster("Failed timer for " + std::to_string(questId));
+        std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_quest_failed_timer", "Failed timer for %quest, abandoning", {{"%quest", std::to_string(questId)}});
+        botAI->TellMaster(msg);
     }
 
     //drop quest

@@ -192,88 +192,88 @@ bool PlayerbotSecurity::CheckLevelFor(PlayerbotSecurityLevel level, bool silent,
             if (session->GetSecurity() < SEC_GAMEMASTER)
                 return false;
 
-    std::ostringstream out;
-
+    std::string text;
     switch (realLevel)
     {
         case PLAYERBOT_SECURITY_DENY_ALL:
-            out << "I'm kind of busy now";
+            text = botAI->GetLocalizedBotTextOrDefault("security_busy", "I'm kind of busy now");
             break;
         case PLAYERBOT_SECURITY_TALK:
             switch (reason)
             {
                 case PLAYERBOT_DENY_NONE:
-                    out << "I'll do it later";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_do_later", "I'll do it later");
                     break;
                 case PLAYERBOT_DENY_LOW_LEVEL:
-                    out << "You are too low level: |cffff0000" << uint32(from->GetLevel()) << "|cffffffff/|cff00ff00"
-                        << uint32(bot->GetLevel());
+                    text = botAI->GetLocalizedBotTextOrDefault("security_low_level", "You are too low level: |cffff0000%from|cffffffff/|cff00ff00%bot",
+                        {{"%from", std::to_string(from->GetLevel())}, {"%bot", std::to_string(bot->GetLevel())}});
                     break;
                 case PLAYERBOT_DENY_GEARSCORE:
                 {
                     int botGS = int(botAI->GetEquipGearScore(bot));
                     int fromGS = int(botAI->GetEquipGearScore(from));
-                    int diff = (100 * (botGS - fromGS) / botGS);
-                    int req = 12 * sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL) / from->GetLevel();
-
-                    out << "Your gearscore is too low: |cffff0000" << fromGS << "|cffffffff/|cff00ff00" << botGS
-                        << " |cffff0000" << diff << "%|cffffffff/|cff00ff00" << req << "%";
+                    int diff = (100 * (botGS - fromGS) / std::max(botGS, 1));
+                    int req = 12 * sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL) / std::max(from->GetLevel(), 1);
+                    text = botAI->GetLocalizedBotTextOrDefault("security_gearscore_low", "Your gearscore is too low: |cffff0000%from|cffffffff/|cff00ff00%bot |cffff0000%diff%|cffffffff/|cff00ff00%req%",
+                        {{"%from", std::to_string(fromGS)}, {"%bot", std::to_string(botGS)}, {"%diff", std::to_string(diff)}, {"%req", std::to_string(req)}});
                     break;
                 }
                 case PLAYERBOT_DENY_NOT_YOURS:
-                    out << "I have a master already";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_has_master", "I have a master already");
                     break;
                 case PLAYERBOT_DENY_IS_BOT:
-                    out << "You are a bot";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_you_bot", "You are a bot");
                     break;
                 case PLAYERBOT_DENY_OPPOSING:
-                    out << "You are the enemy";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_you_enemy", "You are the enemy");
                     break;
                 case PLAYERBOT_DENY_DEAD:
-                    out << "I'm dead. Will do it later";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_dead", "I'm dead. Will do it later");
                     break;
                 case PLAYERBOT_DENY_INVITE:
-                    out << "Invite me to your group first";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_invite_first", "Invite me to your group first");
                     break;
                 case PLAYERBOT_DENY_FAR:
                 {
-                    out << "You must be closer to invite me to your group. I am in ";
+                    std::string areaStr;
                     if (AreaTableEntry const* entry = sAreaTableStore.LookupEntry(bot->GetAreaId()))
-                        out << " |cffffffff(|cffff0000" << entry->area_name[0] << "|cffffffff)";
+                        areaStr = " |cffffffff(|cffff0000" + std::string(entry->area_name[0]) + "|cffffffff)";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_too_far", "You must be closer to invite me to your group. I am in %area", {{"%area", areaStr}});
                     break;
                 }
                 case PLAYERBOT_DENY_FULL_GROUP:
-                    out << "I am in a full group. Will do it later";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_full_group", "I am in a full group. Will do it later");
                     break;
                 case PLAYERBOT_DENY_IS_LEADER:
-                    out << "I am currently leading a group. I can invite you if you want.";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_am_leader", "I am currently leading a group. I can invite you if you want.");
                     break;
                 case PLAYERBOT_DENY_NOT_LEADER:
                     if (Player* leader = botAI->GetGroupLeader())
-                        out << "I am in a group with " << leader->GetName() << ". You can ask him for invite.";
+                        text = botAI->GetLocalizedBotTextOrDefault("security_in_group_with", "I am in a group with %name. You can ask him for invite.", {{"%name", leader->GetName()}});
                     else
-                        out << "I am in a group with someone else. You can ask him for invite.";
+                        text = botAI->GetLocalizedBotTextOrDefault("security_in_group_other", "I am in a group with someone else. You can ask him for invite.");
                     break;
                 case PLAYERBOT_DENY_BG:
-                    out << "I am in a queue for BG. Will do it later";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_in_bg_queue", "I am in a queue for BG. Will do it later");
                     break;
                 case PLAYERBOT_DENY_LFG:
-                    out << "I am in a queue for dungeon. Will do it later";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_in_lfg_queue", "I am in a queue for dungeon. Will do it later");
                     break;
                 default:
-                    out << "I can't do that";
+                    text = botAI->GetLocalizedBotTextOrDefault("security_cant_do", "I can't do that");
                     break;
             }
             break;
         case PLAYERBOT_SECURITY_INVITE:
-            out << "Invite me to your group first";
+            text = botAI->GetLocalizedBotTextOrDefault("security_invite_first", "Invite me to your group first");
             break;
         default:
-            out << "I can't do that";
+            text = botAI->GetLocalizedBotTextOrDefault("security_cant_do", "I can't do that");
             break;
     }
 
-    std::string const text = out.str();
+    if (text.empty())
+        return false;
     ObjectGuid guid = from->GetGUID();
     time_t lastSaid = whispers[guid][text];
 

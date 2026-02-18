@@ -16,7 +16,7 @@ bool GuildBankAction::Execute(Event event)
 
     if (!bot->GetGuildId() || (GetMaster() && GetMaster()->GetGuildId() != bot->GetGuildId()))
     {
-        botAI->TellMaster("I'm not in your guild!");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_not_in_guild", "I'm not in your guild!"));
         return false;
     }
 
@@ -30,7 +30,7 @@ bool GuildBankAction::Execute(Event event)
         return Execute(text, go);
     }
 
-    botAI->TellMaster("Cannot find the guild bank nearby");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_no_guild_bank_nearby", "Cannot find the guild bank nearby"));
     return false;
 }
 
@@ -57,22 +57,17 @@ bool GuildBankAction::MoveFromCharToBank(Item* item, GameObject* bank)
     uint32 playerSlot = item->GetSlot();
     uint32 playerBag = item->GetBagSlot();
 
-    std::ostringstream out;
-
     Guild* guild = sGuildMgr->GetGuildById(bot->GetGuildId());
-    // guild->SwapItems(bot, 0, playerSlot, 0, INVENTORY_SLOT_BAG_0, 0);
 
-    // check source pos rights (item moved to bank)
     if (!guild->MemberHasTabRights(bot->GetGUID(), 0, GUILD_BANK_RIGHT_DEPOSIT_ITEM))
-        out << "I can't put " << chat->FormatItem(item->GetTemplate())
-            << " to guild bank. I have no rights to put items in the first guild bank tab";
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_guild_cant_put",
+            "I can't put %item to guild bank. I have no rights to put items in the first guild bank tab",
+            {{"%item", chat->FormatItem(item->GetTemplate())}}));
     else
     {
-        out << chat->FormatItem(item->GetTemplate()) << " put to guild bank";
         guild->SwapItemsWithInventory(bot, false, 0, 255, playerBag, playerSlot, 0);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_put_to_guild_bank", "%item put to guild bank", {{"%item", chat->FormatItem(item->GetTemplate())}}));
     }
-
-    botAI->TellMaster(out);
 
     return true;
 }

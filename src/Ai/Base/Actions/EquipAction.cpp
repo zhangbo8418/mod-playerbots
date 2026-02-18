@@ -74,9 +74,7 @@ void EquipAction::EquipItem(Item* item)
     if (invType == INVTYPE_AMMO)
     {
         bot->SetAmmo(itemId);
-        std::ostringstream out;
-        out << "equipping " << chat->FormatItem(itemProto);
-        botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_equipping", "equipping %item", {{"%item", chat->FormatItem(itemProto)}}));
         return;
     }
 
@@ -111,9 +109,7 @@ void EquipAction::EquipItem(Item* item)
             nicePacket.Read();
             bot->GetSession()->HandleAutoEquipItemSlotOpcode(nicePacket);
 
-            std::ostringstream out;
-            out << "Equipping " << chat->FormatItem(itemProto) << " in ranged slot";
-            botAI->TellMaster(out);
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_equipping_ranged", "Equipping %item in ranged slot", {{"%item", chat->FormatItem(itemProto)}}));
             return;
         }
 
@@ -221,14 +217,10 @@ void EquipAction::EquipItem(Item* item)
                     nicePacket.Read();
                     bot->GetSession()->HandleAutoEquipItemSlotOpcode(nicePacket);
 
-                    std::ostringstream moveMsg;
-                    moveMsg << "Main hand upgrade found. Moving " << chat->FormatItem(oldMHProto) << " to offhand";
-                    botAI->TellMaster(moveMsg);
+                    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_mainhand_move_offhand", "Main hand upgrade found. Moving %item to offhand", {{"%item", chat->FormatItem(oldMHProto)}}));
                 }
 
-                std::ostringstream out;
-                out << "Equipping " << chat->FormatItem(itemProto) << " in main hand";
-                botAI->TellMaster(out);
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_equipping_mainhand", "Equipping %item in main hand", {{"%item", chat->FormatItem(itemProto)}}));
                 return;
             }
 
@@ -243,9 +235,7 @@ void EquipAction::EquipItem(Item* item)
                 nicePacket.Read();
                 bot->GetSession()->HandleAutoEquipItemSlotOpcode(nicePacket);
 
-                std::ostringstream out;
-                out << "Equipping " << chat->FormatItem(itemProto) << " in offhand";
-                botAI->TellMaster(out);
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_equipping_offhand", "Equipping %item in offhand", {{"%item", chat->FormatItem(itemProto)}}));
                 return;
             }
             else
@@ -323,9 +313,7 @@ void EquipAction::EquipItem(Item* item)
         }
     }
 
-    std::ostringstream out;
-    out << "Equipping " << chat->FormatItem(itemProto);
-    botAI->TellMaster(out);
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_equipping_generic", "Equipping %item", {{"%item", chat->FormatItem(itemProto)}}));
 }
 
 ItemIds EquipAction::SelectInventoryItemsToEquip()

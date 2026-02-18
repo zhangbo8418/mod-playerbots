@@ -14,10 +14,7 @@ bool TellTargetAction::Execute(Event event)
     Unit* target = context->GetValue<Unit*>("current target")->Get();
     if (target)
     {
-        std::ostringstream out;
-        out << "Attacking " << target->GetName();
-        botAI->TellMaster(out);
-
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_attacking_target", "Attacking %target", {{"%target", target->GetName()}}));
         context->GetValue<Unit*>("old target")->Set(target);
     }
 
@@ -26,7 +23,7 @@ bool TellTargetAction::Execute(Event event)
 
 bool TellAttackersAction::Execute(Event event)
 {
-    botAI->TellMaster("--- Attackers ---");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_attackers_title", "--- Attackers ---"));
 
     GuidVector attackers = context->GetValue<GuidVector>("attackers")->Get();
     int32 count = 0;
@@ -36,10 +33,10 @@ bool TellAttackersAction::Execute(Event event)
         if (!unit || !unit->IsAlive())
             continue;
 
-        botAI->TellMaster(std::to_string(++count) + std::string(".") + unit->GetName());
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_attacker_line", "%num.%name", {{"%num", std::to_string(++count)}, {"%name", unit->GetName()}}));
     }
 
-    botAI->TellMaster("--- Threat ---");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_threat_title", "--- Threat ---"));
 
     HostileReference* ref = bot->getHostileRefMgr().getFirst();
     if (!ref)
@@ -51,9 +48,7 @@ bool TellAttackersAction::Execute(Event event)
         Unit* unit = threatMgr->GetOwner();
         float threat = ref->GetThreat();
 
-        std::ostringstream out;
-        out << unit->GetName() << " (" << threat << ")";
-        botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_threat_entry", "%name (%threat)", {{"%name", unit->GetName()}, {"%threat", std::to_string(threat)}}));
 
         ref = ref->next();
     }

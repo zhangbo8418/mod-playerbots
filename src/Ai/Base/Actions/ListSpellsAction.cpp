@@ -284,11 +284,11 @@ bool ListSpellsAction::Execute(Event event)
     if (spells.empty())
     {
         // CHANGE: Give early feedback when no spells match the filter.
-        botAI->TellMaster("No spells found.");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_no_spells_found", "No spells found."));
         return true;
     }
 
-    botAI->TellMaster("=== Spells ===");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_spells_title", "=== Spells ==="));
 
     std::sort(spells.begin(), spells.end(), CompareSpells);
 

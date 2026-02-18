@@ -235,9 +235,8 @@ bool SetStanceAction::Execute(Event event)
     StanceValue* value = (StanceValue*)context->GetValue<Stance*>("stance");
     if (stance == "?" || stance.empty())
     {
-        std::ostringstream str;
-        str << "Stance: |cff00ff00" << value->Get()->getName();
-        botAI->TellMaster(str);
+        std::string name = "|cff00ff00" + value->Get()->getName();
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_stance_current", "Stance: %name", {{"%name", name}}));
         return true;
     }
 
@@ -252,15 +251,11 @@ bool SetStanceAction::Execute(Event event)
 
     if (!value->Load(stance))
     {
-        std::ostringstream str;
-        str << "Invalid stance: |cffff0000" << stance;
-        botAI->TellMaster(str);
-        botAI->TellMaster("Please set to any of:|cffffffff near (default), tank, turnback, behind");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_stance_invalid", "Invalid stance: %stance", {{"%stance", "|cffff0000" + stance}}));
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_stance_usage", "Please set to any of:|cffffffff near (default), tank, turnback, behind"));
         return false;
     }
 
-    std::ostringstream str;
-    str << "Stance set to: " << stance;
-    botAI->TellMaster(str);
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_stance_set", "Stance set to: %stance", {{"%stance", stance}}));
     return true;
 }

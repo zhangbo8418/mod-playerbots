@@ -164,7 +164,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             if (botAI->GetMaster() == source)
             {
                 botAI->ChangeStrategy("-follow,+stay", BOT_STATE_NON_COMBAT);
-                botAI->TellMasterNoFacing("Fine.. I'll stay right here..");
+                botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("emote_stay_here", "Fine.. I'll stay right here.."));
             }
             break;
         case TEXT_EMOTE_BECKON:
@@ -172,7 +172,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             if (botAI->GetMaster() == source)
             {
                 botAI->ChangeStrategy("+follow", BOT_STATE_NON_COMBAT);
-                botAI->TellMasterNoFacing("Wherever you go, I'll follow..");
+                botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("emote_follow_you", "Wherever you go, I'll follow.."));
             }
             break;
         case TEXT_EMOTE_WAVE:
@@ -181,12 +181,12 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_HELLO:
         case TEXT_EMOTE_WELCOME:
         case TEXT_EMOTE_INTRODUCE:
-            emoteText = "Hey there!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_hey_there", "Hey there!");
             emoteId = EMOTE_ONESHOT_WAVE;
             textEmote = TEXT_EMOTE_HELLO;
             break;
         case TEXT_EMOTE_DANCE:
-            emoteText = "Shake what your mama gave you!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_shake_what", "Shake what your mama gave you!");
             emoteId = EMOTE_ONESHOT_DANCE;
             textEmote = TEXT_EMOTE_DANCE;
             break;
@@ -197,12 +197,12 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_SMILE:
         case TEXT_EMOTE_LOVE:
             // case TEXT_EMOTE_HOLDHAND:
-            emoteText = "Awwwww...";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_awwwww", "Awwwww...");
             emoteId = EMOTE_ONESHOT_SHY;
             textEmote = TEXT_EMOTE_SHY;
             break;
         case TEXT_EMOTE_FLEX:
-            emoteText = "Hercules! Hercules!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_hercules", "Hercules! Hercules!");
             emoteId = EMOTE_ONESHOT_APPLAUD;
             textEmote = TEXT_EMOTE_APPLAUD;
             break;
@@ -214,7 +214,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_REGRET:
             // case TEXT_EMOTE_SCOLD:
             // case TEXT_EMOTE_CROSSARMS:
-            emoteText = "Did I do thaaaaat?";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_did_i_do_that", "Did I do thaaaaat?");
             emoteId = EMOTE_ONESHOT_QUESTION;
             textEmote = TEXT_EMOTE_SHRUG;
             break;
@@ -224,24 +224,24 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_NOSEPICK:
         case TEXT_EMOTE_SNIFF:
         case TEXT_EMOTE_STINK:
-            emoteText = "Wasn't me! Just sayin'..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_wasnt_me", "Wasn't me! Just sayin'..");
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_POINT;
             break;
         case TEXT_EMOTE_JOKE:
             emoteId = EMOTE_ONESHOT_LAUGH;
             textEmote = TEXT_EMOTE_LAUGH;
-            emoteText = "Oh.. was I not supposed to laugh so soon?";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_laugh_soon", "Oh.. was I not supposed to laugh so soon?");
             break;
         case TEXT_EMOTE_CHICKEN:
-            emoteText = "We'll see who's chicken soon enough!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_chicken", "We'll see who's chicken soon enough!");
             emoteId = EMOTE_ONESHOT_RUDE;
             textEmote = TEXT_EMOTE_RUDE;
             break;
         case TEXT_EMOTE_APOLOGIZE:
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_APOLOGIZE;
-            emoteText = "You damn right you're sorry!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_youre_sorry", "You damn right you're sorry!");
             break;
         case TEXT_EMOTE_APPLAUD:
         case TEXT_EMOTE_CLAP:
@@ -250,14 +250,14 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_GOLFCLAP:
             emoteId = EMOTE_ONESHOT_BOW;
             textEmote = TEXT_EMOTE_BOW;
-            emoteText = "Thank you.. Thank you.. I'm here all week.";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_here_all_week", "Thank you.. Thank you.. I'm here all week.");
             break;
         case TEXT_EMOTE_BEG:
         case TEXT_EMOTE_GROVEL:
         case TEXT_EMOTE_PLEAD:
             emoteId = EMOTE_ONESHOT_NO;
             textEmote = TEXT_EMOTE_NO;
-            emoteText = "Beg all you want.. I have nothing for you.";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_beg_nothing", "Beg all you want.. I have nothing for you.");
             break;
         case TEXT_EMOTE_BITE:
         case TEXT_EMOTE_POKE:
@@ -266,12 +266,12 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_PUNCH:
             emoteId = EMOTE_ONESHOT_ROAR;
             textEmote = TEXT_EMOTE_ROAR;
-            emoteYell = "OUCH! Dammit, that hurt!";
+            emoteYell = botAI->GetLocalizedBotTextOrDefault("emote_ouch", "OUCH! Dammit, that hurt!");
             break;
         case TEXT_EMOTE_BORED:
             emoteId = EMOTE_ONESHOT_NO;
             textEmote = TEXT_EMOTE_NO;
-            emoteText = "My job description doesn't include entertaining you..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_job_description", "My job description doesn't include entertaining you..");
             break;
         case TEXT_EMOTE_BOW:
         case TEXT_EMOTE_CURTSEY:
@@ -282,13 +282,13 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_SIT:
             emoteId = EMOTE_ONESHOT_EAT;
             textEmote = TEXT_EMOTE_EAT;
-            emoteText = "Looks like time for an AFK break..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_afk_break", "Looks like time for an AFK break..");
             break;
         case TEXT_EMOTE_AGREE:
         case TEXT_EMOTE_NOD:
             emoteId = EMOTE_ONESHOT_EXCLAMATION;
             textEmote = TEXT_EMOTE_NOD;
-            emoteText = "At least SOMEONE agrees with me!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_someone_agrees", "At least SOMEONE agrees with me!");
             break;
         case TEXT_EMOTE_AMAZE:
         case TEXT_EMOTE_COWER:
@@ -305,7 +305,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_PROUD:
             emoteId = EMOTE_ONESHOT_FLEX;
             textEmote = TEXT_EMOTE_FLEX;
-            emoteText = "Yes, Yes. I know I'm amazing..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_im_amazing", "Yes, Yes. I know I'm amazing..");
             break;
         case TEXT_EMOTE_BLEED:
         case TEXT_EMOTE_MOURN:
@@ -314,22 +314,22 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_PULSE:
             emoteId = EMOTE_ONESHOT_KNEEL;
             textEmote = TEXT_EMOTE_KNEEL;
-            emoteText = "MEDIC! Stat!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_medic", "MEDIC! Stat!");
             break;
         case TEXT_EMOTE_BLINK:
             emoteId = EMOTE_ONESHOT_KICK;
-            emoteText = "What? You got something in your eye?";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_something_eye", "What? You got something in your eye?");
             break;
         case TEXT_EMOTE_BOUNCE:
         case TEXT_EMOTE_BARK:
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_POINT;
-            emoteText = "Who's a good doggy? You're a good doggy!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_good_doggy", "Who's a good doggy? You're a good doggy!");
             break;
         case TEXT_EMOTE_BYE:
             emoteId = EMOTE_ONESHOT_WAVE;
             textEmote = TEXT_EMOTE_WAVE;
-            emoteText = "Umm.... wait! Where are you going?!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_where_going", "Umm.... wait! Where are you going?!");
             break;
         case TEXT_EMOTE_CACKLE:
         case TEXT_EMOTE_LAUGH:
@@ -341,7 +341,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_SNORT:
             emoteId = EMOTE_ONESHOT_LAUGH;
             textEmote = TEXT_EMOTE_LAUGH;
-            emoteText = "Wait... what are we laughing at again?";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_laughing_at", "Wait... what are we laughing at again?");
             break;
         case TEXT_EMOTE_CONFUSED:
         case TEXT_EMOTE_CURIOUS:
@@ -361,7 +361,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_EYEBROW:
             emoteId = EMOTE_ONESHOT_QUESTION;
             textEmote = TEXT_EMOTE_SHRUG;
-            emoteText = "Don't look at  me.. I just work here";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_just_work_here", "Don't look at  me.. I just work here");
             break;
         case TEXT_EMOTE_COUGH:
         case TEXT_EMOTE_DROOL:
@@ -372,23 +372,23 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_SWEAT:
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_POINT;
-            emoteText = "Ewww! Keep your nasty germs over there!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_germs", "Ewww! Keep your nasty germs over there!");
             break;
         case TEXT_EMOTE_CRY:
             emoteId = EMOTE_ONESHOT_CRY;
             textEmote = TEXT_EMOTE_CRY;
-            emoteText = "Don't you start crying or it'll make me start crying!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_start_crying", "Don't you start crying or it'll make me start crying!");
             break;
         case TEXT_EMOTE_CRACK:
             emoteId = EMOTE_ONESHOT_ROAR;
             textEmote = TEXT_EMOTE_ROAR;
-            emoteText = "It's clobbering time!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_clobbering", "It's clobbering time!");
             break;
         case TEXT_EMOTE_EAT:
         case TEXT_EMOTE_DRINK:
             emoteId = EMOTE_ONESHOT_EAT;
             textEmote = TEXT_EMOTE_EAT;
-            emoteText = "I hope you brought enough for the whole class...";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_whole_class", "I hope you brought enough for the whole class...");
             break;
         case TEXT_EMOTE_GLOAT:
         case TEXT_EMOTE_MOCK:
@@ -396,19 +396,19 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_EMBARRASS:
             emoteId = EMOTE_ONESHOT_CRY;
             textEmote = TEXT_EMOTE_CRY;
-            emoteText = "Doesn't mean you need to be an ass about it..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_ass_about_it", "Doesn't mean you need to be an ass about it..");
             break;
         case TEXT_EMOTE_HUNGRY:
             emoteId = EMOTE_ONESHOT_EAT;
             textEmote = TEXT_EMOTE_EAT;
-            emoteText = "What? You want some of this?";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_want_some", "What? You want some of this?");
             break;
         case TEXT_EMOTE_LAYDOWN:
         case TEXT_EMOTE_TIRED:
         case TEXT_EMOTE_YAWN:
             emoteId = EMOTE_ONESHOT_KNEEL;
             textEmote = TEXT_EMOTE_KNEEL;
-            emoteText = "Is it break time already?";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_break_time", "Is it break time already?");
             break;
         case TEXT_EMOTE_MOAN:
         case TEXT_EMOTE_MOON:
@@ -423,7 +423,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_CHARM:
             emoteId = EMOTE_ONESHOT_NO;
             textEmote = TEXT_EMOTE_NO;
-            emoteText = "Keep it in your pants, boss..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_keep_pants", "Keep it in your pants, boss..");
             break;
         case TEXT_EMOTE_NO:
         case TEXT_EMOTE_VETO:
@@ -431,23 +431,23 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_DOUBT:
             emoteId = EMOTE_ONESHOT_QUESTION;
             textEmote = TEXT_EMOTE_SHRUG;
-            emoteText = "Aww.... why not?!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_why_not", "Aww.... why not?!");
             break;
         case TEXT_EMOTE_PANIC:
             emoteId = EMOTE_ONESHOT_EXCLAMATION;
             textEmote = TEXT_EMOTE_CALM;
-            emoteText = "Now is NOT the time to panic!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_not_panic", "Now is NOT the time to panic!");
             break;
         case TEXT_EMOTE_POINT:
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_POINT;
-            emoteText = "What?! I can do that TOO!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_can_do_too", "What?! I can do that TOO!");
             break;
         case TEXT_EMOTE_RUDE:
         case TEXT_EMOTE_RASP:
             emoteId = EMOTE_ONESHOT_RUDE;
             textEmote = TEXT_EMOTE_RASP;
-            emoteText = "Right back at you, bub!";  // , LANG_UNIVERSAL;
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_right_back", "Right back at you, bub!");
             break;
         case TEXT_EMOTE_ROAR:
         case TEXT_EMOTE_THREATEN:
@@ -469,7 +469,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_SHAKEFIST:
             emoteId = EMOTE_ONESHOT_ROAR;
             textEmote = TEXT_EMOTE_ROAR;
-            emoteYell = "RAWR!";
+            emoteYell = botAI->GetLocalizedBotTextOrDefault("emote_rawr", "RAWR!");
             break;
         case TEXT_EMOTE_TALK:
             emoteId = EMOTE_ONESHOT_TALK;
@@ -483,12 +483,12 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_LISTEN:
             emoteId = EMOTE_ONESHOT_TALK;
             textEmote = TEXT_EMOTE_TALKQ;
-            emoteText = "Blah Blah Blah Yakety Smackety..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_blah_blah", "Blah Blah Blah Yakety Smackety..");
             break;
         case TEXT_EMOTE_THANK:
             emoteId = EMOTE_ONESHOT_BOW;
             textEmote = TEXT_EMOTE_BOW;
-            emoteText = "You are quite welcome!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_quite_welcome", "You are quite welcome!");
             break;
         case TEXT_EMOTE_VICTORY:
         case TEXT_EMOTE_CHEER:
@@ -497,7 +497,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_DING:
             emoteId = EMOTE_ONESHOT_CHEER;
             textEmote = TEXT_EMOTE_CHEER;
-            emoteText = "Yay!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_yay", "Yay!");
             break;
         case TEXT_EMOTE_COLD:
         case TEXT_EMOTE_SHIVER:
@@ -507,60 +507,60 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_POUT:
             emoteId = EMOTE_ONESHOT_QUESTION;
             textEmote = TEXT_EMOTE_PUZZLE;
-            emoteText = "And what exactly am I supposed to do about that?";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_do_about_that", "And what exactly am I supposed to do about that?");
             break;
         case TEXT_EMOTE_COMFORT:
         case TEXT_EMOTE_SOOTHE:
         case TEXT_EMOTE_PAT:
             emoteId = EMOTE_ONESHOT_CRY;
             textEmote = TEXT_EMOTE_CRY;
-            emoteText = "Thanks...";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_thanks_dots", "Thanks...");
             break;
         case TEXT_EMOTE_INSULT:
             emoteId = EMOTE_ONESHOT_CRY;
             textEmote = TEXT_EMOTE_CRY;
-            emoteText = "You hurt my feelings..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_hurt_feelings", "You hurt my feelings..");
             break;
         case TEXT_EMOTE_JK:
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_POINT;
-            emoteText = "You.....";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_you_dots", "You.....");
             break;
         case TEXT_EMOTE_RAISE:
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_POINT;
-            emoteText = "Yes.. you.. at the back of the class..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_back_of_class", "Yes.. you.. at the back of the class..");
             break;
         case TEXT_EMOTE_READY:
             emoteId = EMOTE_ONESHOT_SALUTE;
             textEmote = TEXT_EMOTE_SALUTE;
-            emoteText = "Ready here, too!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_ready_here", "Ready here, too!");
             break;
         case TEXT_EMOTE_SHOO:
             emoteId = EMOTE_ONESHOT_KICK;
             textEmote = TEXT_EMOTE_SHOO;
-            emoteText = "Shoo yourself!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_shoo_yourself", "Shoo yourself!");
             break;
         case TEXT_EMOTE_SLAP:
             // case TEXT_EMOTE_SMACK:
             emoteId = EMOTE_ONESHOT_CRY;
             textEmote = TEXT_EMOTE_CRY;
-            emoteText = "What did I do to deserve that?";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_deserve_that", "What did I do to deserve that?");
             break;
         case TEXT_EMOTE_STAND:
             emoteId = EMOTE_ONESHOT_NONE;
             textEmote = TEXT_EMOTE_STAND;
-            emoteText = "What? Break time's over? Fine..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_break_over", "What? Break time's over? Fine..");
             break;
         case TEXT_EMOTE_TICKLE:
             emoteId = EMOTE_ONESHOT_LAUGH;
             textEmote = TEXT_EMOTE_GIGGLE;
-            emoteText = "Hey! Stop that!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_stop_that", "Hey! Stop that!");
             break;
         case TEXT_EMOTE_VIOLIN:
             emoteId = EMOTE_ONESHOT_TALK;
             textEmote = TEXT_EMOTE_SIGH;
-            emoteText = "Har Har.. very funny..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_har_har", "Har Har.. very funny..");
             break;
             // case TEXT_EMOTE_HELPME:
             //     bot->HandleEmoteCommand(EMOTE_ONESHOT_POINT);
@@ -570,13 +570,13 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_LUCK:
             emoteId = EMOTE_ONESHOT_TALK;
             textEmote = TEXT_EMOTE_THANK;
-            emoteText = "Thanks... I'll need it..";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_thanks_need_it", "Thanks... I'll need it..");
             break;
         case TEXT_EMOTE_BRANDISH:
             // case TEXT_EMOTE_MERCY:
             emoteId = EMOTE_ONESHOT_BEG;
             textEmote = TEXT_EMOTE_BEG;
-            emoteText = "Please don't kill me!";
+            emoteText = botAI->GetLocalizedBotTextOrDefault("emote_dont_kill_me", "Please don't kill me!");
             break;
         /*case TEXT_EMOTE_BADFEELING:
             bot->HandleEmoteCommand(EMOTE_ONESHOT_QUESTION);

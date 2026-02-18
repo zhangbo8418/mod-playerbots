@@ -38,7 +38,7 @@ bool ChangeTalentsAction::Execute(Event event)
             if (param.find("switch 1") != std::string::npos)
             {
                 bot->ActivateSpec(0);
-                out << "Active first talent";
+                out << botAI->GetLocalizedBotTextOrDefault("msg_talents_active_first", "Active first talent");
                 botAI->ResetStrategies();
             }
             else if (param.find("switch 2") != std::string::npos)
@@ -49,7 +49,7 @@ bool ChangeTalentsAction::Execute(Event event)
                     bot->CastSpell(bot, 63624, true, nullptr, nullptr, bot->GetGUID());
                 }
                 bot->ActivateSpec(1);
-                out << "Active second talent";
+                out << botAI->GetLocalizedBotTextOrDefault("msg_talents_active_second", "Active second talent");
                 botAI->ResetStrategies();
             }
         }
@@ -57,7 +57,7 @@ bool ChangeTalentsAction::Execute(Event event)
         {
             PlayerbotFactory factory(bot, bot->GetLevel());
             factory.InitTalentsTree(true);
-            out << "Auto pick talents";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_talents_auto_pick", "Auto pick talents");
             botAI->ResetStrategies();
         }
         else if (param.find("spec list") != std::string::npos)
@@ -78,13 +78,13 @@ bool ChangeTalentsAction::Execute(Event event)
         }
         else
         {
-            out << "Unknown command.";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_talents_unknown_cmd", "Unknown command.");
         }
     }
     else
     {
         uint32 tab = AiFactory::GetPlayerSpecTab(bot);
-        out << "My current talent spec is: "
+        out << botAI->GetLocalizedBotTextOrDefault("msg_talents_my_spec", "My current talent spec is: ")
             << "|h|cffffffff";
         out << chat->FormatClass(bot, tab) << "\n";
         out << TalentsHelp();
@@ -97,17 +97,14 @@ bool ChangeTalentsAction::Execute(Event event)
 
 std::string ChangeTalentsAction::TalentsHelp()
 {
-    std::ostringstream out;
-    out << "Talents usage: talents switch <1/2>, talents autopick, talents spec list, "
-           "talents spec <specName>, talents apply <link>.";
-    return out.str();
+    return botAI->GetLocalizedBotTextOrDefault("msg_talents_usage",
+        "Talents usage: talents switch <1/2>, talents autopick, talents spec list, talents spec <specName>, talents apply <link>.");
 }
 
 std::string ChangeTalentsAction::SpecList()
 {
     int cls = bot->getClass();
     int specFound = 0;
-    std::ostringstream out;
     for (int specNo = 0; specNo < MAX_SPECNO; ++specNo)
     {
         if (sPlayerbotAIConfig.premadeSpecName[cls][specNo].size() == 0)
@@ -127,8 +124,7 @@ std::string ChangeTalentsAction::SpecList()
         out << tabCount[0] << "-" << tabCount[1] << "-" << tabCount[2] << ")";
         botAI->TellMasterNoFacing(out.str());
     }
-    out << "Total " << specFound << " specs found";
-    return out.str();
+    return botAI->GetLocalizedBotTextOrDefault("msg_talents_spec_total", "Total %n specs found", {{"%n", std::to_string(specFound)}});
 }
 
 std::string ChangeTalentsAction::SpecPick(std::string param)
@@ -148,29 +144,22 @@ std::string ChangeTalentsAction::SpecPick(std::string param)
             PlayerbotFactory factory(bot, bot->GetLevel());
             factory.InitGlyphs(false);
 
-            std::ostringstream out;
-            out << "Picking " << sPlayerbotAIConfig.premadeSpecName[cls][specNo];
-            return out.str();
+            return botAI->GetLocalizedBotTextOrDefault("msg_talents_picking", "Picking %spec", {{"%spec", sPlayerbotAIConfig.premadeSpecName[cls][specNo]}});
         }
     }
-    std::ostringstream out;
-    out << "Spec " << param << " not found";
-    return out.str();
+    return botAI->GetLocalizedBotTextOrDefault("msg_talents_spec_not_found", "Spec %param not found", {{"%param", param}});
 }
 
 std::string ChangeTalentsAction::SpecApply(std::string param)
 {
     int cls = bot->getClass();
-    std::ostringstream out;
     std::vector<std::vector<uint32>> parsedSpecLink = PlayerbotAIConfig::ParseTempTalentsOrder(cls, param);
     if (parsedSpecLink.size() == 0)
     {
-        out << "Invalid link " << param;
-        return out.str();
+        return botAI->GetLocalizedBotTextOrDefault("msg_talents_invalid_link", "Invalid link %param", {{"%param", param}});
     }
     PlayerbotFactory::InitTalentsByParsedSpecLink(bot, parsedSpecLink, true);
-    out << "Applying " << param;
-    return out.str();
+    return botAI->GetLocalizedBotTextOrDefault("msg_talents_applying", "Applying %param", {{"%param", param}});
 }
 
 // std::vector<TalentPath*> ChangeTalentsAction::getPremadePaths(std::string const findName)

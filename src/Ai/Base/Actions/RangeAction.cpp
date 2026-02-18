@@ -35,9 +35,7 @@ bool RangeAction::Execute(Event event)
     float newVal = (float)atof(value.c_str());
     context->GetValue<float>("range", qualifier)->Set(newVal);
 
-    std::ostringstream out;
-    out << qualifier << " range set to: " << newVal;
-    botAI->TellMaster(out.str());
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_range_set_to", "%qualifier range set to: %value", {{"%qualifier", qualifier}, {"%value", std::to_string(newVal)}}));
     return true;
 }
 
@@ -45,13 +43,7 @@ void RangeAction::PrintRange(std::string const type)
 {
     float curVal = AI_VALUE2(float, "range", type);
 
-    std::ostringstream out;
-    out << type << " range: ";
-
     if (abs(curVal) >= 0.1f)
-        out << curVal;
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_range_is", "%type range: %value", {{"%type", type}, {"%value", std::to_string(curVal)}}));
     else
-        out << botAI->GetRange(type) << " (default)";
-
-    botAI->TellMaster(out.str());
-}
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_range_is_default", "%type range: %value (default)", {{"%type", type}, {"%value", std::to_string(botAI->GetRange(type))}}));

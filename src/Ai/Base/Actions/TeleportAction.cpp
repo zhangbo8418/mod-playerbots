@@ -50,9 +50,7 @@ bool TeleportAction::Execute(Event event)
     // If a nearby portal is found, use it
     if (closestPortal && bot->IsWithinDistInMap(closestPortal, INTERACTION_DISTANCE))
     {
-        std::ostringstream out;
-        out << "Using portal: " << closestPortal->GetName();
-        botAI->TellMasterNoFacing(out.str());
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_using_portal", "Using portal: %name", {{"%name", closestPortal->GetName()}}));
 
         WorldPacket data(CMSG_GAMEOBJ_USE);
         data << closestPortal->GetGUID();
@@ -78,9 +76,7 @@ bool TeleportAction::Execute(Event event)
         if (!spellInfo || !spellInfo->HasEffect(SPELL_EFFECT_TELEPORT_UNITS))
             continue;
 
-        std::ostringstream out;
-        out << "Teleporting using " << goInfo->name;
-        botAI->TellMasterNoFacing(out.str());
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_teleporting_using", "Teleporting using %name", {{"%name", goInfo->name}}));
 
         botAI->ChangeStrategy("-follow,+stay", BOT_STATE_NON_COMBAT);
 
@@ -106,6 +102,6 @@ bool TeleportAction::Execute(Event event)
     }
 
     // If no teleport option is found
-    botAI->TellError("Cannot find any portal to teleport");
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_portal_teleport", "Cannot find any portal to teleport"));
     return false;
 }

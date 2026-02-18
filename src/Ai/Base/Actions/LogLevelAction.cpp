@@ -13,18 +13,13 @@ bool LogLevelAction::Execute(Event event)
     std::string const param = event.getParam();
     Value<LogLevel>* value = botAI->GetAiObjectContext()->GetValue<LogLevel>("log level");
 
-    std::ostringstream out;
     if (param != "?")
     {
         value->Set(string2logLevel(param));
-        out << "My log level set to " << logLevel2string(value->Get());
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_log_level_set", "My log level set to %level", {{"%level", logLevel2string(value->Get())}}));
     }
     else
-    {
-        out << "My log level is " << logLevel2string(value->Get());
-    }
-
-    botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_log_level_is", "My log level is %level", {{"%level", logLevel2string(value->Get())}}));
     return true;
 }
 

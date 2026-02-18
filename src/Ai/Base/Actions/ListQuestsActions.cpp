@@ -44,21 +44,18 @@ void ListQuestsAction::ListQuests(QuestListFilter filter, QuestTravelDetail trav
     bool showCompleted = filter & QUEST_LIST_FILTER_COMPLETED;
 
     if (showIncompleted)
-        botAI->TellMaster("--- Incompleted quests ---");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_incompleted_title", "--- Incompleted quests ---"));
 
     uint32 incompleteCount = ListQuests(false, !showIncompleted, travelDetail);
 
     if (showCompleted)
-        botAI->TellMaster("--- Completed quests ---");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_completed_title", "--- Completed quests ---"));
 
     uint32 completeCount = ListQuests(true, !showCompleted, travelDetail);
 
-    botAI->TellMaster("--- Summary ---");
-
-    std::ostringstream out;
-    out << "Total: " << (completeCount + incompleteCount) << " / 25 (incompleted: " << incompleteCount
-        << ", completed: " << completeCount << ")";
-    botAI->TellMaster(out);
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_summary_title", "--- Summary ---"));
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_total", "Total: %total / 25 (incompleted: %incomplete, completed: %complete)",
+        {{"%total", std::to_string(completeCount + incompleteCount)}, {"%incomplete", std::to_string(incompleteCount)}, {"%complete", std::to_string(completeCount)}}));
 }
 
 uint32 ListQuestsAction::ListQuests(bool completed, bool silent, QuestTravelDetail travelDetail)
@@ -96,10 +93,9 @@ uint32 ListQuestsAction::ListQuests(bool completed, bool silent, QuestTravelDeta
 
                 if (QuestDestination->GetQuestTemplate()->GetQuestId() == questId)
                 {
-                    std::ostringstream out;
-                    out << "[Active] traveling " << target->getPosition()->distance(botPos);
-                    out << " to " << QuestDestination->getTitle();
-                    botAI->TellMaster(out);
+                    std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_quest_active_travel", "[Active] traveling %dist to %title",
+                        {{"%dist", std::to_string(static_cast<uint32>(target->getPosition()->distance(botPos)))}, {"%title", QuestDestination->getTitle()}});
+                    botAI->TellMaster(msg);
                 }
             }
         }
@@ -125,16 +121,11 @@ uint32 ListQuestsAction::ListQuests(bool completed, bool silent, QuestTravelDeta
             for (auto dest : availDestinations)
                 apoints += dest->getPoints().size();
 
-            std::ostringstream out;
-            out << desAvail << "/" << desTot << " destinations " << apoints << "/" << tpoints << " points. ";
-
-            if (desFull > 0)
-                out << desFull << " crowded.";
-
-            if (desRange > 0)
-                out << desRange << " out of range.";
-
-            botAI->TellMaster(out);
+            std::string crowdedStr = (desFull > 0) ? botAI->GetLocalizedBotTextOrDefault("msg_quest_crowded", "%n crowded.", {{"%n", std::to_string(desFull)}}) : "";
+            std::string rangeStr = (desRange > 0) ? botAI->GetLocalizedBotTextOrDefault("msg_quest_out_of_range", "%n out of range.", {{"%n", std::to_string(desRange)}}) : "";
+            std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_quest_dest_summary", "%avail%/%tot% destinations %ap%/%tp% points. %crowded%%range%",
+                {{"%avail%", std::to_string(desAvail)}, {"%tot%", std::to_string(desTot)}, {"%ap%", std::to_string(apoints)}, {"%tp%", std::to_string(tpoints)}, {"%crowded%", crowdedStr}, {"%range%", rangeStr}});
+            botAI->TellMaster(msg);
         }
         else if (travelDetail == QUEST_TRAVEL_DETAIL_FULL)
         {
@@ -153,27 +144,19 @@ uint32 ListQuestsAction::ListQuests(bool completed, bool silent, QuestTravelDeta
                 if (limit > 5)
                     continue;
 
-                std::ostringstream out;
-
                 uint32 tpoints = dest->getPoints(true).size();
                 uint32 apoints = dest->getPoints().size();
-
-                out << round(dest->distanceTo(const_cast<WorldPosition*>(&botPos)));
-                out << " to " << dest->getTitle();
-                out << " " << apoints;
-
+                std::string pointsStr = std::to_string(apoints);
                 if (apoints < tpoints)
-                    out << "/" << tpoints;
-
-                out << " points.";
-
+                    pointsStr += "/" + std::to_string(tpoints);
+                std::string extra;
                 if (!dest->isActive(bot))
-                    out << " not active";
-
+                    extra += botAI->GetLocalizedBotTextOrDefault("msg_quest_not_active", " not active");
                 if (dest->isFull(bot))
-                    out << " crowded";
-
-                botAI->TellMaster(out);
+                    extra += botAI->GetLocalizedBotTextOrDefault("msg_quest_crowded_suffix", " crowded");
+                std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_quest_dest_line", "%dist to %title %points points.%extra",
+                    {{"%dist", std::to_string(static_cast<uint32>(round(dest->distanceTo(const_cast<WorldPosition*>(&botPos)))))}, {"%title", dest->getTitle()}, {"%points", pointsStr}, {"%extra", extra}});
+                botAI->TellMaster(msg);
 
                 limit++;
             }

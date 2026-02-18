@@ -54,7 +54,7 @@ bool WhoAction::Execute(Event event)
         if (!out.str().empty())
             out << ", ";
 
-        out << "playing with " << botAI->GetMaster()->GetName();
+        out << botAI->GetLocalizedBotTextOrDefault("msg_playing_with", "playing with %name", {{"%name", botAI->GetMaster()->GetName()}});
     }
 
     std::string const tell = out.str();
@@ -78,8 +78,8 @@ std::string const WhoAction::QueryTrade(std::string const text)
         if (!sellPrice)
             continue;
 
-        out << "Selling " << chat->FormatItem(sell->GetTemplate(), sell->GetCount()) << " for "
-            << chat->formatMoney(sellPrice);
+        out << botAI->GetLocalizedBotTextOrDefault("msg_selling_for", "Selling %item for %money",
+            {{"%item", chat->FormatItem(sell->GetTemplate(), sell->GetCount())}, {"%money", chat->formatMoney(sellPrice)}});
         return out.str();
     }
 

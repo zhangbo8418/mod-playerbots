@@ -133,15 +133,15 @@ bool FleeToGroupLeaderAction::Execute(Event event)
     if (distance < sPlayerbotAIConfig.reactDistance * 3)
     {
         if (!urand(0, 3))
-            botAI->TellMaster("I am close, wait for me!");
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_follow_close", "I am close, wait for me!"));
     }
     else if (distance < 1000)
     {
         if (!urand(0, 10))
-            botAI->TellMaster("I heading to your position.");
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_follow_heading", "I heading to your position."));
     }
     else if (!urand(0, 20))
-        botAI->TellMaster("I am traveling to your position.");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_follow_traveling", "I am traveling to your position."));
 
     botAI->SetNextCheckDelay(3000);
 

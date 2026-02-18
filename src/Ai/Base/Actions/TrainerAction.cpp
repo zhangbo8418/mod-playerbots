@@ -16,7 +16,7 @@ void TrainerAction::Learn(uint32 cost, const Trainer::Spell tSpell, std::ostring
     {
         if (AI_VALUE2(uint32, "free money for", (uint32)NeedMoneyFor::spells) < cost)
         {
-            msg << " - too expensive";
+            msg << botAI->GetLocalizedBotTextOrDefault("msg_trainer_too_expensive", " - too expensive");
             return;
         }
 
@@ -44,7 +44,7 @@ void TrainerAction::Learn(uint32 cost, const Trainer::Spell tSpell, std::ostring
     if (!learned && !bot->HasSpell(tSpell.SpellId))
         bot->learnSpell(tSpell.SpellId);
 
-    msg << " - learned";
+    msg << botAI->GetLocalizedBotTextOrDefault("msg_trainer_learned", " - learned");
 }
 
 void TrainerAction::Iterate(Creature* creature, TrainerSpellAction action, SpellIds& spells)
@@ -117,7 +117,7 @@ bool TrainerAction::Execute(Event event)
 
     if (trainer_spells.empty())
     {
-        botAI->TellError("No spells can be learned from this trainer");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_spells_from_trainer", "No spells can be learned from this trainer"));
         return false;
     }
 
@@ -140,30 +140,24 @@ bool TrainerAction::Execute(Event event)
 
 void TrainerAction::TellHeader(Creature* creature)
 {
-    std::ostringstream out;
-    out << "--- Can learn from " << creature->GetName() << " ---";
-    botAI->TellMaster(out);
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_trainer_can_learn", "--- Can learn from %name ---", {{"%name", creature->GetName()}}));
 }
 
 void TrainerAction::TellFooter(uint32 totalCost)
 {
     if (totalCost)
-    {
-        std::ostringstream out;
-        out << "Total cost: " << chat->formatMoney(totalCost);
-        botAI->TellMaster(out);
-    }
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_total_cost", "Total cost: %cost", {{"%cost", chat->formatMoney(totalCost)}}));
 }
 
 bool MaintenanceAction::Execute(Event event)
 {
     if (!sPlayerbotAIConfig.maintenanceCommand)
     {
-        botAI->TellError("maintenance command is not allowed, please check the configuration.");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_maintenance_not_allowed", "maintenance command is not allowed, please check the configuration."));
         return false;
     }
 
-    botAI->TellMaster("I'm maintaining");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_maintaining", "I'm maintaining"));
     PlayerbotFactory factory(bot, bot->GetLevel());
 
     if (!botAI->IsAlt())
@@ -269,18 +263,18 @@ bool AutoGearAction::Execute(Event event)
 {
     if (!sPlayerbotAIConfig.autoGearCommand)
     {
-        botAI->TellError("autogear command is not allowed, please check the configuration.");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_autogear_not_allowed", "autogear command is not allowed, please check the configuration."));
         return false;
     }
 
     if (!sPlayerbotAIConfig.autoGearCommandAltBots &&
         !sPlayerbotAIConfig.IsInRandomAccountList(bot->GetSession()->GetAccountId()))
     {
-        botAI->TellError("You cannot use autogear on alt bots.");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_autogear_no_alt", "You cannot use autogear on alt bots."));
         return false;
     }
 
-    botAI->TellMaster("I'm auto gearing");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_auto_gearing", "I'm auto gearing"));
     uint32 gs = sPlayerbotAIConfig.autoGearScoreLimit == 0
                     ? 0
                     : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,

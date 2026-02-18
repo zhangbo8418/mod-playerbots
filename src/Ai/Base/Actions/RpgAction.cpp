@@ -113,10 +113,10 @@ bool RpgAction::SetNextRpgAction()
 
         std::sort(sortedActions.begin(), sortedActions.end(), [](std::pair<Action*, uint32>i, std::pair<Action*, uint32> j) {return i.second > j.second; });
 
-        std::stringstream ss;
-        ss << "------" << chat->FormatWorldobject(AI_VALUE(GuidPosition, "rpg target").GetWorldObject()) << "------";
-        bot->Say(ss.str(), LANG_UNIVERSAL);
-        botAI->TellMasterNoFacing(ss.str());
+        std::string const targetStr = chat->FormatWorldobject(AI_VALUE(GuidPosition, "rpg target").GetWorldObject());
+        std::string const header = botAI->GetLocalizedBotTextOrDefault("msg_rpg_target_header", "------%target------", {{"%target", targetStr}});
+        bot->Say(header, LANG_UNIVERSAL);
+        botAI->TellMasterNoFacing(header);
 
         for (auto action : sortedActions)
         {

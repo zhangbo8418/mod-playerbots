@@ -49,11 +49,11 @@ bool WtsAction::Execute(Event event)
         if (urand(0, 15) > 2)
             continue;
 
-        std::ostringstream tell;
-        tell << "I'll buy " << chat->FormatItem(proto) << " for " << chat->formatMoney(buyPrice);
+        std::string tell = botAI->GetLocalizedBotTextOrDefault("msg_wts_buy", "I'll buy %item for %money",
+            {{"%item", chat->FormatItem(proto)}, {"%money", chat->formatMoney(buyPrice)}});
 
         // ignore random bot chat filter
-        bot->Whisper(tell.str(), LANG_UNIVERSAL, owner);
+        bot->Whisper(tell, LANG_UNIVERSAL, owner);
     }
 
     return true;

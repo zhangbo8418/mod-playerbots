@@ -36,7 +36,7 @@ bool UseMeetingStoneAction::Execute(Event event)
 
     if (bot->IsInCombat())
     {
-        botAI->TellError("I am in combat");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_in_combat", "I am in combat"));
         return false;
     }
 
@@ -75,13 +75,13 @@ bool SummonAction::Execute(Event event)
 
     if (SummonUsingGos(master, bot, true) || SummonUsingNpcs(master, bot, true))
     {
-        botAI->TellMasterNoFacing("Hello!");
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_hello", "Hello!"));
         return true;
     }
 
     if (SummonUsingGos(bot, master, true) || SummonUsingNpcs(bot, master, true))
     {
-        botAI->TellMasterNoFacing("Welcome!");
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_welcome", "Welcome!"));
         return true;
     }
 
@@ -101,7 +101,8 @@ bool SummonAction::SummonUsingGos(Player* summoner, Player* player, bool preserv
             return Teleport(summoner, player, preserveAuras);
     }
 
-    botAI->TellError(summoner == bot ? "There is no meeting stone nearby" : "There is no meeting stone near you");
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault(summoner == bot ? "error_no_meeting_stone_nearby" : "error_no_meeting_stone_near_you",
+        summoner == bot ? "There is no meeting stone nearby" : "There is no meeting stone near you"));
     return false;
 }
 
@@ -121,13 +122,15 @@ bool SummonAction::SummonUsingNpcs(Player* summoner, Player* player, bool preser
         {
             if (!player->HasItemCount(6948, 1, false))
             {
-                botAI->TellError(player == bot ? "I have no hearthstone" : "You have no hearthstone");
+                botAI->TellError(botAI->GetLocalizedBotTextOrDefault(player == bot ? "error_no_hearthstone_self" : "error_no_hearthstone_master",
+                    player == bot ? "I have no hearthstone" : "You have no hearthstone"));
                 return false;
             }
 
             if (player->HasSpellCooldown(8690))
             {
-                botAI->TellError(player == bot ? "My hearthstone is not ready" : "Your hearthstone is not ready");
+                botAI->TellError(botAI->GetLocalizedBotTextOrDefault(player == bot ? "error_hearthstone_not_ready_self" : "error_hearthstone_not_ready_master",
+                    player == bot ? "My hearthstone is not ready" : "Your hearthstone is not ready"));
                 return false;
             }
 
@@ -143,7 +146,8 @@ bool SummonAction::SummonUsingNpcs(Player* summoner, Player* player, bool preser
         }
     }
 
-    botAI->TellError(summoner == bot ? "There are no innkeepers nearby" : "There are no innkeepers near you");
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault(summoner == bot ? "error_no_innkeepers_nearby" : "error_no_innkeepers_near_you",
+        summoner == bot ? "There are no innkeepers nearby" : "There are no innkeepers near you"));
     return false;
 }
 
@@ -155,7 +159,7 @@ bool SummonAction::Teleport(Player* summoner, Player* player, bool preserveAuras
 
     if (player->GetVehicle())
     {
-        botAI->TellError("You cannot summon me while I'm on a vehicle");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_summon_on_vehicle", "You cannot summon me while I'm on a vehicle"));
         return false;
     }
 
@@ -176,20 +180,20 @@ bool SummonAction::Teleport(Player* summoner, Player* player, bool preserveAuras
 
                 if (summoner->IsInCombat() && !sPlayerbotAIConfig.allowSummonInCombat)
                 {
-                    botAI->TellError("You cannot summon me while you're in combat");
+                    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_summon_master_combat", "You cannot summon me while you're in combat"));
                     return false;
                 }
 
                 if (!summoner->IsAlive() && !sPlayerbotAIConfig.allowSummonWhenMasterIsDead)
                 {
-                    botAI->TellError("You cannot summon me while you're dead");
+                    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_summon_master_dead", "You cannot summon me while you're dead"));
                     return false;
                 }
 
                 if (bot->isDead() && !bot->HasPlayerFlag(PLAYER_FLAGS_GHOST) &&
                     !sPlayerbotAIConfig.allowSummonWhenBotIsDead)
                 {
-                    botAI->TellError("You cannot summon me while I'm dead, you need to release my spirit first");
+                    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_summon_bot_dead", "You cannot summon me while I'm dead, you need to release my spirit first"));
                     return false;
                 }
 
@@ -201,7 +205,7 @@ bool SummonAction::Teleport(Player* summoner, Player* player, bool preserveAuras
                 {
                     bot->ResurrectPlayer(1.0f, false);
                     bot->SpawnCorpseBones();
-                    botAI->TellMasterNoFacing("I live, again!");
+                    botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_live_again", "I live, again!"));
                     botAI->GetAiObjectContext()->GetValue<GuidVector>("prioritized targets")->Reset();
                 }
 
@@ -231,6 +235,6 @@ bool SummonAction::Teleport(Player* summoner, Player* player, bool preserveAuras
     }
 
     if (summoner != player)
-         botAI->TellError("Not enough place to summon");
+         botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_not_enough_place_summon", "Not enough place to summon"));
     return false;
 }

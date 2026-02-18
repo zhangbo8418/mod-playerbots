@@ -55,14 +55,10 @@ bool MoveToTravelTargetAction::Execute(Event event)
             if (!urand(0, 5))
             {
                 std::ostringstream out;
-                if (botAI->GetMaster() && !bot->GetGroup()->IsMember(botAI->GetMaster()->GetGUID()))
-                    out << "Waiting a bit for ";
-                else
-                    out << "Please hurry up ";
-
-                out << member->GetName();
-
-                botAI->TellMasterNoFacing(out);
+                std::string msg = (botAI->GetMaster() && !bot->GetGroup()->IsMember(botAI->GetMaster()->GetGUID()))
+                    ? botAI->GetLocalizedBotTextOrDefault("msg_waiting_for", "Waiting a bit for %name", {{"%name", member->GetName()}})
+                    : botAI->GetLocalizedBotTextOrDefault("msg_please_hurry", "Please hurry up %name", {{"%name", member->GetName()}});
+                botAI->TellMasterNoFacing(msg);
             }
 
             target->setExpireIn(target->getTimeLeft() + sPlayerbotAIConfig.maxWaitForMove);

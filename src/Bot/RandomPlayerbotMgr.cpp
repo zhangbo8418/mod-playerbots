@@ -3038,7 +3038,7 @@ void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
                 {
                     botAI->SetMaster(player);
                     botAI->ResetStrategies();
-                    botAI->TellMaster("Hello");
+                    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_hello", "Hello"));
                 }
 
                 break;

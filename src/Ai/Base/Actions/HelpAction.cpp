@@ -22,19 +22,14 @@ bool HelpAction::Execute(Event event)
 
 void HelpAction::TellChatCommands()
 {
-    std::ostringstream out;
-    out << "Whisper any of: ";
-    out << CombineSupported(chatContext->supports());
-    out << ", [item], [quest] or [object] link";
-    botAI->TellError(out.str());
+    std::string listStr = CombineSupported(chatContext->supports());
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("msg_help_whisper_any", "Whisper any of: %list, [item], [quest] or [object] link", {{"%list", listStr}}));
 }
 
 void HelpAction::TellStrategies()
 {
-    std::ostringstream out;
-    out << "Possible strategies (co/nc/dead commands): ";
-    out << CombineSupported(botAI->GetAiObjectContext()->GetSupportedStrategies());
-    botAI->TellError(out.str());
+    std::string listStr = CombineSupported(botAI->GetAiObjectContext()->GetSupportedStrategies());
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("msg_help_strategies", "Possible strategies (co/nc/dead commands): %list", {{"%list", listStr}}));
 }
 
 std::string const HelpAction::CombineSupported(std::set<std::string> commands)

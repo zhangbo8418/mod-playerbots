@@ -105,10 +105,10 @@ bool InviteNearbyToGroupAction::Execute(Event event)
             placeholders["%player"] = player->GetName();
 
             if (group && group->isRaidGroup())
-                bot->Say(PlayerbotTextMgr::instance().GetBotText("join_raid", placeholders),
+                bot->Say(botAI->GetLocalizedBotTextOrDefault("join_raid", "Hey %player, do you want join my group?", placeholders),
                          (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));
             else
-                bot->Say(PlayerbotTextMgr::instance().GetBotText("join_group", placeholders),
+                bot->Say(botAI->GetLocalizedBotTextOrDefault("join_group", "Hey %player, do you want join my group?", placeholders),
                          (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));
         }
 
@@ -436,20 +436,17 @@ bool LfgAction::Execute(Event event)
         placeholders["%role"] = (role & BOT_ROLE_TANK ? "tank" : (role & BOT_ROLE_HEALER ? "healer" : "dps"));
         placeholders["%spotsleft"] = std::to_string(allowedRoles[role] - 1);
 
-        std::ostringstream out;
         if (allowedRoles[role] > 1)
         {
-            out << "Joining as " << placeholders["%role"] << ", " << placeholders["%spotsleft"] << " "
-                << placeholders["%role"] << " spots left.";
-            botAI->TellMasterNoFacing(out.str());
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_joining_as_spots", "Joining as %role, %spots %role spots left.",
+                {{"%role", placeholders["%role"]}, {"%spots", placeholders["%spotsleft"]}}));
 
             //botAI->DoSpecificAction("autogear");
             //botAI->DoSpecificAction("maintenance");
         }
         else
         {
-            out << "Joining as " << placeholders["%role"] << ".";
-            botAI->TellMasterNoFacing(out.str());
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_joining_as", "Joining as %role.", {{"%role", placeholders["%role"]}}));
 
             //botAI->DoSpecificAction("autogear");
             //botAI->DoSpecificAction("maintenance");

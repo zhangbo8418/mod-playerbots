@@ -54,7 +54,7 @@ bool TellPvpStatsAction::Execute(Event event)
     currencyPlaceholders["%arena_points"] = std::to_string(bot->GetArenaPoints());
     currencyPlaceholders["%honor_points"] = std::to_string(bot->GetHonorPoints());
 
-    std::string const currencyText = PlayerbotTextMgr::instance().GetBotTextOrDefault(
+    std::string const currencyText = botAI->GetLocalizedBotTextOrDefault(
         "pvp_currency",
         "[PVP] Arena points: %arena_points | Honor Points: %honor_points",
         currencyPlaceholders);
@@ -77,7 +77,7 @@ bool TellPvpStatsAction::Execute(Event event)
             placeholders["%team_name"] = team->GetName();
             placeholders["%team_rating"] = std::to_string(team->GetRating());
 
-            std::string const teamText = PlayerbotTextMgr::instance().GetBotTextOrDefault(
+            std::string const teamText = botAI->GetLocalizedBotTextOrDefault(
                 "pvp_arena_team",
                 "[PVP] %bracket: <%team_name> (rating %team_rating)",
                 placeholders);
@@ -88,7 +88,7 @@ bool TellPvpStatsAction::Execute(Event event)
 
     if (!anyTeam)
     {
-        std::string const noTeamText = PlayerbotTextMgr::instance().GetBotTextOrDefault(
+        std::string const noTeamText = botAI->GetLocalizedBotTextOrDefault(
             "pvp_no_arena_team",
             "[PVP] I have no Arena Team.",
             std::map<std::string, std::string>());

@@ -20,15 +20,15 @@ bool RTSCAction::Execute(Event event)
     if (command != "reset" && !master->HasSpell(RTSC_MOVE_SPELL))
     {
         master->learnSpell(RTSC_MOVE_SPELL, false);
-        botAI->TellMasterNoFacing("RTS control enabled.");
-        botAI->TellMasterNoFacing("Aedm (Awesome energetic do move) spell trained.");
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_rts_control_enabled", "RTS control enabled."));
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_aedm_trained", "Aedm (Awesome energetic do move) spell trained."));
     }
     else if (command == "reset")
     {
         if (master->HasSpell(RTSC_MOVE_SPELL))
         {
             master->removeSpell(RTSC_MOVE_SPELL, SPEC_MASK_ALL, false);
-            botAI->TellMasterNoFacing("RTS control spell removed.");
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_rts_spell_removed", "RTS control spell removed."));
         }
 
         RESET_AI_VALUE(bool, "RTSC selected");
@@ -120,18 +120,16 @@ bool RTSCAction::Execute(Event event)
 
     if (command.find("show") != std::string::npos)
     {
-        std::ostringstream out;
-        out << "saved: ";
-
+        std::string listStr;
         for (auto value : botAI->GetAiObjectContext()->GetValues())
             if (value.find("RTSC saved location::") != std::string::npos)
                 if (AI_VALUE2(WorldPosition, "RTSC saved location", value.substr(21).c_str()))
-                    out << value.substr(21).c_str() << ",";
-
-        out.seekp(-1, out.cur);
-        out << ".";
-
-        botAI->TellMasterNoFacing(out);
+                {
+                    if (!listStr.empty())
+                        listStr += ",";
+                    listStr += value.substr(21);
+                }
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_rtsc_saved", "saved: %list.", {{"%list", listStr}}));
     }
 
     if (command.find("go ") != std::string::npos)

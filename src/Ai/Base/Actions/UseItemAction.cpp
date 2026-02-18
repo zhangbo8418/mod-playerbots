@@ -35,7 +35,7 @@ bool UseItemAction::Execute(Event event)
             return UseItemOnGameObject(*items.begin(), *gos.begin());
     }
 
-    botAI->TellError("No items (or game objects) available");
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_items_available", "No items (or game objects) available"));
     return false;
 }
 
@@ -47,9 +47,9 @@ bool UseItemAction::UseGameObject(ObjectGuid guid)
 
     go->Use(bot);
 
-    std::ostringstream out;
-    out << "Using " << chat->FormatGameobject(go);
-    botAI->TellMasterNoFacing(out.str());
+    std::string itemStr = chat->FormatGameobject(go);
+    std::string msg = botAI->GetLocalizedBotTextOrDefault("use_command_go", "Using %item", {{"%item", itemStr}});
+    botAI->TellMasterNoFacing(msg);
     return true;
 }
 
@@ -93,17 +93,19 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
 
     bool targetSelected = false;
 
-    std::ostringstream out;
-    out << "Using " << chat->FormatItem(item->GetTemplate());
-
+    std::string itemPart = chat->FormatItem(item->GetTemplate());
     if (item->GetTemplate()->Stackable > 1)
     {
         uint32 count = item->GetCount();
         if (count > 1)
-            out << " (" << count << " available) ";
+            itemPart += " " + botAI->GetLocalizedBotTextOrDefault("use_command_remaining", "(%amount available)", {{"%amount", std::to_string(count)}});
         else
-            out << " (the last one!)";
+            itemPart += " " + botAI->GetLocalizedBotTextOrDefault("use_command_last", "(the last one!)");
     }
+
+    std::string targetPart;
+    std::ostringstream out;
+    out << itemPart;
 
     if (goGuid)
     {
@@ -115,7 +117,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
 
         packet << targetFlag;
         packet << goGuid.WriteAsPacked();
-        out << " on " << chat->FormatGameobject(go);
+        targetPart = chat->FormatGameobject(go);
         targetSelected = true;
     }
 
@@ -125,7 +127,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
         {
             bool fit = SocketItem(itemTarget, item) || SocketItem(itemTarget, item, true);
             if (!fit)
-                botAI->TellMaster("Socket does not fit");
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_socket_does_not_fit", "Socket does not fit"));
 
             return fit;
         }
@@ -134,7 +136,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
             targetFlag = TARGET_FLAG_ITEM;
             packet << targetFlag;
             packet << itemTarget->GetGUID().WriteAsPacked();
-            out << " on " << chat->FormatItem(itemTarget->GetTemplate());
+            targetPart = chat->FormatItem(itemTarget->GetTemplate());
             targetSelected = true;
         }
     }
@@ -150,7 +152,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
             {
                 targetFlag = TARGET_FLAG_UNIT;
                 packet << targetFlag << masterSelection.WriteAsPacked();
-                out << " on " << unit->GetName();
+                targetPart = unit->GetName();
                 targetSelected = true;
             }
         }
@@ -160,7 +162,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
     {
         targetFlag = TARGET_FLAG_UNIT;
         packet << targetFlag << unitTarget->GetGUID().WriteAsPacked();
-        out << " on " << unitTarget->GetName();
+        targetPart = unitTarget->GetName();
         targetSelected = true;
     }
 
@@ -174,9 +176,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
             packet << uint32(0);
             bot->GetSession()->HandleQuestgiverAcceptQuestOpcode(packet);
 
-            std::ostringstream out;
-            out << "Got quest " << chat->FormatQuest(qInfo);
-            botAI->TellMasterNoFacing(out.str());
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_got_quest", "Got quest %quest", {{"%quest", chat->FormatQuest(qInfo)}}));
             return true;
         }
     }
@@ -218,7 +218,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
                 targetFlag = TARGET_FLAG_TRADE_ITEM;
                 packet << targetFlag << (uint8)1 << ObjectGuid((uint64)TRADE_SLOT_NONTRADED).WriteAsPacked();
                 targetSelected = true;
-                out << " on traded item";
+                out << botAI->GetLocalizedBotTextOrDefault("msg_use_on_traded_item", " on traded item");
             }
             else
             {
@@ -226,7 +226,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
                 packet << targetFlag;
                 packet << itemForSpell->GetGUID().WriteAsPacked();
                 targetSelected = true;
-                out << " on " << chat->FormatItem(itemForSpell->GetTemplate());
+                out << botAI->GetLocalizedBotTextOrDefault("msg_use_on_target", " on %target", {{"%target", chat->FormatItem(itemForSpell->GetTemplate())}});
             }
             uint32 castTime = spellInfo->CalcCastTime();
             botAI->SetNextCheckDelay(castTime + sPlayerbotAIConfig.reactDelay);
@@ -247,17 +247,17 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
             targetSelected = true;
 
             if (unitTarget == bot || !unitTarget->IsInWorld() || unitTarget->IsDuringRemoveFromWorld())
-                out << " on self";
+                out << botAI->GetLocalizedBotTextOrDefault("msg_use_on_self", " on self");
             else if (unitTarget->IsHostileTo(bot))
-                out << " on self";
+                out << botAI->GetLocalizedBotTextOrDefault("msg_use_on_self", " on self");
             else
-                out << " on " << unitTarget->GetName();
+                out << botAI->GetLocalizedBotTextOrDefault("msg_use_on_target", " on %target", {{"%target", unitTarget->GetName()}});
         }
         else
         {
             packet << bot->GetPackGUID();
             targetSelected = true;
-            out << " on self";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_use_on_self", " on self");
         }
     }
 
@@ -278,17 +278,17 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
         if (isDrink && isFood)
         {
             p = std::min(hp, mp);
-            TellConsumableUse(item, "Feasting", p);
+            TellConsumableUse(item, botAI->GetLocalizedBotTextOrDefault("msg_feasting", "Feasting"), p);
         }
         else if (isDrink)
         {
             p = mp;
-            TellConsumableUse(item, "Drinking", p);
+            TellConsumableUse(item, botAI->GetLocalizedBotTextOrDefault("msg_drinking", "Drinking"), p);
         }
         else if (isFood)
         {
             p = std::min(hp, mp);
-            TellConsumableUse(item, "Eating", p);
+            TellConsumableUse(item, botAI->GetLocalizedBotTextOrDefault("msg_eating", "Eating"), p);
         }
 
         if (!bot->IsInCombat() && !bot->InBattleground())
@@ -307,22 +307,25 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
     if (!spellId)
         return false;
 
-    // botAI->SetNextCheckDelay(sPlayerbotAIConfig.globalCoolDown);
-    botAI->TellMasterNoFacing(out.str());
+    std::string msg;
+    if (!targetPart.empty())
+        msg = botAI->GetLocalizedBotTextOrDefault("use_command_on", "Using %item on %target", {{"%item", itemPart}, {"%target", targetPart}});
+    else if (out.str() == itemPart)
+        msg = botAI->GetLocalizedBotTextOrDefault("use_command_go", "Using %item", {{"%item", itemPart}});
+    else
+        msg = out.str();
+    botAI->TellMasterNoFacing(msg);
     bot->GetSession()->HandleUseItemOpcode(packet);
     return true;
 }
 
 void UseItemAction::TellConsumableUse(Item* item, std::string const action, float percent)
 {
-    std::ostringstream out;
-    out << action << " " << chat->FormatItem(item->GetTemplate());
-
+    std::string itemStr = chat->FormatItem(item->GetTemplate());
     if (item->GetTemplate()->Stackable > 1)
-        out << "/x" << item->GetCount();
-
-    out << " (" << round(percent) << "%)";
-    botAI->TellMasterNoFacing(out.str());
+        itemStr += "/x" + std::to_string(item->GetCount());
+    botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_consumable_use", "%action %item (%percent%%)",
+        {{"%action", action}, {"%item", itemStr}, {"%percent", std::to_string(static_cast<int>(round(percent)))}}));
 }
 
 bool UseItemAction::SocketItem(Item* item, Item* gem, bool replace)
@@ -373,10 +376,9 @@ bool UseItemAction::SocketItem(Item* item, Item* gem, bool replace)
 
     if (fits)
     {
-        std::ostringstream out;
-        out << "Socketing " << chat->FormatItem(item->GetTemplate());
-        out << " with " << chat->FormatItem(gem->GetTemplate());
-        botAI->TellMaster(out);
+        std::string itemStr = chat->FormatItem(item->GetTemplate());
+        std::string gemStr = chat->FormatItem(gem->GetTemplate());
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("use_command_socket", "Socketing %gem into %item", {{"%gem", gemStr}, {"%item", itemStr}}));
 
         WorldPackets::Item::SocketGems nicePacket(std::move(packet));
         nicePacket.Read();

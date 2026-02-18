@@ -114,19 +114,16 @@ bool CastCustomSpellAction::Execute(Event event)
     if (!spell)
         spell = AI_VALUE2(uint32, "spell id", text);
 
-    std::ostringstream msg;
     if (!spell)
     {
-        msg << "Unknown spell " << text;
-        botAI->TellError(msg.str());
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_unknown_spell", "Unknown spell %text", {{"%text", text}}));
         return false;
     }
 
     SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spell);
     if (!spellInfo)
     {
-        msg << "Unknown spell " << text;
-        botAI->TellError(msg.str());
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_unknown_spell", "Unknown spell %text", {{"%text", text}}));
         return false;
     }
 
@@ -135,49 +132,52 @@ bool CastCustomSpellAction::Execute(Event event)
         ServerFacade::instance().SetFacingTo(bot, target);
         botAI->SetNextCheckDelay(sPlayerbotAIConfig.reactDelay);
 
+        std::ostringstream msg;
         msg << "cast " << text;
         botAI->HandleCommand(CHAT_MSG_WHISPER, msg.str(), master);
         return true;
     }
 
+    std::string onStr = botAI->GetLocalizedBotTextOrDefault("msg_cast_on", " on ");
     std::ostringstream spellName;
-    spellName << ChatHelper::FormatSpell(spellInfo) << " on ";
+    spellName << ChatHelper::FormatSpell(spellInfo) << onStr;
 
     if (bot->GetTrader())
-        spellName << "trade item";
+        spellName << botAI->GetLocalizedBotTextOrDefault("msg_cast_trade_item", "trade item");
     else if (itemTarget)
         spellName << chat->FormatItem(itemTarget->GetTemplate());
     else if (target == bot)
-        spellName << "self";
+        spellName << botAI->GetLocalizedBotTextOrDefault("msg_cast_self", "self");
     else
         spellName << target->GetName();
 
+    std::string spellNameStr = spellName.str();
+
     if (!bot->GetTrader() && !botAI->CanCastSpell(spell, target, true, itemTarget))
     {
-        msg << "Cannot cast " << spellName.str();
-        botAI->TellError(msg.str());
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_cannot_cast", "Cannot cast %spell", {{"%spell", spellNameStr}}));
         return false;
     }
 
     bool result = spell ? botAI->CastSpell(spell, target, itemTarget) : botAI->CastSpell(text, target, itemTarget);
     if (result)
     {
-        msg << "Casting " << spellName.str();
+        std::ostringstream msg;
+        msg << botAI->GetLocalizedBotTextOrDefault("msg_casting", "Casting %spell", {{"%spell", spellNameStr}});
 
         if (castCount > 1)
         {
             std::ostringstream cmd;
             cmd << castString(target) << " " << text << " " << (castCount - 1);
             botAI->HandleCommand(CHAT_MSG_WHISPER, cmd.str(), master);
-            msg << "|cffffff00(x" << (castCount - 1) << " left)|r";
+            msg << " |cffffff00" << botAI->GetLocalizedBotTextOrDefault("msg_casting_left", " (x%n left)", {{"%n", std::to_string(castCount - 1)}}) << "|r";
         }
 
         botAI->TellMasterNoFacing(msg.str());
     }
     else
     {
-        msg << "Cast " << spellName.str() << " is failed";
-        botAI->TellError(msg.str());
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_cast_failed", "Cast %spell is failed", {{"%spell", spellNameStr}}));
     }
 
     return result;
