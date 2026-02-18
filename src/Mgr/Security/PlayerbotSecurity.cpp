@@ -213,7 +213,8 @@ bool PlayerbotSecurity::CheckLevelFor(PlayerbotSecurityLevel level, bool silent,
                     int botGS = int(botAI->GetEquipGearScore(bot));
                     int fromGS = int(botAI->GetEquipGearScore(from));
                     int diff = (100 * (botGS - fromGS) / std::max(botGS, 1));
-                    int req = 12 * sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL) / std::max(from->GetLevel(), 1);
+                    int fromLevel = static_cast<int>(from->GetLevel());
+                    int req = 12 * sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL) / std::max(fromLevel, 1);
                     text = botAI->GetLocalizedBotTextOrDefault("security_gearscore_low", "Your gearscore is too low: |cffff0000%from|cffffffff/|cff00ff00%bot |cffff0000%diff%|cffffffff/|cff00ff00%req%",
                         {{"%from", std::to_string(fromGS)}, {"%bot", std::to_string(botGS)}, {"%diff", std::to_string(diff)}, {"%req", std::to_string(req)}});
                     break;

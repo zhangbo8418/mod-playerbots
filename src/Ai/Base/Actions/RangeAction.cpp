@@ -47,3 +47,4 @@ void RangeAction::PrintRange(std::string const type)
         botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_range_is", "%type range: %value", {{"%type", type}, {"%value", std::to_string(curVal)}}));
     else
         botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_range_is_default", "%type range: %value (default)", {{"%type", type}, {"%value", std::to_string(botAI->GetRange(type))}}));
+}

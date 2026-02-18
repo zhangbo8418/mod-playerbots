@@ -3116,8 +3116,11 @@ bool YoggSaronIllusionRoomAction::SetIllusionRtiTarget(YoggSaronTrigger yoggSaro
             return false;
         }
 
-        uint8 rtiIndex = RtiTargetValue::GetRtiIndex(AI_VALUE(std::string, "rti"));
-        group->SetTargetIcon(rtiIndex, bot->GetGUID(), nextRtiTarget->GetGUID());
+        int32 rtiIndex = RtiTargetValue::GetRtiIndex(AI_VALUE(std::string, "rti"));
+        if (rtiIndex < 0)
+            return false;
+
+        group->SetTargetIcon(static_cast<uint8>(rtiIndex), bot->GetGUID(), nextRtiTarget->GetGUID());
     }
 
     return true;
