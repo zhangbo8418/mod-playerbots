@@ -654,6 +654,14 @@ bool PlayerbotAIConfig::Initialize()
 
     selfBotLevel = sConfigMgr->GetOption<int32>("AiPlayerbot.SelfBotLevel", 1);
 
+    // When running with -d / --dry-run we only want to initialize and validate
+    // the database, skipping random bot account/character creation and related work.
+    if (sConfigMgr->isDryRun())
+    {
+        LOG_INFO("server.loading", "Dry run mode detected, skipping random playerbot account and character initialization.");
+        return true;
+    }
+
     RandomPlayerbotFactory::CreateRandomBots();
     if (World::IsStopped())
     {
