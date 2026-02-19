@@ -64,7 +64,9 @@ bool CleanQuestLogAction::Execute(Event event)
     if (!requester)
     {
         Player* forLocale = GetMaster();
-        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_no_event_owner", "No event owner detected", {}, forLocale));
+        std::string text = botAI->GetLocalizedBotText("error_no_event_owner", {}, forLocale);
+        if (!text.empty())
+            botAI->TellMaster(text);
         return false;
     }
 

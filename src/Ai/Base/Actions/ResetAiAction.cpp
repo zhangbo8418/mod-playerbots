@@ -49,6 +49,8 @@ bool ResetAiAction::Execute(Event event)
     Player* forLocale = botAI->GetMaster();
     if (!forLocale && event.getOwner())
         forLocale = event.getOwner()->ToPlayer();
-    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_ai_reset", "AI was reset to defaults", {}, forLocale));
+    std::string text = botAI->GetLocalizedBotText("msg_ai_reset", {}, forLocale);
+    if (!text.empty())
+        botAI->TellMaster(text);
     return true;
 }
