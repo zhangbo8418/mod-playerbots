@@ -86,21 +86,21 @@ void StatsCollector::CollectSpellStats(uint32 spellId, float multiplier, int32 s
     if (SpecialSpellFilter(spellId))
         return;
 
-    const SpellProcEventEntry* eventEntry = sSpellMgr->GetSpellProcEvent(spellInfo->Id);
+    const SpellProcEntry* procEntry = sSpellMgr->GetSpellProcEntry(spellInfo->Id);
 
-    uint32 triggerCooldown = eventEntry ? eventEntry->cooldown : 0;
+    uint32 triggerCooldown = procEntry ? static_cast<uint32>(procEntry->Cooldown.count()) : 0;
 
     bool canNextTrigger = true;
 
     uint32 procFlags;
     uint32 procChance;
-    if (eventEntry && eventEntry->procFlags)
-        procFlags = eventEntry->procFlags;
+    if (procEntry && procEntry->ProcFlags)
+        procFlags = procEntry->ProcFlags;
     else
         procFlags = spellInfo->ProcFlags;
 
-    if (eventEntry && eventEntry->customChance)
-        procChance = eventEntry->customChance;
+    if (procEntry && procEntry->Chance)
+        procChance = static_cast<uint32>(procEntry->Chance);
     else
         procChance = spellInfo->ProcChance;
     bool lowChance = procChance <= 5;
@@ -357,12 +357,12 @@ bool StatsCollector::SpecialEnchantFilter(uint32 enchantSpellId)
 
 bool StatsCollector::CanBeTriggeredByType(SpellInfo const* spellInfo, uint32 procFlags, bool strict)
 {
-    const SpellProcEventEntry* eventEntry = sSpellMgr->GetSpellProcEvent(spellInfo->Id);
+    const SpellProcEntry* procEntry = sSpellMgr->GetSpellProcEntry(spellInfo->Id);
     uint32 spellFamilyName = 0;
-    if (eventEntry)
+    if (procEntry)
     {
-        spellFamilyName = eventEntry->spellFamilyName;
-        flag96 spellFamilyMask = eventEntry->spellFamilyMask;
+        spellFamilyName = procEntry->SpellFamilyName;
+        flag96 spellFamilyMask = procEntry->SpellFamilyMask;
         if (spellFamilyName != 0)
         {
             if (!CheckSpellValidation(spellFamilyName, spellFamilyMask, strict))
