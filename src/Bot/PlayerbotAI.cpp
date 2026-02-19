@@ -56,6 +56,7 @@
 #include "Unit.h"
 #include "UpdateTime.h"
 #include "Vehicle.h"
+#include "World.h"
 
 const int SPELL_TITAN_GRIP = 49152;
 
@@ -2864,9 +2865,11 @@ std::string PlayerbotAI::GetLocalizedBotText(std::string const name,
 std::string PlayerbotAI::GetLocalizedBotText(std::string const name,
                                              std::map<std::string, std::string> placeholders, Player* forLocale)
 {
-    uint32 locale = 0;
+    uint32 locale;
     if (forLocale && forLocale->GetSession())
         locale = static_cast<uint32>(forLocale->GetSession()->GetSessionDbcLocale());
+    else
+        locale = static_cast<uint32>(sWorld->GetDefaultDbcLocale());
     return PlayerbotTextMgr::instance().GetBotTextForLocale(name, locale, placeholders);
 }
 

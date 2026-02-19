@@ -2012,7 +2012,7 @@ AIPlayerbot.GuildFeedback = 1
 # Chance bots will chat in guild about certain events (int) (0-100)
 AiPlayerbot.GuildRepliesRate = 100
 # Bots without a master will say their lines
-AiPlayerbot.RandomBotSayWithoutMaster = 0
+AiPlayerbot.RandomBotSayWithoutMaster = 1
 
 #
 #

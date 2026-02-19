@@ -110,13 +110,18 @@ std::string PlayerbotTextMgr::GetBotTextForLocale(std::string name, uint32 local
         return "";
 
     std::vector<BotTextEntry>& list = botTexts[name];
-    BotTextEntry const& textEntry = list[0];
-    auto it = textEntry.m_text.find(locale);
     std::string botText;
-    if (it != textEntry.m_text.end() && !it->second.empty())
-        botText = it->second;
-    else
-        botText = textEntry.m_text.count(0) ? textEntry.m_text.at(0) : "";
+    for (BotTextEntry const& textEntry : list)
+    {
+        auto it = textEntry.m_text.find(locale);
+        if (it != textEntry.m_text.end() && !it->second.empty())
+        {
+            botText = it->second;
+            break;
+        }
+    }
+    if (botText.empty() && !list.empty())
+        botText = list[0].m_text.count(0) ? list[0].m_text.at(0) : "";
 
     for (auto const& p : placeholders)
         replaceAll(botText, p.first, p.second);
