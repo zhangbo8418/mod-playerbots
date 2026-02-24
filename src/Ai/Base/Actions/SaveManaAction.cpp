@@ -15,9 +15,7 @@ bool SaveManaAction::Execute(Event event)
 
     if (text == "?")
     {
-        std::ostringstream out;
-        out << "Mana save level: " << Format(value);
-        botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_mana_save_level", "Mana save level: %value", {{"%value", Format(value)}}));
         return true;
     }
 
@@ -54,9 +52,7 @@ bool SaveManaAction::Execute(Event event)
 
     botAI->GetAiObjectContext()->GetValue<double>("mana save level")->Set(value);
 
-    std::ostringstream out;
-    out << "Mana save level set: " << Format(value);
-    botAI->TellMaster(out);
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_mana_save_level_set", "Mana save level set: %value", {{"%value", Format(value)}}));
 
     return true;
 }

@@ -28,13 +28,13 @@ bool TradeStatusAction::Execute(Event event)
     // Allow the master and group members to trade
     if (trader != master && !traderBotAI && (!bot->GetGroup() || !bot->GetGroup()->IsMember(trader->GetGUID())))
     {
-        bot->Whisper("I'm kind of busy now", LANG_UNIVERSAL, trader);
+        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_busy_now", "I'm kind of busy now", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
 
     if (sPlayerbotAIConfig.enableRandomBotTrading == 0 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-        bot->Whisper("Trading is disabled", LANG_UNIVERSAL, trader);
+        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_trading_disabled", "Trading is disabled", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
 
@@ -138,18 +138,14 @@ void TradeStatusAction::BeginTrade()
     ListItemsVisitor visitor;
     IterateItems(&visitor);
 
-    botAI->TellMaster("=== Inventory ===");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_inventory_title", "=== Inventory ==="));
     TellItems(visitor.items, visitor.soulbound);
 
     if (sRandomPlayerbotMgr.IsRandomBot(bot))
     {
         uint32 discount = sRandomPlayerbotMgr.GetTradeDiscount(bot, botAI->GetMaster());
         if (discount)
-        {
-            std::ostringstream out;
-            out << "Discount up to: " << chat->formatMoney(discount);
-            botAI->TellMaster(out);
-        }
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_discount_up_to", "Discount up to: %money", {{"%money", chat->formatMoney(discount)}}));
     }
 }
 
@@ -186,9 +182,9 @@ bool TradeStatusAction::CheckTrade()
         {
             if (bot->GetGroup() && bot->GetGroup()->IsMember(bot->GetTrader()->GetGUID()) &&
                 botAI->HasRealPlayerMaster())
-                botAI->TellMasterNoFacing("Thank you " + chat->FormatWorldobject(bot->GetTrader()));
+                botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_thank_you_trader", "Thank you %name", {{"%name", chat->FormatWorldobject(bot->GetTrader())}}));
             else
-                bot->Say("Thank you " + chat->FormatWorldobject(bot->GetTrader()),
+                bot->Say(botAI->GetLocalizedBotTextOrDefault("msg_thank_you_trader", "Thank you %name", {{"%name", chat->FormatWorldobject(bot->GetTrader())}}),
                          (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));
         }
         return isGettingItem;
@@ -216,12 +212,12 @@ bool TradeStatusAction::CheckTrade()
     int32 playerMoney = trader->GetTradeData()->GetMoney() + playerItemsMoney;
     if (botItemsMoney > 0 && sPlayerbotAIConfig.enableRandomBotTrading == 2 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-        bot->Whisper("Selling is disabled.", LANG_UNIVERSAL, trader);
+        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_selling_disabled", "Selling is disabled.", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
     if (playerItemsMoney && sPlayerbotAIConfig.enableRandomBotTrading == 3 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-        bot->Whisper("Buying is disabled.", LANG_UNIVERSAL, trader);
+        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_buying_disabled", "Buying is disabled.", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
     for (uint32 slot = 0; slot < TRADE_SLOT_TRADED_COUNT; ++slot)
@@ -229,9 +225,7 @@ bool TradeStatusAction::CheckTrade()
         Item* item = bot->GetTradeData()->GetItem((TradeSlots)slot);
         if (item && !item->GetTemplate()->SellPrice && !item->GetTemplate()->IsConjuredConsumable())
         {
-            std::ostringstream out;
-            out << chat->FormatItem(item->GetTemplate()) << " - This is not for sale";
-            botAI->TellMaster(out);
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_item_not_for_sale", "%item - This is not for sale", {{"%item", chat->FormatItem(item->GetTemplate())}}));
             botAI->PlaySound(TEXT_EMOTE_NO);
             return false;
         }
@@ -244,9 +238,7 @@ bool TradeStatusAction::CheckTrade()
             ItemUsage usage = AI_VALUE2(ItemUsage, "item usage", out.str());
             if ((botMoney && !item->GetTemplate()->BuyPrice) || usage == ITEM_USAGE_NONE)
             {
-                std::ostringstream out;
-                out << chat->FormatItem(item->GetTemplate()) << " - I don't need this";
-                botAI->TellMaster(out);
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_dont_need_this", "%item - I don't need this", {{"%item", chat->FormatItem(item->GetTemplate())}}));
                 botAI->PlaySound(TEXT_EMOTE_NO);
                 return false;
             }
@@ -258,7 +250,7 @@ bool TradeStatusAction::CheckTrade()
 
     if (!botItemsMoney && !playerItemsMoney)
     {
-        botAI->TellError("There are no items to trade");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_items_to_trade", "There are no items to trade"));
         return false;
     }
 
@@ -272,7 +264,7 @@ bool TradeStatusAction::CheckTrade()
         {
             if (moneyDelta < 0)
             {
-                botAI->TellError("You can use discount to buy items only");
+                botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_discount_buy_only", "You can use discount to buy items only"));
                 botAI->PlaySound(TEXT_EMOTE_NO);
                 return false;
             }
@@ -288,16 +280,16 @@ bool TradeStatusAction::CheckTrade()
         switch (urand(0, 4))
         {
             case 0:
-                botAI->TellMaster("A pleasure doing business with you");
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_pleasure_business", "A pleasure doing business with you"));
                 break;
             case 1:
-                botAI->TellMaster("Fair trade");
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_fair_trade", "Fair trade"));
                 break;
             case 2:
-                botAI->TellMaster("Thanks");
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_thanks", "Thanks"));
                 break;
             case 3:
-                botAI->TellMaster("Off with you");
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_off_with_you", "Off with you"));
                 break;
         }
 
@@ -305,9 +297,7 @@ bool TradeStatusAction::CheckTrade()
         return true;
     }
 
-    std::ostringstream out;
-    out << "I want " << chat->formatMoney(-(delta + discount)) << " for this";
-    botAI->TellMaster(out);
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_i_want_for_this", "I want %money for this", {{"%money", chat->formatMoney(-(delta + discount))}}));
     botAI->PlaySound(TEXT_EMOTE_NO);
     return false;
 }

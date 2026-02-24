@@ -97,19 +97,19 @@ public:
         {
             if (!bot->GetUInt32Value(PLAYER_AMMO_ID))
             {
-                botAI->TellError("Out of ammo!");
+                botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_out_of_ammo", "Out of ammo!"));
                 return false;
             }
 
             if (!bot->GetPet())
             {
-                botAI->TellError("No pet!");
+                botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_pet", "No pet!"));
                 return false;
             }
 
             if (bot->GetPet()->GetHappinessState() == UNHAPPY)
             {
-                botAI->TellError("Pet is unhappy!");
+                botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_pet_unhappy", "Pet is unhappy!"));
                 return false;
             }
         }
@@ -196,21 +196,21 @@ bool ReadyCheckAction::ReadyCheck()
     std::ostringstream out;
 
     uint32 hp = AI_VALUE2(uint32, "item count", "healing potion");
-    out << formatPercent("Hp", hp, 100.0 * hp / 5);
+    out << formatPercent(botAI->GetLocalizedBotTextOrDefault("msg_ready_hp", "Hp"), hp, 100.0 * hp / 5);
 
     out << ", ";
     uint32 food = AI_VALUE2(uint32, "item count", "food");
-    out << formatPercent("Food", food, 100.0 * food / 20);
+    out << formatPercent(botAI->GetLocalizedBotTextOrDefault("msg_ready_food", "Food"), food, 100.0 * food / 20);
 
     if (AI_VALUE2(bool, "has mana", "self target"))
     {
         out << ", ";
         uint32 mp = AI_VALUE2(uint32, "item count", "mana potion");
-        out << formatPercent("Mp", mp, 100.0 * mp / 5);
+        out << formatPercent(botAI->GetLocalizedBotTextOrDefault("msg_ready_mp", "Mp"), mp, 100.0 * mp / 5);
 
         out << ", ";
         uint32 water = AI_VALUE2(uint32, "item count", "water");
-        out << formatPercent("Water", water, 100.0 * water / 20);
+        out << formatPercent(botAI->GetLocalizedBotTextOrDefault("msg_ready_water", "Water"), water, 100.0 * water / 20);
     }
 
     botAI->TellMaster(out);

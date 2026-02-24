@@ -370,13 +370,14 @@ bool RpgTradeUsefulAction::Execute(Event /*event*/)
         if (bot->GetTradeData() && bot->GetTradeData()->HasItem(item->GetGUID()))
         {
             if (bot->GetGroup() && bot->GetGroup()->IsMember(guidP) && botAI->HasRealPlayerMaster())
-                botAI->TellMasterNoFacing(
-                    "You can use this " + chat->FormatItem(item->GetTemplate()) + " better than me, " +
-                    guidP.GetPlayer()->GetName() /*chat->FormatWorldobject(guidP.GetPlayer())*/ + ".");
+                botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_rpg_you_can_use_this",
+                    "You can use this %item better than me, %name.",
+                    {{"%item", chat->FormatItem(item->GetTemplate())}, {"%name", guidP.GetPlayer()->GetName()}}));
             else
-                bot->Say("You can use this " + chat->FormatItem(item->GetTemplate()) + " better than me, " +
-                             player->GetName() /*chat->FormatWorldobject(player)*/ + ".",
-                         (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));
+                bot->Say(botAI->GetLocalizedBotTextOrDefault("msg_rpg_you_can_use_this",
+                    "You can use this %item better than me, %name.",
+                    {{"%item", chat->FormatItem(item->GetTemplate())}, {"%name", player->GetName()}}),
+                    (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));
 
             if (!urand(0, 4) || items.size() < 2)
             {
@@ -389,8 +390,9 @@ bool RpgTradeUsefulAction::Execute(Event /*event*/)
             }
         }
         else
-            bot->Say("Start trade with" + chat->FormatWorldobject(player),
-                     (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));
+            bot->Say(botAI->GetLocalizedBotTextOrDefault("msg_rpg_start_trade_with", "Start trade with %player",
+                {{"%player", chat->FormatWorldobject(player)}}),
+                (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));
 
         botAI->SetNextCheckDelay(sPlayerbotAIConfig.rpgDelay);
         return true;

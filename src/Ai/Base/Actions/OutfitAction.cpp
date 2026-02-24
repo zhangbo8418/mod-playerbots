@@ -17,9 +17,9 @@ bool OutfitAction::Execute(Event event)
     if (param == "?")
     {
         List();
-        botAI->TellMaster("outfit <name> +[item] to add items");
-        botAI->TellMaster("outfit <name> -[item] to remove items");
-        botAI->TellMaster("outfit <name> equip/replace to equip items");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_outfit_usage_add", "outfit <name> +[item] to add items"));
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_outfit_usage_remove", "outfit <name> -[item] to remove items"));
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_outfit_usage_equip", "outfit <name> equip/replace to equip items"));
     }
     else
     {
@@ -29,9 +29,7 @@ bool OutfitAction::Execute(Event event)
         {
             Save(name, items);
 
-            std::ostringstream out;
-            out << "Setting outfit " << name << " as " << param;
-            botAI->TellMaster(out);
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_outfit_set_as", "Setting outfit %name as %param", {{"%name", name}, {"%param", param}}));
             return true;
         }
 
@@ -47,18 +45,14 @@ bool OutfitAction::Execute(Event event)
         std::string const command = param.substr(space + 1);
         if (command == "equip")
         {
-            std::ostringstream out;
-            out << "Equipping outfit " << name;
-            botAI->TellMaster(out);
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_equipping_outfit", "Equipping outfit %name", {{"%name", name}}));
 
             EquipItems(outfit);
             return true;
         }
         else if (command == "replace")
         {
-            std::ostringstream out;
-            out << "Replacing current equip with outfit " << name;
-            botAI->TellMaster(out);
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_replacing_equip_outfit", "Replacing current equip with outfit %name", {{"%name", name}}));
 
             for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; slot++)
             {
@@ -81,18 +75,14 @@ bool OutfitAction::Execute(Event event)
         }
         else if (command == "reset")
         {
-            std::ostringstream out;
-            out << "Resetting outfit " << name;
-            botAI->TellMaster(out);
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_resetting_outfit", "Resetting outfit %name", {{"%name", name}}));
 
             Save(name, ItemIds());
             return true;
         }
         else if (command == "update")
         {
-            std::ostringstream out;
-            out << "Updating with current items outfit " << name;
-            botAI->TellMaster(out);
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_updating_outfit", "Updating with current items outfit %name", {{"%name", name}}));
 
             Update(name);
             return true;

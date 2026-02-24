@@ -112,7 +112,7 @@ bool TogglePetSpellAutoCastAction::Execute(Event /*event*/)
 
     // Debug message if pet spells have been toggled and debug is enabled
     if (toggled && sPlayerbotAIConfig.petChatCommandDebug == 1)
-        botAI->TellMaster("Pet autocast spells have been toggled.");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_pet_autocast_toggled", "Pet autocast spells have been toggled."));
 
     return toggled;
 }
@@ -178,7 +178,7 @@ bool SetPetStanceAction::Execute(Event /*event*/)
     // If there are no controlled pets or guardians, notify the player and exit
     if (targets.empty())
     {
-        botAI->TellError("You have no pet or guardian pet.");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_pet_guardian", "You have no pet or guardian pet."));
         return false;
     }
 
@@ -220,7 +220,7 @@ bool SetPetStanceAction::Execute(Event /*event*/)
 
     // If debug is enabled in config, inform the master of the new stance
     if (sPlayerbotAIConfig.petChatCommandDebug == 1)
-        botAI->TellMaster("Pet stance set to " + stanceText + " (applied to all pets/guardians).");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_pet_stance_set", "Pet stance set to %stance (applied to all pets/guardians).", {{"%stance", stanceText}}));
 
     return true;
 }

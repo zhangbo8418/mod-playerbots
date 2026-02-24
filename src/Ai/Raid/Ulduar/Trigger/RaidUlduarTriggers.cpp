@@ -1791,13 +1791,13 @@ Unit* YoggSaronTrigger::GetIllusionRoomRtiTarget()
         return nullptr;
     }
 
-    int32_t rtiIndex = RtiTargetValue::GetRtiIndex(AI_VALUE(std::string, "rti"));
-    if (rtiIndex == -1)
+    int32 rtiIndex = RtiTargetValue::GetRtiIndex(AI_VALUE(std::string, "rti"));
+    if (rtiIndex < 0)
     {
         return nullptr;  // Invalid RTI mark
     }
 
-    ObjectGuid currentRtiTarget = group->GetTargetIcon(rtiIndex);
+    ObjectGuid currentRtiTarget = group->GetTargetIcon(static_cast<uint8>(rtiIndex));
     Unit* currentRtiTargetUnit = botAI->GetUnit(currentRtiTarget);
     if (!currentRtiTargetUnit || !currentRtiTargetUnit->IsAlive())
     {

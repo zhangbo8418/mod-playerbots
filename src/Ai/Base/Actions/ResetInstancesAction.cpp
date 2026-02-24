@@ -9,8 +9,16 @@
 
 bool ResetInstancesAction::Execute(Event /*event*/)
 {
-    WorldPacket packet(CMSG_RESET_INSTANCES, 0);
-    bot->GetSession()->HandleResetInstancesOpcode(packet);
+    // Mirror the core's ResetInstances logic instead of faking a client packet
+    if (Group* group = bot->GetGroup())
+    {
+        if (group->IsLeader(bot->GetGUID()))
+            group->ResetInstances(INSTANCE_RESET_ALL, false, bot);
+    }
+    else
+    {
+        Player::ResetInstances(bot->GetGUID(), INSTANCE_RESET_ALL, false);
+    }
 
     return true;
 }

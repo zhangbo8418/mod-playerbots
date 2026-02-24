@@ -22,27 +22,20 @@ bool LootStrategyAction::Execute(Event event)
 
     if (strategy == "?")
     {
-        {
-            std::ostringstream out;
-            out << "Loot strategy: ";
-            out << lootStrategy->Get()->GetName();
-            botAI->TellMaster(out);
-        }
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_loot_strategy", "Loot strategy: %name", {{"%name", lootStrategy->Get()->GetName()}}));
 
         {
-            std::ostringstream out;
-            out << "Always loot items: ";
-
+            std::string listStr;
             for (uint32 itemId : alwaysLootItems)
             {
                 ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
                 if (!proto)
                     continue;
-
-                out << chat->FormatItem(proto);
+                if (!listStr.empty())
+                    listStr += " ";
+                listStr += chat->FormatItem(proto);
             }
-
-            botAI->TellMaster(out);
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_always_loot_items", "Always loot items: %list", {{"%list", listStr}}));
         }
     }
     else
@@ -53,9 +46,7 @@ bool LootStrategyAction::Execute(Event event)
         {
             lootStrategy->Set(LootStrategyValue::instance(strategy));
 
-            std::ostringstream out;
-            out << "Loot strategy set to " << lootStrategy->Get()->GetName();
-            botAI->TellMaster(out);
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_loot_strategy_set", "Loot strategy set to %name", {{"%name", lootStrategy->Get()->GetName()}}));
             return true;
         }
 
@@ -67,11 +58,8 @@ bool LootStrategyAction::Execute(Event event)
             {
                 if (ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemid))
                 {
-                    std::ostringstream out;
-                    out << (StoreLootAction::IsLootAllowed(itemid, botAI) ? "|cFF000000Will loot "
-                                                                          : "|c00FF0000Won't loot ")
-                        << ChatHelper::FormatItem(proto);
-                    botAI->TellMaster(out.str());
+                    std::string key = StoreLootAction::IsLootAllowed(itemid, botAI) ? "msg_will_loot" : "msg_wont_loot";
+                    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault(key, key == "msg_will_loot" ? "|cFF000000Will loot %item" : "|c00FF0000Won't loot %item", {{"%item", ChatHelper::FormatItem(proto)}}));
                 }
             }
             else if (remove)
@@ -80,12 +68,12 @@ bool LootStrategyAction::Execute(Event event)
                 if (j != alwaysLootItems.end())
                     alwaysLootItems.erase(j);
 
-                botAI->TellMaster("Item(s) removed from always loot list");
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_loot_removed_from_always", "Item(s) removed from always loot list"));
             }
             else
             {
                 alwaysLootItems.insert(itemid);
-                botAI->TellMaster("Item(s) added to always loot list");
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_loot_added_to_always", "Item(s) added to always loot list"));
             }
         }
     }

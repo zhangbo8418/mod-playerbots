@@ -19,7 +19,6 @@ bool TalkToQuestGiverAction::ProcessQuest(Quest const* quest, Object* questGiver
 {
     bool isCompleted = false;
     std::ostringstream out;
-    out << "Quest ";
 
     QuestStatus status = bot->GetQuestStatus(quest->GetQuestId());
     Player* master = GetMaster();
@@ -51,14 +50,14 @@ bool TalkToQuestGiverAction::ProcessQuest(Quest const* quest, Object* questGiver
         isCompleted |= TurnInQuest(quest, questGiver, out);
         break;
     case QUEST_STATUS_INCOMPLETE:
-        out << "|cffff0000Incompleted|r";
-        break;
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_status_incomplete", "Quest |cffff0000Incompleted|r: %quest", {{"%quest", chat->FormatQuest(quest)}}));
+        return isCompleted;
     case QUEST_STATUS_NONE:
-        out << "|cff00ff00Available|r";
-        break;
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_status_available", "Quest |cff00ff00Available|r: %quest", {{"%quest", chat->FormatQuest(quest)}}));
+        return isCompleted;
     case QUEST_STATUS_FAILED:
-        out << "|cffff0000Failed|r";
-        break;
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_status_failed", "Quest |cffff0000Failed|r: %quest", {{"%quest", chat->FormatQuest(quest)}}));
+        return isCompleted;
     default:
         break;
     }
@@ -92,7 +91,7 @@ bool TalkToQuestGiverAction::TurnInQuest(Quest const* quest, Object* questGiver,
         const Quest* pQuest = sObjectMgr->GetQuestTemplate(questID);
         const std::string text_quest = ChatHelper::FormatQuest(pQuest);
         LOG_INFO("playerbots", "{} => Quest [ {} ] completed", bot->GetName(), pQuest->GetTitle());
-        bot->Say("Quest [ " + text_quest + " ] completed", LANG_UNIVERSAL);
+        bot->Say(botAI->GetLocalizedBotTextOrDefault("msg_say_quest_completed", "Quest [ %quest ] completed", {{"%quest", text_quest}}), LANG_UNIVERSAL);
     }
 
     return true;
@@ -105,14 +104,14 @@ void TalkToQuestGiverAction::RewardNoItem(Quest const* quest, Object* questGiver
 
     if (bot->CanRewardQuest(quest, false))
     {
-        out << PlayerbotTextMgr::instance().GetBotText("quest_status_completed", args);
+        out << botAI->GetLocalizedBotTextOrDefault("quest_status_completed", "I have completed the quest %quest", args);
         BroadcastHelper::BroadcastQuestTurnedIn(botAI, bot, quest);
 
         bot->RewardQuest(quest, 0, questGiver, false);
     }
     else
     {
-        out << PlayerbotTextMgr::instance().GetBotText("quest_status_unable_to_complete", args);
+        out << botAI->GetLocalizedBotTextOrDefault("quest_status_unable_to_complete", "I am unable to turn in the quest %quest", args);
     }
 }
 
@@ -126,13 +125,13 @@ void TalkToQuestGiverAction::RewardSingleItem(Quest const* quest, Object* questG
 
     if (bot->CanRewardQuest(quest, index, false))
     {
-        out << PlayerbotTextMgr::instance().GetBotText("quest_status_complete_single_reward", args);
+        out << botAI->GetLocalizedBotTextOrDefault("quest_status_complete_single_reward", "I have completed the quest %quest and received %item", args);
         BroadcastHelper::BroadcastQuestTurnedIn(botAI, bot, quest);
         bot->RewardQuest(quest, index, questGiver, true);
     }
     else
     {
-        out << PlayerbotTextMgr::instance().GetBotText("quest_status_unable_to_complete", args);
+        out << botAI->GetLocalizedBotTextOrDefault("quest_status_unable_to_complete", "I am unable to turn in the quest %quest", args);
     }
 }
 
@@ -190,11 +189,11 @@ void TalkToQuestGiverAction::RewardMultipleItem(Quest const* quest, Object* ques
             }
             ItemTemplate const* item = sObjectMgr->GetItemTemplate(quest->RewardChoiceItemId[best]);
             bot->RewardQuest(quest, best, questGiver, true);
-            out << "Rewarded " << ChatHelper::FormatItem(item);
+            out << botAI->GetLocalizedBotTextOrDefault("msg_quest_rewarded_short", "Rewarded %item", {{"%item", ChatHelper::FormatItem(item)}});
         }
         else
         {
-            out << "Unable to find suitable reward. Asking for help....";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_quest_unable_reward", "Unable to find suitable reward. Asking for help....");
             AskToSelectReward(quest, out, true);
         }
     }
@@ -218,29 +217,26 @@ void TalkToQuestGiverAction::RewardMultipleItem(Quest const* quest, Object* ques
             ItemTemplate const* item = sObjectMgr->GetItemTemplate(quest->RewardChoiceItemId[firstId]);
             bot->RewardQuest(quest, firstId, questGiver, true);
 
-            out << "Rewarded " << ChatHelper::FormatItem(item);
+            out << botAI->GetLocalizedBotTextOrDefault("msg_quest_rewarded_short", "Rewarded %item", {{"%item", ChatHelper::FormatItem(item)}});
         }
     }
 }
 
 void TalkToQuestGiverAction::AskToSelectReward(Quest const* quest, std::ostringstream& out, bool forEquip)
 {
-    std::ostringstream msg;
-    msg << "Choose reward: ";
-
+    std::string listStr;
     for (uint8 i = 0; i < quest->GetRewChoiceItemsCount(); ++i)
     {
         ItemTemplate const* item = sObjectMgr->GetItemTemplate(quest->RewardChoiceItemId[i]);
-        ItemUsage usage = AI_VALUE2(ItemUsage, "item usage", quest->RewardChoiceItemId[i]);
-
         if (!forEquip || BestRewards(quest).count(i) > 0)
         {
-            msg << chat->FormatItem(item);
+            if (!listStr.empty())
+                listStr += " ";
+            listStr += chat->FormatItem(item);
         }
     }
-
-    botAI->TellMaster(msg);
-    out << "Reward pending";
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_choose_reward", "Choose reward: %list", {{"%list", listStr}}));
+    out << botAI->GetLocalizedBotTextOrDefault("msg_quest_reward_pending", "Reward pending");
 }
 
 bool TurnInQueryQuestAction::Execute(Event event)
@@ -280,24 +276,23 @@ bool TurnInQueryQuestAction::Execute(Event event)
         }
     }
     std::ostringstream out;
-    out << "Quest ";
     switch (status)
     {
     case QUEST_STATUS_COMPLETE:
         TurnInQuest(quest, object, out);
         break;
     case QUEST_STATUS_INCOMPLETE:
-        out << "|cffff0000Incompleted|r";
-        break;
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_status_incomplete", "Quest |cffff0000Incompleted|r: %quest", {{"%quest", chat->FormatQuest(quest)}}));
+        return true;
     case QUEST_STATUS_NONE:
-        out << "|cff00ff00Available|r";
-        break;
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_status_available", "Quest |cff00ff00Available|r: %quest", {{"%quest", chat->FormatQuest(quest)}}));
+        return true;
     case QUEST_STATUS_FAILED:
-        out << "|cffff0000Failed|r";
-        break;
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_status_failed", "Quest |cffff0000Failed|r: %quest", {{"%quest", chat->FormatQuest(quest)}}));
+        return true;
     case QUEST_STATUS_REWARDED:
-        out << "|cffff0000Rewarded|r";
-        break;
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_status_rewarded", "Quest |cffff0000Rewarded|r: %quest", {{"%quest", chat->FormatQuest(quest)}}));
+        return true;
     default:
         break;
     }
