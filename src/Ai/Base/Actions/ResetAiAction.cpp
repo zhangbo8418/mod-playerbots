@@ -46,6 +46,11 @@ bool ResetAiAction::Execute(Event event)
     }
     PlayerbotRepository::instance().Reset(botAI);
     botAI->ResetStrategies(false);
-    botAI->TellMaster("AI was reset to defaults");
+    Player* forLocale = botAI->GetMaster();
+    if (!forLocale && event.getOwner())
+        forLocale = event.getOwner()->ToPlayer();
+    std::string text = botAI->GetLocalizedBotText("msg_ai_reset", {}, forLocale);
+    if (!text.empty())
+        botAI->TellMaster(text);
     return true;
 }
