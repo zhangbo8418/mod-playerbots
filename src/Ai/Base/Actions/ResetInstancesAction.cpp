@@ -6,6 +6,7 @@
 #include "ResetInstancesAction.h"
 
 #include "PlayerbotAI.h"
+#include "Group.h"
 
 bool ResetInstancesAction::Execute(Event /*event*/)
 {
