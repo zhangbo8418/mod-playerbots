@@ -5,9 +5,9 @@
 
 #include "ResetInstancesAction.h"
 
-#include "Playerbots.h"
+#include "PlayerbotAI.h"
 
-bool ResetInstancesAction::Execute(Event event)
+bool ResetInstancesAction::Execute(Event /*event*/)
 {
     // Mirror the core's ResetInstances logic instead of faking a client packet
     if (Group* group = bot->GetGroup())
@@ -20,7 +20,6 @@ bool ResetInstancesAction::Execute(Event event)
         Player::ResetInstances(bot->GetGUID(), INSTANCE_RESET_ALL, false);
     }
 
-    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_reset_instances", "Resetting all instances"));
     return true;
 }
 

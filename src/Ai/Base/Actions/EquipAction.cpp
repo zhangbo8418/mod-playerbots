@@ -356,7 +356,6 @@ bool EquipUpgradesPacketAction::Execute(Event event)
 {
     if (!sPlayerbotAIConfig.autoEquipUpgradeLoot && !sRandomPlayerbotMgr.IsRandomBot(bot))
         return false;
-
     std::string const source = event.GetSource();
     if (source == "trade status")
     {
@@ -395,7 +394,7 @@ bool EquipUpgradesPacketAction::Execute(Event event)
     return true;
 }
 
-bool EquipUpgradeAction::Execute(Event event)
+bool EquipUpgradeAction::Execute(Event /*event*/)
 {
     ItemIds items = SelectInventoryItemsToEquip();
     EquipItems(items);
