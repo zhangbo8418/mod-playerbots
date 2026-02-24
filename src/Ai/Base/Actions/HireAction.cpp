@@ -30,13 +30,13 @@ bool HireAction::Execute(Event /*event*/)
 
     if (charCount >= 10)
     {
-        botAI->TellMaster("You already have the maximum number of characters");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_hire_max_chars", "You already have the maximum number of characters"));
         return false;
     }
 
     if (bot->GetLevel() > master->GetLevel())
     {
-        botAI->TellMaster("You cannot hire higher level characters than you");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_hire_level", "You cannot hire higher level characters than you"));
         return false;
     }
 
@@ -45,14 +45,13 @@ bool HireAction::Execute(Event /*event*/)
     uint32 moneyReq = m * 5000 * bot->GetLevel();
     if (discount < moneyReq)
     {
-        std::ostringstream out;
-        out << "You cannot hire me - I barely know you. Make sure you have at least " << chat->formatMoney(moneyReq)
-            << " as a trade discount";
-        botAI->TellMaster(out.str());
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_hire_cannot",
+            "You cannot hire me - I barely know you. Make sure you have at least %money as a trade discount",
+            {{"%money", chat->formatMoney(moneyReq)}}));
         return false;
     }
 
-    botAI->TellMaster("I will join you at your next relogin");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_hire_will_join", "I will join you at your next relogin"));
 
     bot->SetMoney(moneyReq);
     RandomPlayerbotMgr::instance().Remove(bot);

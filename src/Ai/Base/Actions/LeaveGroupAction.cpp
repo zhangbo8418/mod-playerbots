@@ -8,6 +8,7 @@
 #include "Event.h"
 #include "PlayerbotAIConfig.h"
 #include "Playerbots.h"
+#include "RandomPlayerbotMgr.h"
 
 bool LeaveGroupAction::Execute(Event event)
 {
@@ -42,6 +43,13 @@ bool PartyCommandAction::Execute(Event event)
                 return false;
             }
         }
+
+        if (sPlayerbotAIConfig.botLeaveGroupDelayWhenNoRealPlayer > 0)
+        {
+            sRandomPlayerbotMgr.ScheduleGroupDelayedLeave(bot->GetGroup());
+            return false;
+        }
+
         return Leave();
     }
     return false;
@@ -86,7 +94,7 @@ bool LeaveGroupAction::Leave()
 
     Player* master = botAI -> GetMaster();
     if (master)
-        botAI->TellMaster("Goodbye!", PLAYERBOT_SECURITY_TALK);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_goodbye", "Goodbye!"), PLAYERBOT_SECURITY_TALK);
 
     botAI->LeaveOrDisbandGroup();
     return true;

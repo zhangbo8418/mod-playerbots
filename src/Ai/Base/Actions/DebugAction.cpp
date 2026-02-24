@@ -92,7 +92,7 @@ bool DebugAction::Execute(Event event)
         }
         else
         {
-            botAI->TellMasterNoFacing("Destination " + destination + " not found.");
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_dest_not_found", "Destination %dest not found.", {{"%dest", destination}}));
             return true;
         }
     }
@@ -104,7 +104,7 @@ bool DebugAction::Execute(Event event)
 
         if (!quest)
         {
-            botAI->TellMasterNoFacing("Quest " + text.substr(6) + " not found.");
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_quest_not_found", "Quest %id not found.", {{"%id", text.substr(6)}}));
             return false;
         }
 
@@ -205,7 +205,7 @@ bool DebugAction::Execute(Event event)
             endNode->setLinked(false);
         }
 
-        botAI->TellMasterNoFacing("Node " + name + " created.");
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_node_created", "Node %name created.", {{"%name", name}}));
 
         TravelNodeMap::instance().setHasToGen();
 
@@ -222,12 +222,12 @@ bool DebugAction::Execute(Event event)
 
         if (startNode->isImportant())
         {
-            botAI->TellMasterNoFacing("Node can not be removed.");
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_node_cannot_remove", "Node can not be removed."));
         }
 
         TravelNodeMap::instance().m_nMapMtx.lock();
         TravelNodeMap::instance().removeNode(startNode);
-        botAI->TellMasterNoFacing("Node removed.");
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_node_removed", "Node removed."));
         TravelNodeMap::instance().m_nMapMtx.unlock();
 
         TravelNodeMap::instance().setHasToGen();

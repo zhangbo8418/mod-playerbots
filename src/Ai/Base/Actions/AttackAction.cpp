@@ -37,7 +37,7 @@ bool AttackMyTargetAction::Execute(Event /*event*/)
     if (!guid)
     {
         if (verbose)
-            botAI->TellError("You have no target");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_attack_no_target", "You have no target"));
 
         return false;
     }
@@ -63,7 +63,7 @@ bool AttackAction::Attack(Unit* target, bool /*with_pet*/ /*true*/)
         bot->HasUnitState(UNIT_STATE_IN_FLIGHT))
     {
         if (verbose)
-            botAI->TellError("I cannot attack in flight");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_attack_in_flight", "I cannot attack in flight"));
 
         return false;
     }
@@ -71,7 +71,7 @@ bool AttackAction::Attack(Unit* target, bool /*with_pet*/ /*true*/)
     if (!target)
     {
         if (verbose)
-            botAI->TellError("I have no target");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_attack_i_no_target", "I have no target"));
 
         return false;
     }
@@ -79,7 +79,7 @@ bool AttackAction::Attack(Unit* target, bool /*with_pet*/ /*true*/)
     if (!target->IsInWorld())
     {
         if (verbose)
-            botAI->TellError(std::string(target->GetName()) + " is no longer in the world.");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_attack_not_in_world", "%target is no longer in the world.", {{"%target", std::string(target->GetName())}}));
 
         return false;
     }
@@ -91,7 +91,7 @@ bool AttackAction::Attack(Unit* target, bool /*with_pet*/ /*true*/)
         sPlayerbotAIConfig.IsPvpProhibited(target->GetZoneId(), target->GetAreaId())))
     {
         if (verbose)
-            botAI->TellError("I cannot attack other players in PvP prohibited areas.");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_attack_pvp_area", "I cannot attack other players in PvP prohibited areas."));
 
         return false;
     }
@@ -99,7 +99,7 @@ bool AttackAction::Attack(Unit* target, bool /*with_pet*/ /*true*/)
     if (bot->IsFriendlyTo(target))
     {
         if (verbose)
-            botAI->TellError(std::string(target->GetName()) + " is friendly to me.");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_attack_friendly", "%target is friendly to me.", {{"%target", std::string(target->GetName())}}));
 
         return false;
     }
@@ -107,7 +107,7 @@ bool AttackAction::Attack(Unit* target, bool /*with_pet*/ /*true*/)
     if (target->isDead())
     {
         if (verbose)
-            botAI->TellError(std::string(target->GetName()) + " is dead.");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_attack_target_dead", "%target is dead.", {{"%target", std::string(target->GetName())}}));
 
         return false;
     }
@@ -115,7 +115,7 @@ bool AttackAction::Attack(Unit* target, bool /*with_pet*/ /*true*/)
     if (!bot->IsWithinLOSInMap(target))
     {
         if (verbose)
-            botAI->TellError(std::string(target->GetName()) + " is not in my sight.");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_attack_not_in_sight", "%target is not in my sight.", {{"%target", std::string(target->GetName())}}));
 
         return false;
     }
@@ -123,7 +123,7 @@ bool AttackAction::Attack(Unit* target, bool /*with_pet*/ /*true*/)
     if (sameTarget && inCombat && sameAttackMode)
     {
         if (verbose)
-            botAI->TellError("I am already attacking " + std::string(target->GetName()) + ".");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_attack_already", "I am already attacking %target.", {{"%target", std::string(target->GetName())}}));
 
         return false;
     }
@@ -131,7 +131,7 @@ bool AttackAction::Attack(Unit* target, bool /*with_pet*/ /*true*/)
     if (!bot->IsValidAttackTarget(target))
     {
         if (verbose)
-            botAI->TellError("I cannot attack an invalid target.");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_attack_invalid_target", "I cannot attack an invalid target."));
 
         return false;
     }

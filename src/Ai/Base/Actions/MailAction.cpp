@@ -17,7 +17,7 @@ class TellMailProcessor : public MailProcessor
 public:
     bool Before(PlayerbotAI* botAI) override
     {
-        botAI->TellMaster("=== Mailbox ===");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_mailbox_title", "=== Mailbox ==="));
         tells.clear();
         return true;
     }
@@ -56,7 +56,7 @@ public:
             }
         }
 
-        out << ", |cff00ff00" << days << " day(s)";
+        out << ", |cff00ff00" << botAI->GetLocalizedBotTextOrDefault("msg_mail_days", "%n day(s)", {{"%n", std::to_string(days)}});
         tells.push_front(out.str());
         return true;
     }
@@ -83,16 +83,16 @@ public:
         Player* bot = botAI->GetBot();
         if (!CheckBagSpace(bot))
         {
-            botAI->TellError("Not enough bag space");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_not_enough_bag_space", "Not enough bag space"));
             return false;
         }
 
         ObjectGuid mailbox = FindMailbox(botAI);
         if (mail->money)
         {
-            std::ostringstream out;
-            out << mail->subject << ", |cffffff00" << ChatHelper::formatMoney(mail->money) << "|cff00ff00 processed";
-            botAI->TellMaster(out.str());
+            std::string detail = "|cffffff00" + ChatHelper::formatMoney(mail->money) + "|cff00ff00";
+            std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_mail_processed", "%subject, %detail processed", {{"%subject", mail->subject}, {"%detail", detail}});
+            botAI->TellMaster(msg);
 
             WorldPacket packet;
             packet << mailbox;
@@ -116,11 +116,11 @@ public:
 
                 Item* item = bot->GetMItem(*i);
 
-                std::ostringstream out;
-                out << mail->subject << ", " << ChatHelper::FormatItem(item->GetTemplate()) << "|cff00ff00 processed";
+                std::string detail = ChatHelper::FormatItem(item->GetTemplate()) + "|cff00ff00";
+                std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_mail_processed", "%subject, %detail processed", {{"%subject", mail->subject}, {"%detail", detail}});
 
                 bot->GetSession()->HandleMailTakeItem(packet);
-                botAI->TellMaster(out.str());
+                botAI->TellMaster(msg);
             }
 
             RemoveMail(bot, mail->messageID, mailbox);
@@ -159,10 +159,10 @@ class DeleteMailProcessor : public MailProcessor
 public:
     bool Process(uint32 index, Mail* mail, PlayerbotAI* botAI) override
     {
-        std::ostringstream out;
-        out << "|cffffffff" << mail->subject << "|cffff0000 deleted";
+        std::string subj = "|cffffffff" + mail->subject + "|cffff0000";
+        std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_mail_deleted", "%subject deleted", {{"%subject", subj}});
         RemoveMail(botAI->GetBot(), mail->messageID, FindMailbox(botAI));
-        botAI->TellMaster(out.str());
+        botAI->TellMaster(msg);
         return true;
     }
 
@@ -256,7 +256,7 @@ bool MailAction::Execute(Event event)
 
     if (!MailProcessor::FindMailbox(botAI))
     {
-        botAI->TellError("There is no mailbox nearby");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_mailbox_nearby", "There is no mailbox nearby"));
         return false;
     }
 
@@ -283,9 +283,8 @@ bool MailAction::Execute(Event event)
     MailProcessor* processor = processors[action];
     if (!processor)
     {
-        std::ostringstream out;
-        out << action << ": I don't know how to do that";
-        botAI->TellMaster(out.str());
+        std::string msg = botAI->GetLocalizedBotTextOrDefault("error_mail_unknown_action", "%action: I don't know how to do that", {{"%action", action}});
+        botAI->TellMaster(msg);
         return false;
     }
 

@@ -78,8 +78,7 @@ void ChooseTravelTargetAction::getNewTarget(TravelTarget* newTarget, TravelTarge
                 target->setTarget(dest, points.front());
                 target->setForced(true);
 
-                std::ostringstream out; out << "Traveling to " << dest->getTitle();
-                botAI->TellMasterNoFacing(out.str());
+                botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_traveling_to", "Traveling to %dest", {{"%dest", dest->getTitle()}}));
                 foundTarget = true;
             }
         }
@@ -221,10 +220,7 @@ void ChooseTravelTargetAction::ReportTravelTarget(TravelTarget* newTarget, Trave
     TravelDestination* destination = newTarget->getDestination();
     TravelDestination* oldDestination = oldTarget->getDestination();
 
-    std::ostringstream out;
-
-    if (newTarget->isForced())
-        out << "(Forced) ";
+    std::string forcedPrefix = newTarget->isForced() ? botAI->GetLocalizedBotTextOrDefault("msg_travel_forced", "(Forced) ") : "";
 
     if (destination->getName() == "QuestRelationTravelDestination" ||
         destination->getName() == "QuestObjectiveTravelDestination")
@@ -243,20 +239,13 @@ void ChooseTravelTargetAction::ReportTravelTarget(TravelTarget* newTarget, Trave
 
         std::string Sub;
 
-        if (newTarget->isGroupCopy())
-            out << "Following group ";
-        else if (oldDestination && oldDestination == destination)
-            out << "Continuing ";
-        else
-            out << "Traveling ";
-
-        out << round(newTarget->getDestination()->distanceTo(&botLocation)) << "y";
-
-        out << " for " << chat->FormatQuest(quest);
-
-        out << " to " << QuestDestination->getTitle();
-
-        botAI->TellMaster(out);
+        std::string prefix = newTarget->isGroupCopy() ? botAI->GetLocalizedBotTextOrDefault("msg_travel_following_group", "Following group ")
+            : (oldDestination && oldDestination == destination ? botAI->GetLocalizedBotTextOrDefault("msg_travel_continuing", "Continuing ")
+            : botAI->GetLocalizedBotTextOrDefault("msg_travel_traveling", "Traveling "));
+        std::string forPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_for_quest", "for %quest ", {{"%quest", chat->FormatQuest(quest)}});
+        std::string toPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_to", " to %dest", {{"%dest", QuestDestination->getTitle()}});
+        std::string msg = forcedPrefix + prefix + std::to_string(static_cast<uint32>(round(newTarget->getDestination()->distanceTo(&botLocation)))) + "y " + forPart + toPart;
+        botAI->TellMaster(msg);
     }
     else if (destination->getName() == "RpgTravelDestination")
     {
@@ -264,27 +253,19 @@ void ChooseTravelTargetAction::ReportTravelTarget(TravelTarget* newTarget, Trave
 
         WorldPosition botLocation(bot);
 
-        if (newTarget->isGroupCopy())
-            out << "Following group ";
-        else if (oldDestination && oldDestination == destination)
-            out << "Continuing ";
-        else
-            out << "Traveling ";
-
-        out << round(newTarget->getDestination()->distanceTo(&botLocation)) << "y";
-
-        out << " for ";
-
+        std::string prefix = newTarget->isGroupCopy() ? botAI->GetLocalizedBotTextOrDefault("msg_travel_following_group", "Following group ")
+            : (oldDestination && oldDestination == destination ? botAI->GetLocalizedBotTextOrDefault("msg_travel_continuing", "Continuing ")
+            : botAI->GetLocalizedBotTextOrDefault("msg_travel_traveling", "Traveling "));
+        std::string forPart;
         if (AI_VALUE2(bool, "group or", "should sell,can sell"))
-            out << "selling items";
+            forPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_for_selling", "for selling items ");
         else if (AI_VALUE2(bool, "group or", "should repair,can repair"))
-            out << "repairing";
+            forPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_for_repairing", "for repairing ");
         else
-            out << "rpg";
-
-        out << " to " << RpgDestination->getTitle();
-
-        botAI->TellMaster(out);
+            forPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_for_rpg", "for rpg ");
+        std::string toPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_to", " to %dest", {{"%dest", RpgDestination->getTitle()}});
+        std::string msg = forcedPrefix + prefix + std::to_string(static_cast<uint32>(round(newTarget->getDestination()->distanceTo(&botLocation)))) + "y " + forPart + toPart;
+        botAI->TellMaster(msg);
     }
     else if (destination->getName() == "ExploreTravelDestination")
     {
@@ -292,20 +273,13 @@ void ChooseTravelTargetAction::ReportTravelTarget(TravelTarget* newTarget, Trave
 
         WorldPosition botLocation(bot);
 
-        if (newTarget->isGroupCopy())
-            out << "Following group ";
-        else if (oldDestination && oldDestination == destination)
-            out << "Continuing ";
-        else
-            out << "Traveling ";
-
-        out << round(newTarget->getDestination()->distanceTo(&botLocation)) << "y";
-
-        out << " for exploration";
-
-        out << " to " << ExploreDestination->getTitle();
-
-        botAI->TellMaster(out);
+        std::string prefix = newTarget->isGroupCopy() ? botAI->GetLocalizedBotTextOrDefault("msg_travel_following_group", "Following group ")
+            : (oldDestination && oldDestination == destination ? botAI->GetLocalizedBotTextOrDefault("msg_travel_continuing", "Continuing ")
+            : botAI->GetLocalizedBotTextOrDefault("msg_travel_traveling", "Traveling "));
+        std::string forPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_for_exploration", "for exploration ");
+        std::string toPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_to", " to %dest", {{"%dest", ExploreDestination->getTitle()}});
+        std::string msg = forcedPrefix + prefix + std::to_string(static_cast<uint32>(round(newTarget->getDestination()->distanceTo(&botLocation)))) + "y " + forPart + toPart;
+        botAI->TellMaster(msg);
     }
     else if (destination->getName() == "GrindTravelDestination")
     {
@@ -313,20 +287,13 @@ void ChooseTravelTargetAction::ReportTravelTarget(TravelTarget* newTarget, Trave
 
         WorldPosition botLocation(bot);
 
-        if (newTarget->isGroupCopy())
-            out << "Following group ";
-        else if (oldDestination && oldDestination == destination)
-            out << "Continuing ";
-        else
-            out << "Traveling ";
-
-        out << round(newTarget->getDestination()->distanceTo(&botLocation)) << "y";
-
-        out << " for grinding money";
-
-        out << " to " << GrindDestination->getTitle();
-
-        botAI->TellMaster(out);
+        std::string prefix = newTarget->isGroupCopy() ? botAI->GetLocalizedBotTextOrDefault("msg_travel_following_group", "Following group ")
+            : (oldDestination && oldDestination == destination ? botAI->GetLocalizedBotTextOrDefault("msg_travel_continuing", "Continuing ")
+            : botAI->GetLocalizedBotTextOrDefault("msg_travel_traveling", "Traveling "));
+        std::string forPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_for_grinding", "for grinding money ");
+        std::string toPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_to", " to %dest", {{"%dest", GrindDestination->getTitle()}});
+        std::string msg = forcedPrefix + prefix + std::to_string(static_cast<uint32>(round(newTarget->getDestination()->distanceTo(&botLocation)))) + "y " + forPart + toPart;
+        botAI->TellMaster(msg);
     }
     else if (destination->getName() == "BossTravelDestination")
     {
@@ -334,26 +301,19 @@ void ChooseTravelTargetAction::ReportTravelTarget(TravelTarget* newTarget, Trave
 
         WorldPosition botLocation(bot);
 
-        if (newTarget->isGroupCopy())
-            out << "Following group ";
-        else if (oldDestination && oldDestination == destination)
-            out << "Continuing ";
-        else
-            out << "Traveling ";
-
-        out << round(newTarget->getDestination()->distanceTo(&botLocation)) << "y";
-
-        out << " for good loot";
-
-        out << " to " << BossDestination->getTitle();
-
-        botAI->TellMaster(out);
+        std::string prefix = newTarget->isGroupCopy() ? botAI->GetLocalizedBotTextOrDefault("msg_travel_following_group", "Following group ")
+            : (oldDestination && oldDestination == destination ? botAI->GetLocalizedBotTextOrDefault("msg_travel_continuing", "Continuing ")
+            : botAI->GetLocalizedBotTextOrDefault("msg_travel_traveling", "Traveling "));
+        std::string forPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_for_loot", "for good loot ");
+        std::string toPart = botAI->GetLocalizedBotTextOrDefault("msg_travel_to", " to %dest", {{"%dest", BossDestination->getTitle()}});
+        std::string msg = forcedPrefix + prefix + std::to_string(static_cast<uint32>(round(newTarget->getDestination()->distanceTo(&botLocation)))) + "y " + forPart + toPart;
+        botAI->TellMaster(msg);
     }
     else if (destination->getName() == "NullTravelDestination")
     {
         if (!oldTarget->getDestination() || oldTarget->getDestination()->getName() != "NullTravelDestination")
         {
-            botAI->TellMaster("No where to travel. Idling a bit.");
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_nowhere_travel_idle", "No where to travel. Idling a bit."));
         }
     }
 }

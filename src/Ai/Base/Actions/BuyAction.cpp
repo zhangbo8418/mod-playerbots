@@ -196,9 +196,7 @@ bool BuyAction::Execute(Event event)
 
                 if (!result)
                 {
-                    std::ostringstream out;
-                    out << "Nobody sells " << ChatHelper::FormatItem(proto) << " nearby";
-                    botAI->TellMaster(out.str());
+                    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_nobody_sells", "Nobody sells %item nearby", {{"%item", ChatHelper::FormatItem(proto)}}));
                     continue;
                 }
 
@@ -215,7 +213,7 @@ bool BuyAction::Execute(Event event)
 
     if (!vendored)
     {
-        botAI->TellError("There are no vendors nearby");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_vendors_nearby", "There are no vendors nearby"));
         return false;
     }
 
@@ -247,9 +245,7 @@ bool BuyAction::BuyItem(VendorItemData const* tItems, ObjectGuid vendorguid, Ite
         uint32 newCount = bot->GetItemCount(itemId, false);
         if (newCount > oldCount)
         {
-            std::ostringstream out;
-            out << "Buying " << ChatHelper::FormatItem(proto);
-            botAI->TellMaster(out.str());
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_buying_item", "Buying %item", {{"%item", ChatHelper::FormatItem(proto)}}));
             return true;
         }
 

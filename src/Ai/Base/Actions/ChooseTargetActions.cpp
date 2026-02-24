@@ -169,7 +169,7 @@ bool AttackRtiTargetAction::Execute(Event /*event*/)
         }
     }
     else
-        botAI->TellError("I dont see my rti attack target");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_rti_no_target", "I dont see my rti attack target"));
 
     return false;
 }

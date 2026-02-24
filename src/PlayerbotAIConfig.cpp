@@ -86,6 +86,7 @@ bool PlayerbotAIConfig::Initialize()
     rpWarningCooldown     = sConfigMgr->GetOption<int32>("AiPlayerbot.RPWarningCooldown", 30);
     disabledWithoutRealPlayerLoginDelay = sConfigMgr->GetOption<int32>("AiPlayerbot.DisabledWithoutRealPlayerLoginDelay", 30);
     disabledWithoutRealPlayerLogoutDelay = sConfigMgr->GetOption<int32>("AiPlayerbot.DisabledWithoutRealPlayerLogoutDelay", 300);
+    botLeaveGroupDelayWhenNoRealPlayer = sConfigMgr->GetOption<uint32>("AiPlayerbot.BotLeaveGroupDelayWhenNoRealPlayer", 180);
 
     farDistance = sConfigMgr->GetOption<float>("AiPlayerbot.FarDistance", 20.0f);
     sightDistance = sConfigMgr->GetOption<float>("AiPlayerbot.SightDistance", 100.0f);
@@ -393,6 +394,11 @@ bool PlayerbotAIConfig::Initialize()
     }
 
     randomChangeMultiplier = sConfigMgr->GetOption<float>("AiPlayerbot.RandomChangeMultiplier", 1.0);
+    if (randomChangeMultiplier <= 0.0f)
+    {
+        LOG_ERROR("playerbots", "AiPlayerbot.RandomChangeMultiplier must be > 0, resetting to 1.0");
+        randomChangeMultiplier = 1.0f;
+    }
 
     randomBotCombatStrategies = sConfigMgr->GetOption<std::string>("AiPlayerbot.RandomBotCombatStrategies", "");
     randomBotNonCombatStrategies = sConfigMgr->GetOption<std::string>("AiPlayerbot.RandomBotNonCombatStrategies", "");
@@ -607,6 +613,11 @@ bool PlayerbotAIConfig::Initialize()
     enablePeriodicOnlineOffline = sConfigMgr->GetOption<bool>("AiPlayerbot.EnablePeriodicOnlineOffline", false);
     enableRandomBotTrading = sConfigMgr->GetOption<int32>("AiPlayerbot.EnableRandomBotTrading", 1);
     periodicOnlineOfflineRatio = sConfigMgr->GetOption<float>("AiPlayerbot.PeriodicOnlineOfflineRatio", 2.0);
+    if (periodicOnlineOfflineRatio <= 0.0f)
+    {
+        LOG_ERROR("playerbots", "AiPlayerbot.PeriodicOnlineOfflineRatio must be > 0, resetting to 1.0");
+        periodicOnlineOfflineRatio = 1.0f;
+    }
     gearscorecheck = sConfigMgr->GetOption<bool>("AiPlayerbot.GearScoreCheck", false);
     randomBotPreQuests = sConfigMgr->GetOption<bool>("AiPlayerbot.PreQuests", false);
 
@@ -652,6 +663,14 @@ bool PlayerbotAIConfig::Initialize()
     randomBotArenaTeamMinRating = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotArenaTeamMinRating", 1000);
 
     selfBotLevel = sConfigMgr->GetOption<int32>("AiPlayerbot.SelfBotLevel", 1);
+
+    // When running with -d / --dry-run we only want to initialize and validate
+    // the database, skipping random bot account/character creation and related work.
+    if (sConfigMgr->isDryRun())
+    {
+        LOG_INFO("server.loading", "Dry run mode detected, skipping random playerbot account and character initialization.");
+        return true;
+    }
 
     RandomPlayerbotFactory::CreateRandomBots();
     if (World::IsStopped())

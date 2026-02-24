@@ -39,7 +39,7 @@ bool RewardAction::Execute(Event event)
     if (groupLeaderUnit && Reward(itemId, groupLeaderUnit))
         return true;
 
-    botAI->TellError("Cannot talk to quest giver");
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_cannot_talk_quest_giver", "Cannot talk to quest giver"));
     return false;
 }
 
@@ -68,9 +68,7 @@ bool RewardAction::Reward(uint32 itemId, Object* questGiver)
                     std::string const questTitle = pQuest->GetTitle();
                     std::string const itemName = pRewardItem->Name1;
 
-                    std::ostringstream out;
-                    out << chat->FormatItem(pRewardItem) << " rewarded";
-                    botAI->TellMaster(out);
+                    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_item_rewarded", "%item rewarded", {{"%item", chat->FormatItem(pRewardItem)}}));
 
                     return true;
                 }

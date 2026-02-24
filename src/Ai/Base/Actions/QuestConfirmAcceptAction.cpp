@@ -15,9 +15,7 @@ bool QuestConfirmAcceptAction::Execute(Event event)
     {
         return false;
     }
-    std::ostringstream out;
-    out << "Quest: " << chat->FormatQuest(quest) << " confirm accept";
-    botAI->TellMaster(out);
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_confirm_accept", "Quest: %quest confirm accept", {{"%quest", chat->FormatQuest(quest)}}));
     bot->GetSession()->HandleQuestConfirmAccept(sendPacket);
     return true;
 }

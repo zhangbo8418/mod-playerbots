@@ -44,9 +44,7 @@ bool RepairAllAction::Execute(Event /*event*/)
 
         if (totalCost > 0)
         {
-            std::ostringstream out;
-            out << "Repair: " << chat->formatMoney(totalCost) << " (" << unit->GetName() << ")";
-            botAI->TellMasterNoFacing(out.str());
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_repair_cost", "Repair: %cost (%npc)", {{"%cost", chat->formatMoney(totalCost)}, {"%npc", unit->GetName()}}));
 
             bot->PlayDistanceSound(1116);
         }
@@ -56,6 +54,6 @@ bool RepairAllAction::Execute(Event /*event*/)
         return true;
     }
 
-    botAI->TellError("Cannot find any npc to repair at");
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_repair_npc", "Cannot find any npc to repair at"));
     return false;
 }

@@ -44,16 +44,14 @@ bool GiveItemAction::Execute(Event /*event*/)
             receiver->MoveItemToInventory(dest, item, true);
             moved = true;
 
-            std::ostringstream out;
-            out << "Got " << chat->FormatItem(item->GetTemplate(), item->GetCount()) << " from " << bot->GetName();
-            receiverAi->TellMasterNoFacing(out.str());
+            receiverAi->TellMasterNoFacing(receiverAi->GetLocalizedBotTextOrDefault("msg_got_from", "Got %item from %name",
+                {{"%item", chat->FormatItem(item->GetTemplate(), item->GetCount())}, {"%name", bot->GetName()}}));
         }
         else
         {
-            std::ostringstream out;
-            out << "Cannot get " << chat->FormatItem(item->GetTemplate(), item->GetCount()) << " from "
-                << bot->GetName() << "- my bags are full";
-            receiverAi->TellError(out.str());
+            receiverAi->TellError(receiverAi->GetLocalizedBotTextOrDefault("error_cannot_get_bags_full",
+                "Cannot get %item from %name - my bags are full",
+                {{"%item", chat->FormatItem(item->GetTemplate(), item->GetCount())}, {"%name", bot->GetName()}}));
         }
     }
 

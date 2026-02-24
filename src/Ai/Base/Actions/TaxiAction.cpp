@@ -24,7 +24,7 @@ bool TaxiAction::Execute(Event event)
     {
         movement.taxiNodes.clear();
         movement.Set(nullptr);
-        botAI->TellMaster("I am ready for the next flight");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_ready_for_flight", "I am ready for the next flight"));
         return true;
     }
 
@@ -82,7 +82,7 @@ bool TaxiAction::Execute(Event event)
 
         if (param == "?")
         {
-            botAI->TellMasterNoFacing("=== Taxi ===");
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_taxi_title", "=== Taxi ==="));
 
             uint32 index = 1;
             for (uint32 node : nodes)
@@ -118,13 +118,13 @@ bool TaxiAction::Execute(Event event)
         {
             movement.taxiNodes.clear();
             movement.Set(nullptr);
-            botAI->TellError("I can't fly with you");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_cant_fly_with_you", "I can't fly with you"));
             return false;
         }
 
         return true;
     }
 
-    botAI->TellError("Cannot find any flightmaster to talk");
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_flightmaster", "Cannot find any flightmaster to talk"));
     return false;
 }

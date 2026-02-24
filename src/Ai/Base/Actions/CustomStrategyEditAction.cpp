@@ -31,7 +31,7 @@ bool CustomStrategyEditAction::Execute(Event event)
 
 bool CustomStrategyEditAction::PrintHelp()
 {
-    botAI->TellMaster("=== Custom strategies ===");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_custom_strategies_title", "=== Custom strategies ==="));
 
     uint32 owner = botAI->GetBot()->GetGUID().GetCounter();
 
@@ -48,15 +48,14 @@ bool CustomStrategyEditAction::PrintHelp()
         } while (result->NextRow());
     }
 
-    botAI->TellMaster("Usage: cs <name> <idx> <command>");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_custom_strategy_usage", "Usage: cs <name> <idx> <command>"));
     return false;
 }
 
 bool CustomStrategyEditAction::Print(std::string const name)
 {
-    std::ostringstream out;
-    out << "=== " << name << " ===";
-    botAI->TellMaster(out.str());
+    std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_cs_section", "=== %name ===", {{"%name", name}});
+    botAI->TellMaster(msg);
 
     uint32 owner = botAI->GetBot()->GetGUID().GetCounter();
 
@@ -137,8 +136,7 @@ bool CustomStrategyEditAction::Edit(std::string const name, uint32 idx, std::str
 
 bool CustomStrategyEditAction::PrintActionLine(uint32 idx, std::string const command)
 {
-    std::ostringstream out;
-    out << "#" << idx << " " << command;
-    botAI->TellMaster(out.str());
+    std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_cs_line", "#%idx %command", {{"%idx", std::to_string(idx)}, {"%command", command}});
+    botAI->TellMaster(msg);
     return true;
 }

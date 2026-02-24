@@ -38,7 +38,7 @@ bool PetitionSignAction::Execute(Event event)
         if (bot->GetArenaTeamId(slot))
         {
             // player is already in an arena team
-            botAI->TellError("Sorry, I am already in such team");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_petition_in_team", "Sorry, I am already in such team"));
             accept = false;
         }
     }
@@ -46,13 +46,13 @@ bool PetitionSignAction::Execute(Event event)
     {
         if (bot->GetGuildId())
         {
-            botAI->TellError("Sorry, I am in a guild already");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_petition_in_guild", "Sorry, I am in a guild already"));
             accept = false;
         }
 
         if (bot->GetGuildIdInvited())
         {
-            botAI->TellError("Sorry, I am invited to a guild already");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_petition_invited", "Sorry, I am invited to a guild already"));
             accept = false;
         }
 
@@ -60,7 +60,7 @@ bool PetitionSignAction::Execute(Event event)
         /*if (QueryResult* result = CharacterDatabase.Query("SELECT playerguid FROM petition_sign WHERE player_account =
         {} AND petitionguid = {}'", bot->GetSession()->GetAccountId(), petitionGuid.GetCounter()))
         {
-            botAI->TellError("Sorry, I already signed this pettition");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_petition_signed", "Sorry, I already signed this pettition"));
             accept = false;
         }
         */
@@ -88,7 +88,7 @@ bool PetitionSignAction::Execute(Event event)
         WorldPacket data(CMSG_PETITION_SIGN, 20);
         data << petitionGuid << unk;
         bot->GetSession()->HandlePetitionSignOpcode(data);
-        bot->Say("Thanks for the invite!", LANG_UNIVERSAL);
+        bot->Say(botAI->GetLocalizedBotTextOrDefault("msg_thanks_invite", "Thanks for the invite!"), LANG_UNIVERSAL);
         LOG_INFO("playerbots", "Bot {} <{}> accepts {} invite", bot->GetGUID().ToString().c_str(),
                  bot->GetName().c_str(), isArena ? "Arena" : "Guild");
         return true;

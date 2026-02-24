@@ -90,7 +90,7 @@ Unit* GrindTargetValue::FindTargetForGrinding(uint32 assistCount)
             ServerFacade::instance().GetDistance2d(master, unit) > sPlayerbotAIConfig.lootDistance)
         {
             if (botAI->HasStrategy("debug grind", BotState::BOT_STATE_NON_COMBAT))
-                botAI->TellMaster(chat->FormatWorldobject(unit) + " ignored (far from master).");
+                botAI->TellMaster(chat->FormatWorldobject(unit) + botAI->GetLocalizedBotTextOrDefault("msg_ignored_far_from_master", " ignored (far from master)."));
             continue;
         }
 
