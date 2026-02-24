@@ -44,6 +44,9 @@
 #include "TravelMgr.h"
 #include "Unit.h"
 #include "World.h"
+#include "WorldConfig.h"
+#include "Group.h"
+#include "GroupMgr.h"
 #include "Cell.h"
 #include "GridNotifiers.h"
 // Required for Cell because of poor AC implementation
@@ -176,6 +179,15 @@ botPIDImpl::botPIDImpl(double dt, double max, double min, double Kp, double Ki, 
 
 double botPIDImpl::calculate(double setpoint, double pv)
 {
+    if (_dt == 0.0)
+    {
+        // Avoid division by zero; treat as no derivative / integral contribution for this tick
+        double error = setpoint - pv;
+        double Pout = _Kp * error;
+        _pre_error = error;
+        return std::clamp(Pout, _min, _max);
+    }
+
     // Calculate error
     double error = setpoint - pv;
 
@@ -331,6 +343,8 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 elapsed, bool /*minimal*/)
 
     if (!sPlayerbotAIConfig.randomBotAutologin || !sPlayerbotAIConfig.enabled)
         return;
+
+    ProcessScheduledGroupLeaves();
 
     /*if (sPlayerbotAIConfig.enablePrototypePerformanceDiff)
     {
@@ -2961,10 +2975,112 @@ void RandomPlayerbotMgr::HandleCommand(uint32 type, std::string const text, Play
     }
 }
 
+// ============================================================================
+// Group and leader logic (applies only to random bots, not alt/addclass etc.)
+// ============================================================================
+//
+// 1) Player logout (OnPlayerLogout)
+//    - Only 5-man parties are handled; raid/LFG/battleground are skipped.
+//    - Step1: For each random bot in RandomPlayerbotMgr that had this player as master:
+//      · If there is another connected real player in the group -> transfer leader to that player and set bot's master to them;
+//      · Otherwise -> schedule delayed leave for the group and set bot's master to nullptr.
+//    - Step2: If the core did not remove the player on logout (LeaveGroupOnLogout=0) and the player is still in the group:
+//      · If there is another connected real player -> transfer leader to them;
+//      · Otherwise -> schedule delayed leave for the group;
+//      · Finally remove the logging-out player from the group (RemoveMember).
+//    - Order vs core: When LeaveGroupOnLogout=1, the core removes the player and broadcasts first; bots may leave
+//      immediately in PartyCommandAction(PARTY_OP_LEAVE), so the delay does not apply. When LeaveGroupOnLogout=0,
+//      we set master and then RemoveMember, so bots do not leave in the packet handler and the delay applies.
+//
+// 2) Delayed leave (ScheduleGroupDelayedLeave + ProcessScheduledGroupLeaves)
+//    - Schedule: group GUID -> leaveAt = now + BotLeaveGroupDelayWhenNoRealPlayer (0 = next tick).
+//    - Each tick in UpdateAIInternal, ProcessScheduledGroupLeaves runs:
+//      · If now >= leaveAt: re-check if the group has any connected real player;
+//      · If still none: only random bots in that group leave (IsRandomBot); alt/addclass are not kicked.
+//
+// 3) Crash/restart (OnBotLoginInternal)
+//    - When a random bot logs in, if it is in a group and the group has no connected real player -> schedule
+//      delayed leave for that group so bots do not stay stuck and uninvitable.
+//
+// Find first real (non-bot) connected player in group, excluding excludePlayer
+static Player* FindFirstRealConnectedPlayerInGroup(Group* group, Player* excludePlayer)
+{
+    if (!group)
+        return nullptr;
+    for (GroupReference* itr = group->GetFirstMember(); itr; itr = itr->next())
+    {
+        Player* member = itr->GetSource();
+        if (!member || member == excludePlayer)
+            continue;
+        if (!member->GetSession())
+            continue;
+        if (!member->IsInWorld() || member->GetSession()->PlayerLogout())
+            continue;
+        PlayerbotAI* memberAI = GET_PLAYERBOT_AI(member);
+        if (memberAI && !memberAI->IsRealPlayer())
+            continue;
+        return member;
+    }
+    return nullptr;
+}
+
 void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
 {
+    // When CONFIG_LEAVE_GROUP_ON_LOGOUT is true, the core removes the player from the group before this hook
+    // and sends group updates; bots may then leave immediately in LeaveGroupAction::PartyCommandAction (PARTY_OP_LEAVE).
+    // When it is false, we transfer leader / remove player ourselves below and set bot master to nullptr before
+    // RemoveMember, so bots do not leave in PartyCommandAction and the scheduled delay applies.
+
+    // 1. For each bot that had this player as master: assign new master or schedule group leave
+    for (PlayerBotMap::const_iterator it = GetPlayerBotsBegin(); it != GetPlayerBotsEnd(); ++it)
+    {
+        Player* const bot = it->second;
+        PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot);
+        if (!botAI || botAI->GetMaster() != player)
+            continue;
+
+        Group* group = bot->GetGroup();
+        if (!group || group->isRaidGroup() || group->isLFGGroup() || bot->InBattleground())
+        {
+            botAI->SetMaster(nullptr);
+            if (!bot->InBattleground())
+                botAI->ResetStrategies();
+            continue;
+        }
+
+        Player* newMaster = FindFirstRealConnectedPlayerInGroup(group, player);
+        if (newMaster)
+        {
+            // Always set leader to real player (core may have picked a bot when LeaveGroupOnLogout removed player first)
+            if (group->GetLeaderGUID() != newMaster->GetGUID())
+                group->ChangeLeader(newMaster->GetGUID());
+            botAI->SetMaster(newMaster);
+        }
+        else
+        {
+            ScheduleGroupDelayedLeave(group);
+            botAI->SetMaster(nullptr);
+            if (!bot->InBattleground())
+                botAI->ResetStrategies();
+        }
+    }
+
+    // 2. If player is still in group (core did not remove on logout), transfer leader then remove
+    Group* group = player->GetGroup();
+    if (group && !group->isRaidGroup() && !group->isLFGGroup() && !player->InBattleground())
+    {
+        Player* newLeader = FindFirstRealConnectedPlayerInGroup(group, player);
+        if (newLeader && group->GetLeaderGUID() != newLeader->GetGUID())
+            group->ChangeLeader(newLeader->GetGUID());
+        else if (!newLeader)
+            ScheduleGroupDelayedLeave(group);
+        if (!sWorld->getBoolConfig(CONFIG_LEAVE_GROUP_ON_LOGOUT))
+            group->RemoveMember(player->GetGUID());
+    }
+
     DisablePlayerBot(player->GetGUID());
 
+    // 3. Fallback: clear master and reset strategies for bots not handled in Step1 (no group / raid/BG/LFG)
     for (PlayerBotMap::const_iterator it = GetPlayerBotsBegin(); it != GetPlayerBotsEnd(); ++it)
     {
         Player* const bot = it->second;
@@ -2982,6 +3098,56 @@ void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
     std::vector<Player*>::iterator i = std::find(players.begin(), players.end(), player);
     if (i != players.end())
         players.erase(i);
+}
+
+void RandomPlayerbotMgr::ScheduleGroupDelayedLeave(Group* group)
+{
+    if (!group)
+        return;
+    // Delay 0 = leave on next ProcessScheduledGroupLeaves tick (avoids bots stuck in group when config is 0)
+    time_t leaveAt = time(nullptr) + sPlayerbotAIConfig.botLeaveGroupDelayWhenNoRealPlayer;
+    m_groupsScheduledToLeave[group->GetGUID().GetCounter()] = leaveAt;
+}
+
+void RandomPlayerbotMgr::ProcessScheduledGroupLeaves()
+{
+    time_t now = time(nullptr);
+    for (auto it = m_groupsScheduledToLeave.begin(); it != m_groupsScheduledToLeave.end();)
+    {
+        if (now < it->second)
+        {
+            ++it;
+            continue;
+        }
+        ObjectGuid::LowType groupGuidLow = it->first;
+        it = m_groupsScheduledToLeave.erase(it);
+
+        Group* group = sGroupMgr->GetGroupByGUID(groupGuidLow);
+        if (!group || group->isLFGGroup())
+            continue;
+        if (FindFirstRealConnectedPlayerInGroup(group, nullptr))
+            continue;  // Cancel leave if a real player joined during the delay
+
+        // Only force random bots to leave; do not kick alt/addclass
+        std::vector<Player*> botsToLeave;
+        for (auto const& slot : group->GetMemberSlots())
+        {
+            Player* member = ObjectAccessor::FindPlayer(slot.guid);
+            if (!member || member->InBattleground())
+                continue;
+            if (!IsRandomBot(member))
+                continue;
+            PlayerbotAI* memberAI = GET_PLAYERBOT_AI(member);
+            if (memberAI && !memberAI->IsRealPlayer())
+                botsToLeave.push_back(member);
+        }
+        for (Player* bot : botsToLeave)
+        {
+            PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot);
+            if (botAI)
+                botAI->LeaveOrDisbandGroup();
+        }
+    }
 }
 
 void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
@@ -3004,6 +3170,15 @@ void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
     else
     {
         bot->RemovePlayerFlag(PLAYER_FLAGS_NO_XP_GAIN);
+    }
+
+    // After server crash/restart, group is restored from DB but leader may be offline or group may have no real player
+    // → schedule delayed leave so bots don't stay stuck (and become uninvitable) if no real player logs in
+    Group* group = bot->GetGroup();
+    if (group && !bot->InBattleground() && !group->isLFGGroup())
+    {
+        if (!FindFirstRealConnectedPlayerInGroup(group, nullptr))
+            ScheduleGroupDelayedLeave(group);
     }
 }
 
@@ -3037,7 +3212,7 @@ void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
                 {
                     botAI->SetMaster(player);
                     botAI->ResetStrategies();
-                    botAI->TellMaster("Hello");
+                    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_hello", "Hello"));
                 }
 
                 break;

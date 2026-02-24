@@ -12,6 +12,8 @@
 #include "GameTime.h"
 #include "PlayerbotCommandServer.h"
 
+class Group;
+
 struct BattlegroundInfo
 {
     std::vector<uint32> bgInstances;
@@ -188,6 +190,8 @@ public:
     void AssignAccountTypes();
     bool IsAccountType(uint32 accountId, uint8 accountType);
 
+    void ScheduleGroupDelayedLeave(Group* group);
+
 protected:
     void OnBotLoginInternal(Player* const bot) override;
 
@@ -265,6 +269,10 @@ private:
     std::list<uint32> currentBots;
     uint32 bgBotsCount;
     uint32 playersLevel;
+
+    // Groups scheduled for bot leave when no real player remains (groupGuidLow -> leave at time)
+    std::map<ObjectGuid::LowType, time_t> m_groupsScheduledToLeave;
+    void ProcessScheduledGroupLeaves();
 
     // Account lists
     std::vector<uint32> rndBotTypeAccounts;             // Accounts marked as RNDbot (type 1)

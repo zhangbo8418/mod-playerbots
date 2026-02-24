@@ -23,35 +23,37 @@ bool TellCastFailedAction::Execute(Event event)
 
     SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
 
-    std::ostringstream out;
-    out << chat->FormatSpell(spellInfo) << ": ";
+    std::string reason;
     switch (result)
     {
         case SPELL_FAILED_NOT_READY:
-            out << "not ready";
+            reason = botAI->GetLocalizedBotTextOrDefault("msg_spell_failed_not_ready", "not ready");
             break;
         case SPELL_FAILED_REQUIRES_SPELL_FOCUS:
-            out << "requires spell focus";
+            reason = botAI->GetLocalizedBotTextOrDefault("msg_spell_failed_focus", "requires spell focus");
             break;
         case SPELL_FAILED_REQUIRES_AREA:
-            out << "cannot cast here";
+            reason = botAI->GetLocalizedBotTextOrDefault("msg_spell_failed_area", "cannot cast here");
             break;
         case SPELL_FAILED_EQUIPPED_ITEM_CLASS:
-            out << "requires item";
+            reason = botAI->GetLocalizedBotTextOrDefault("msg_spell_failed_item", "requires item");
             break;
         case SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND:
         case SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND:
-            out << "requires weapon";
+            reason = botAI->GetLocalizedBotTextOrDefault("msg_spell_failed_weapon", "requires weapon");
             break;
         case SPELL_FAILED_PREVENTED_BY_MECHANIC:
-            out << "interrupted";
+            reason = botAI->GetLocalizedBotTextOrDefault("msg_spell_failed_interrupted", "interrupted");
             break;
         default:
-            out << "cannot cast";
+            reason = botAI->GetLocalizedBotTextOrDefault("msg_spell_failed_default", "cannot cast");
     }
 
     if (spellInfo->CalcCastTime() >= 2000)
-        botAI->TellError(out.str());
+    {
+        std::string msg = chat->FormatSpell(spellInfo) + ": " + reason;
+        botAI->TellError(msg);
+    }
 
     return true;
 }
@@ -67,8 +69,6 @@ bool TellSpellAction::Execute(Event event)
     if (!spellInfo)
         return false;
 
-    std::ostringstream out;
-    out << chat->FormatSpell(spellInfo);
-    botAI->TellError(out.str());
+    botAI->TellError(chat->FormatSpell(spellInfo));
     return true;
 }

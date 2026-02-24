@@ -61,23 +61,22 @@ bool RevealGatheringItemAction::Execute(Event /*event*/)
     if (!go)
         return false;
 
-    std::ostringstream msg;
-    msg << "I see a " << ChatHelper::FormatGameobject(go) << ". ";
-
+    std::string objStr = ChatHelper::FormatGameobject(go);
+    std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_reveal_see", "I see a %obj. ", {{"%obj", objStr}});
     switch (go->GetGoType())
     {
         case GAMEOBJECT_TYPE_CHEST:
-            msg << "Let's look at it.";
+            msg += botAI->GetLocalizedBotTextOrDefault("msg_reveal_look", "Let's look at it.");
             break;
         case GAMEOBJECT_TYPE_FISHINGNODE:
-            msg << "Let's fish a bit.";
+            msg += botAI->GetLocalizedBotTextOrDefault("msg_reveal_fish", "Let's fish a bit.");
             break;
         default:
-            msg << "Should we go nearer?";
+            msg += botAI->GetLocalizedBotTextOrDefault("msg_reveal_nearer", "Should we go nearer?");
     }
 
     // everything is fine, do it
     botAI->Ping(go->GetPositionX(), go->GetPositionY());
-    bot->Say(msg.str(), LANG_UNIVERSAL);
+    bot->Say(msg, LANG_UNIVERSAL);
     return true;
 }

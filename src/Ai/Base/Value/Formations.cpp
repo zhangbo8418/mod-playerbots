@@ -597,9 +597,8 @@ bool SetFormationAction::Execute(Event event)
     FormationValue* value = (FormationValue*)context->GetValue<Formation*>("formation");
     if (formation == "?" || formation.empty())
     {
-        std::ostringstream str;
-        str << "Formation: |cff00ff00" << value->Get()->getName();
-        botAI->TellMaster(str);
+        std::string name = "|cff00ff00" + value->Get()->getName();
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_formation_current", "Formation: %name", {{"%name", name}}));
         return true;
     }
 
@@ -614,17 +613,13 @@ bool SetFormationAction::Execute(Event event)
 
     if (!value->Load(formation))
     {
-        std::ostringstream str;
-        str << "Invalid formation: |cffff0000" << formation;
-        botAI->TellMaster(str);
-        botAI->TellMaster(
-            "Please set to any of:|cffffffff chaos (default), near, queue, circle, line, shield, arrow, melee, far");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_formation_invalid", "Invalid formation: %formation", {{"%formation", "|cffff0000" + formation}}));
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_formation_usage",
+            "Please set to any of:|cffffffff chaos (default), near, queue, circle, line, shield, arrow, melee, far"));
         return false;
     }
 
-    std::ostringstream str;
-    str << "Formation set to: " << formation;
-    botAI->TellMaster(str);
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_formation_set", "Formation set to: %formation", {{"%formation", formation}}));
     return true;
 }
 

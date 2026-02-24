@@ -164,7 +164,7 @@ bool MovementAction::MoveToLOS(WorldObject* target, bool ranged)
     if (dest.isSet())
         return MoveTo(dest.mapId, dest.x, dest.y, dest.z);
     else
-        botAI->TellError("All paths not in LOS");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_paths_not_los", "All paths not in LOS"));
 
     return false;
 }
@@ -1160,13 +1160,13 @@ bool MovementAction::Follow(Unit* target, float distance, float angle)
         if (bot->isDead() && botAI->GetMaster()->IsAlive())
         {
             bot->ResurrectPlayer(1.0f, false);
-            botAI->TellMasterNoFacing("I live, again!");
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_live_again", "I live, again!"));
         }
         else
-            botAI->TellError("I am stuck while following");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_stuck_following", "I am stuck while following"));
 
         bot->CombatStop(true);
-        botAI->TellMasterNoFacing("I will there soon.");
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_will_there_soon", "I will there soon."));
         bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
         bot->TeleportTo(target->GetMapId(), target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(),
     target->GetOrientation()); return false;
@@ -1379,7 +1379,7 @@ bool MovementAction::Flee(Unit* target)
 
     if (!IsMovingAllowed())
     {
-        botAI->TellError("I am stuck while fleeing");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_stuck_fleeing", "I am stuck while fleeing"));
         return false;
     }
 
@@ -1535,7 +1535,7 @@ bool MovementAction::Flee(Unit* target)
     float rx, ry, rz;
     if (!manager.CalculateDestination(&rx, &ry, &rz))
     {
-        botAI->TellError("Nowhere to flee");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_nowhere_flee", "Nowhere to flee"));
         return false;
     }
 
@@ -1939,9 +1939,10 @@ bool AvoidAoeAction::AvoidAuraWithDynamicObj()
         {
             lastTellTimer = time(NULL);
             lastMoveTimer = getMSTime();
-            std::ostringstream out;
-            out << "I'm avoiding " << name.str() << " (" << spellInfo->Id << ")" << " Radius " << radius << " - [Aura]";
-            bot->Say(out.str(), LANG_UNIVERSAL);
+            std::string typeStr = GET_PLAYERBOT_AI(bot)->GetLocalizedBotTextOrDefault("msg_avoid_type_aura", "Aura");
+            std::string msg = GET_PLAYERBOT_AI(bot)->GetLocalizedBotTextOrDefault("msg_avoiding_aoe", "I'm avoiding %name (%id) Radius %radius - [%type]",
+                {{"%name", name.str()}, {"%id", std::to_string(spellInfo->Id)}, {"%radius", std::to_string(static_cast<uint32>(radius))}, {"%type", typeStr}});
+            bot->Say(msg, LANG_UNIVERSAL);
         }
         return true;
     }
@@ -2007,10 +2008,10 @@ bool AvoidAoeAction::AvoidGameObjectWithDamage()
             {
                 lastTellTimer = time(NULL);
                 lastMoveTimer = getMSTime();
-                std::ostringstream out;
-                out << "I'm avoiding " << name.str() << " (" << spellInfo->Id << ")" << " Radius " << radius
-                    << " - [Trap]";
-                bot->Say(out.str(), LANG_UNIVERSAL);
+                std::string typeStr = GET_PLAYERBOT_AI(bot)->GetLocalizedBotTextOrDefault("msg_avoid_type_trap", "Trap");
+                std::string msg = GET_PLAYERBOT_AI(bot)->GetLocalizedBotTextOrDefault("msg_avoiding_aoe", "I'm avoiding %name (%id) Radius %radius - [%type]",
+                    {{"%name", name.str()}, {"%id", std::to_string(spellInfo->Id)}, {"%radius", std::to_string(static_cast<uint32>(radius))}, {"%type", typeStr}});
+                bot->Say(msg, LANG_UNIVERSAL);
             }
             return true;
         }
@@ -2074,10 +2075,10 @@ bool AvoidAoeAction::AvoidUnitWithDamageAura()
                             {
                                 lastTellTimer = time(NULL);
                                 lastMoveTimer = getMSTime();
-                                std::ostringstream out;
-                                out << "I'm avoiding " << name.str() << " (" << triggerSpellInfo->Id << ")"
-                                    << " Radius " << radius << " - [Unit Trigger]";
-                                bot->Say(out.str(), LANG_UNIVERSAL);
+                                std::string typeStr = GET_PLAYERBOT_AI(bot)->GetLocalizedBotTextOrDefault("msg_avoid_type_unit_trigger", "Unit Trigger");
+                                std::string msg = GET_PLAYERBOT_AI(bot)->GetLocalizedBotTextOrDefault("msg_avoiding_aoe", "I'm avoiding %name (%id) Radius %radius - [%type]",
+                                    {{"%name", name.str()}, {"%id", std::to_string(triggerSpellInfo->Id)}, {"%radius", std::to_string(static_cast<uint32>(radius))}, {"%type", typeStr}});
+                                bot->Say(msg, LANG_UNIVERSAL);
                             }
                         }
                     }
@@ -2554,7 +2555,7 @@ bool DisperseSetAction::Execute(Event event)
     if (text == "disable")
     {
         RESET_AI_VALUE(float, "disperse distance");
-        botAI->TellMasterNoFacing("Disable disperse");
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_disperse_disable", "Disable disperse"));
         return true;
     }
     if (text == "enable" || text == "reset")
@@ -2568,25 +2569,22 @@ bool DisperseSetAction::Execute(Event event)
             SET_AI_VALUE(float, "disperse distance", DEFAULT_DISPERSE_DISTANCE_RANGED);
         }
         float dis = AI_VALUE(float, "disperse distance");
-        std::ostringstream out;
-        out << "Enable disperse distance " << std::setprecision(2) << dis;
-        botAI->TellMasterNoFacing(out.str());
+        std::ostringstream ds; ds << std::setprecision(2) << dis;
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_disperse_enabled", "Enable disperse distance %value", {{"%value", ds.str()}}));
         return true;
     }
     if (text == "increase")
     {
         float dis = AI_VALUE(float, "disperse distance");
-        std::ostringstream out;
         if (dis <= 0.0f)
         {
-            out << "Enable disperse first";
-            botAI->TellMasterNoFacing(out.str());
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_disperse_enable_first", "Enable disperse first"));
             return true;
         }
         dis += 1.0f;
         SET_AI_VALUE(float, "disperse distance", dis);
-        out << "Increase disperse distance to " << std::setprecision(2) << dis;
-        botAI->TellMasterNoFacing(out.str());
+        std::ostringstream ds; ds << std::setprecision(2) << dis;
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_disperse_increased", "Increase disperse distance to %value", {{"%value", ds.str()}}));
         return true;
     }
     if (text == "decrease")
@@ -2594,41 +2592,32 @@ bool DisperseSetAction::Execute(Event event)
         float dis = AI_VALUE(float, "disperse distance");
         dis -= 1.0f;
         if (dis <= 0.0f)
-        {
             dis += 1.0f;
-        }
         SET_AI_VALUE(float, "disperse distance", dis);
-        std::ostringstream out;
-        out << "Increase disperse distance to " << std::setprecision(2) << dis;
-        botAI->TellMasterNoFacing(out.str());
+        std::ostringstream ds; ds << std::setprecision(2) << dis;
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_disperse_increased", "Increase disperse distance to %value", {{"%value", ds.str()}}));
         return true;
     }
     if (text.starts_with("set"))
     {
         float dis = -1.0f;
-        ;
         sscanf(text.c_str(), "set %f", &dis);
-        std::ostringstream out;
+        std::ostringstream ds; ds << std::setprecision(2) << dis;
         if (dis < 0 || dis > 100.0f)
-        {
-            out << "Invalid disperse distance " << std::setprecision(2) << dis;
-        }
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("error_disperse_invalid", "Invalid disperse distance %value", {{"%value", ds.str()}}));
         else
         {
             SET_AI_VALUE(float, "disperse distance", dis);
-            out << "Set disperse distance to " << std::setprecision(2) << dis;
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_disperse_set", "Set disperse distance to %value", {{"%value", ds.str()}}));
         }
-        botAI->TellMasterNoFacing(out.str());
         return true;
     }
-    std::ostringstream out;
-    out << "Usage: disperse [enable | disable | increase | decrease | set {distance}]";
     float dis = AI_VALUE(float, "disperse distance");
+    std::ostringstream ds; ds << std::setprecision(2) << dis;
+    std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_disperse_usage", "Usage: disperse [enable | disable | increase | decrease | set {distance}]");
     if (dis > 0.0f)
-    {
-        out << "(Current disperse distance: " << std::setprecision(2) << dis << ")";
-    }
-    botAI->TellMasterNoFacing(out.str());
+        msg += " " + botAI->GetLocalizedBotTextOrDefault("msg_disperse_current", "(Current disperse distance: %value)", {{"%value", ds.str()}});
+    botAI->TellMasterNoFacing(msg);
     return true;
 }
 

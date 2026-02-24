@@ -29,9 +29,7 @@ void DestroyItemAction::DestroyItem(FindItemVisitor* visitor)
     std::vector<Item*> items = visitor->GetResult();
     for (Item* item : items)
     {
-        std::ostringstream out;
-        out << chat->FormatItem(item->GetTemplate()) << " destroyed";
-        botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_item_destroyed", "%item destroyed", {{"%item", chat->FormatItem(item->GetTemplate())}}));
 
         bot->DestroyItem(item->GetBagSlot(), item->GetSlot(), true);
     }

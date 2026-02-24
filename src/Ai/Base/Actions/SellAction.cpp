@@ -84,7 +84,7 @@ bool SellAction::Execute(Event event)
         return true;
     }
 
-    botAI->TellError("Usage: s gray/*/vendor/[item link]");
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_sell_usage", "Usage: s gray/*/vendor/[item link]"));
     return false;
 }
 
@@ -100,8 +100,6 @@ void SellAction::Sell(FindItemVisitor* visitor)
 
 void SellAction::Sell(Item* item)
 {
-    std::ostringstream out;
-
     GuidVector vendors = botAI->GetAiObjectContext()->GetValue<GuidVector>("nearest npcs")->Get();
 
     for (ObjectGuid const vendorguid : vendors)
@@ -127,8 +125,7 @@ void SellAction::Sell(Item* item)
             bot->SetMoney(botMoney);
         }
 
-        out << "Selling " << chat->FormatItem(item->GetTemplate());
-        botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_selling_item", "Selling %item", {{"%item", chat->FormatItem(item->GetTemplate())}}));
 
         bot->PlayDistanceSound(120);
         break;

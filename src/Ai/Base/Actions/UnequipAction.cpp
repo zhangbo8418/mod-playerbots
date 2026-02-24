@@ -76,7 +76,5 @@ void UnequipAction::UnequipItem(Item* item)
     nicePacket.Read();
     bot->GetSession()->HandleAutoStoreBagItemOpcode(nicePacket);
 
-    std::ostringstream out;
-    out << chat->FormatItem(item->GetTemplate()) << " unequipped";
-    botAI->TellMaster(out);
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_unequipped", "%item unequipped", {{"%item", chat->FormatItem(item->GetTemplate())}}));
 }

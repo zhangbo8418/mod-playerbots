@@ -11,20 +11,16 @@
 
 void TellPosition(PlayerbotAI* botAI, std::string const name, PositionInfo pos)
 {
-    std::ostringstream out;
-    out << "Position " << name;
-
     if (pos.isSet())
     {
         float x = pos.x;
         float y = pos.y;
         Map2ZoneCoordinates(x, y, botAI->GetBot()->GetZoneId());
-        out << " is set to " << x << "," << y;
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_position_set_to", "Position %name is set to %x,%y",
+            {{"%name", name}, {"%x", std::to_string(x)}, {"%y", std::to_string(y)}}));
     }
     else
-        out << " is not set";
-
-    botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_position_not_set", "Position %name is not set", {{"%name", name}}));
 }
 
 bool PositionAction::Execute(Event event)
@@ -52,7 +48,7 @@ bool PositionAction::Execute(Event event)
     std::vector<std::string> params = split(param, ' ');
     if (params.size() != 2)
     {
-        botAI->TellMaster("Whisper position <name> ?/set/reset");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_position_usage", "Whisper position <name> ?/set/reset"));
         return false;
     }
 
@@ -71,9 +67,7 @@ bool PositionAction::Execute(Event event)
         pos.Set(atoi(coords[0].c_str()), atoi(coords[1].c_str()), atoi(coords[2].c_str()), botAI->GetBot()->GetMapId());
         posMap[name] = pos;
 
-        std::ostringstream out;
-        out << "Position " << name << " is set";
-        botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_position_is_set", "Position %name is set", {{"%name", name}}));
         return true;
     }
 
@@ -82,9 +76,7 @@ bool PositionAction::Execute(Event event)
         pos.Set(bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), botAI->GetBot()->GetMapId());
         posMap[name] = pos;
 
-        std::ostringstream out;
-        out << "Position " << name << " is set";
-        botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_position_is_set", "Position %name is set", {{"%name", name}}));
         return true;
     }
 
@@ -93,9 +85,7 @@ bool PositionAction::Execute(Event event)
         pos.Reset();
         posMap[name] = pos;
 
-        std::ostringstream out;
-        out << "Position " << name << " is reset";
-        botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_position_is_reset", "Position %name is reset", {{"%name", name}}));
         return true;
     }
 
@@ -107,9 +97,7 @@ bool MoveToPositionAction::Execute(Event /*event*/)
     PositionInfo pos = context->GetValue<PositionMap&>("position")->Get()[qualifier];
     if (!pos.isSet())
     {
-        std::ostringstream out;
-        out << "Position " << qualifier << " is not set";
-        botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_position_not_set_qual", "Position %name is not set", {{"%name", qualifier}}));
         return false;
     }
 
@@ -169,7 +157,7 @@ bool ReturnToStayPositionAction::isPossible()
         const float distance = bot->GetDistance(stayPosition.x, stayPosition.y, stayPosition.z);
         if (distance > sPlayerbotAIConfig.reactDistance)
         {
-            botAI->TellMaster("The stay position is too far to return. I am going to stay where I am now");
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_stay_too_far", "The stay position is too far to return. I am going to stay where I am now"));
 
             // Set the stay position to current position
             stayPosition.Set(bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), bot->GetMapId());

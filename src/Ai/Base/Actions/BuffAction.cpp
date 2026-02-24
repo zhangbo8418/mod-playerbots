@@ -64,19 +64,19 @@ void BuffAction::TellHeader(uint32 subClass)
     switch (subClass)
     {
         case ITEM_SUBCLASS_ELIXIR:
-            botAI->TellMaster("--- Elixir ---");
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_buff_elixir", "--- Elixir ---"));
             return;
         case ITEM_SUBCLASS_FLASK:
-            botAI->TellMaster("--- Flask ---");
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_buff_flask", "--- Flask ---"));
             return;
         case ITEM_SUBCLASS_SCROLL:
-            botAI->TellMaster("--- Scroll ---");
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_buff_scroll", "--- Scroll ---"));
             return;
         case ITEM_SUBCLASS_FOOD:
-            botAI->TellMaster("--- Food ---");
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_buff_food", "--- Food ---"));
             return;
         case ITEM_SUBCLASS_ITEM_ENHANCEMENT:
-            botAI->TellMaster("--- Enchant ---");
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_buff_enchant", "--- Enchant ---"));
             return;
     }
 }

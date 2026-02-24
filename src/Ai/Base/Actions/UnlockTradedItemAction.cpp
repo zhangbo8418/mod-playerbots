@@ -18,13 +18,13 @@ bool UnlockTradedItemAction::Execute(Event /*event*/)
     Item* lockbox = tradeData->GetItem(TRADE_SLOT_NONTRADED);
     if (!lockbox)
     {
-        botAI->TellError("No item in the Do Not Trade slot.");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_item_do_not_trade_slot", "No item in the Do Not Trade slot."));
         return false;
     }
 
     if (!CanUnlockItem(lockbox))
     {
-        botAI->TellError("Cannot unlock this item.");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_cannot_unlock_item", "Cannot unlock this item."));
         return false;
     }
 
@@ -65,10 +65,9 @@ bool UnlockTradedItemAction::CanUnlockItem(Item* item)
                 return true;
             else
             {
-                std::ostringstream out;
-                out << "Lockpicking skill too low (" << botSkill << "/" << requiredSkill << ") to unlock: "
-                    << item->GetTemplate()->Name1;
-                botAI->TellMaster(out.str());
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_lockpick_skill_too_low",
+                    "Lockpicking skill too low (%current/%required) to unlock: %item",
+                    {{"%current", std::to_string(botSkill)}, {"%required", std::to_string(requiredSkill)}, {"%item", item->GetTemplate()->Name1}}));
             }
         }
     }
@@ -80,19 +79,17 @@ void UnlockTradedItemAction::UnlockItem(Item* item)
 {
     if (!bot->HasSpell(PICK_LOCK_SPELL_ID))
     {
-        botAI->TellError("Cannot unlock, Pick Lock spell is missing.");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_pick_lock_spell_missing", "Cannot unlock, Pick Lock spell is missing."));
         return;
     }
 
     // Use CastSpell to unlock the item
     if (botAI->CastSpell(PICK_LOCK_SPELL_ID, bot->GetTrader(), item)) // Unit target is trader
     {
-        std::ostringstream out;
-        out << "Picking Lock on traded item: " << item->GetTemplate()->Name1;
-        botAI->TellMaster(out.str());
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_picking_lock_on_traded", "Picking Lock on traded item: %item", {{"%item", item->GetTemplate()->Name1}}));
     }
     else
     {
-        botAI->TellError("Failed to cast Pick Lock.");
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_failed_cast_pick_lock", "Failed to cast Pick Lock."));
     }
 }

@@ -51,10 +51,10 @@ bool DropQuestAction::Execute(Event event)
         const Quest* pQuest = sObjectMgr->GetQuestTemplate(entry);
         const std::string text_quest = ChatHelper::FormatQuest(pQuest);
         LOG_INFO("playerbots", "{} => Quest [ {} ] removed", bot->GetName(), pQuest->GetTitle());
-        bot->Say("Quest [ " + text_quest + " ] removed", LANG_UNIVERSAL);
+        bot->Say(botAI->GetLocalizedBotTextOrDefault("msg_say_quest_removed", "Quest [ %quest ] removed", {{"%quest", text_quest}}), LANG_UNIVERSAL);
     }
 
-    botAI->TellMaster("Quest removed");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_removed", "Quest removed"));
     return true;
 }
 
@@ -63,7 +63,10 @@ bool CleanQuestLogAction::Execute(Event event)
     Player* requester = event.getOwner() ? event.getOwner() : GetMaster();
     if (!requester)
     {
-        botAI->TellMaster("No event owner detected");
+        Player* forLocale = GetMaster();
+        std::string text = botAI->GetLocalizedBotText("error_no_event_owner", {}, forLocale);
+        if (!text.empty())
+            botAI->TellMaster(text);
         return false;
     }
 
@@ -75,7 +78,7 @@ bool CleanQuestLogAction::Execute(Event event)
     // Only output this message if "debug rpg" strategy is enabled
     if (botAI->HasStrategy("debug rpg", BotState::BOT_STATE_COMBAT))
     {
-        botAI->TellMaster("Clean Quest Log command received, removing grey/trivial quests...");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_clean_quest_log", "Clean Quest Log command received, removing grey/trivial quests..."));
     }
 
     uint8 botLevel = bot->GetLevel();  // Get bot's level
@@ -127,7 +130,7 @@ bool CleanQuestLogAction::Execute(Event event)
             // Output only if "debug rpg" strategy is enabled
             if (botAI->HasStrategy("debug rpg", BotState::BOT_STATE_COMBAT))
             {
-                botAI->TellMaster("Quest [ " + quest->GetTitle() + " ] will be removed because it is trivial (grey).");
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_will_remove_trivial", "Quest [ %title ] will be removed because it is trivial (grey).", {{"%title", quest->GetTitle()}}));
             }
 
             // Remove quest
@@ -143,12 +146,12 @@ bool CleanQuestLogAction::Execute(Event event)
             {
                 const std::string text_quest = ChatHelper::FormatQuest(quest);
                 LOG_INFO("playerbots", "{} => Quest [ {} ] removed", bot->GetName(), quest->GetTitle());
-                bot->Say("Quest [ " + text_quest + " ] removed", LANG_UNIVERSAL);
+                bot->Say(botAI->GetLocalizedBotTextOrDefault("msg_say_quest_removed", "Quest [ %quest ] removed", {{"%quest", text_quest}}), LANG_UNIVERSAL);
             }
 
             if (botAI->HasStrategy("debug rpg", BotState::BOT_STATE_COMBAT))
             {
-                botAI->TellMaster("Quest [ " + quest->GetTitle() + " ] has been removed.");
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_removed_trivial", "Quest [ %title ] has been removed.", {{"%title", quest->GetTitle()}}));
             }
         }
         else
@@ -156,7 +159,7 @@ bool CleanQuestLogAction::Execute(Event event)
             // Only output if "debug rpg" strategy is enabled
             if (botAI->HasStrategy("debug rpg", BotState::BOT_STATE_COMBAT))
             {
-                botAI->TellMaster("Quest [ " + quest->GetTitle() + " ] is not trivial and will be kept.");
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_not_trivial_kept", "Quest [ %title ] is not trivial and will be kept.", {{"%title", quest->GetTitle()}}));
             }
         }
     }
@@ -234,9 +237,9 @@ void CleanQuestLogAction::DropQuestType(uint8& numQuest, uint8 wantNum, bool isG
         {
             const std::string text_quest = ChatHelper::FormatQuest(quest);
             LOG_INFO("playerbots", "{} => Quest [ {} ] removed", bot->GetName(), quest->GetTitle());
-            bot->Say("Quest [ " + text_quest + " ] removed", LANG_UNIVERSAL);
+            bot->Say(botAI->GetLocalizedBotTextOrDefault("msg_say_quest_removed", "Quest [ %quest ] removed", {{"%quest", text_quest}}), LANG_UNIVERSAL);
         }
-        botAI->TellMaster("Quest removed" + chat->FormatQuest(quest));
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_removed", "Quest removed") + chat->FormatQuest(quest));
     }
 }
 

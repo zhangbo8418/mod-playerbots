@@ -54,6 +54,7 @@
 #include "Unit.h"
 #include "UpdateTime.h"
 #include "Vehicle.h"
+#include "World.h"
 
 const int SPELL_TITAN_GRIP = 49152;
 
@@ -420,9 +421,9 @@ void PlayerbotAI::UpdateAIGroupMaster()
                 botAI->ChangeStrategy("+follow", BOT_STATE_NON_COMBAT);
 
                 if (botAI->GetMaster() == botAI->GetGroupLeader())
-                    botAI->TellMaster("Hello, I follow you!");
+                    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_hello_follow", "Hello, I follow you!"));
                 else
-                    botAI->TellMaster(!urand(0, 2) ? "Hello!" : "Hi!");
+                    botAI->TellMaster(!urand(0, 2) ? botAI->GetLocalizedBotTextOrDefault("msg_hello", "Hello!") : botAI->GetLocalizedBotTextOrDefault("msg_hi", "Hi!"));
             }
             else
             {
@@ -715,7 +716,7 @@ void PlayerbotAI::HandleCommand(uint32 type, const std::string& text, Player& fr
         uint32 delay = atof(remaining.c_str()) * IN_MILLISECONDS;
         if (delay > 20000)
         {
-            bot->TellMaster(&fromPlayer, "Max wait time is 20 seconds!");
+            bot->TellMaster(&fromPlayer, botAI->GetLocalizedBotTextOrDefault("msg_max_wait_20s", "Max wait time is 20 seconds!"));
             return;
         }
 
@@ -824,7 +825,7 @@ void PlayerbotAI::Reset(bool full)
     {
         WorldPackets::Character::LogoutCancel data = WorldPacket(CMSG_LOGOUT_CANCEL);
         bot->GetSession()->HandleLogoutCancelOpcode(data);
-        TellMaster("Logout cancelled!");
+        TellMaster(GetLocalizedBotTextOrDefault("msg_logout_cancelled", "Logout cancelled!"));
     }
 
     currentEngine = engines[BOT_STATE_NON_COMBAT];
@@ -1018,7 +1019,7 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
         if (!bot->GetSession()->isLogingOut())
         {
             if (type == CHAT_MSG_WHISPER)
-                TellMaster("I'm logging out!");
+                TellMaster(GetLocalizedBotTextOrDefault("msg_logging_out", "I'm logging out!"));
 
             PlayerbotMgr* masterBotMgr = nullptr;
             if (master)
@@ -1032,7 +1033,7 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
         if (bot->GetSession()->isLogingOut())
         {
             if (type == CHAT_MSG_WHISPER)
-                TellMaster("Logout cancelled!");
+                TellMaster(GetLocalizedBotTextOrDefault("msg_logout_cancelled", "Logout cancelled!"));
 
             WorldPackets::Character::LogoutCancel data = WorldPacket(CMSG_LOGOUT_CANCEL);
             bot->GetSession()->HandleLogoutCancelOpcode(data);
@@ -1630,17 +1631,11 @@ void PlayerbotAI::ApplyInstanceStrategies(uint32 mapId, bool tellMaster)
     engines[BOT_STATE_COMBAT]->addStrategy(strategyName);
     engines[BOT_STATE_NON_COMBAT]->addStrategy(strategyName);
     if (tellMaster && !strategyName.empty())
-    {
-        std::ostringstream out;
-        out << "Added " << strategyName << " instance strategy";
-        TellMasterNoFacing(out.str());
-    }
+        TellMasterNoFacing(GetLocalizedBotTextOrDefault("msg_added_instance_strategy", "Added %strategy instance strategy", {{"%strategy", strategyName}}));
 }
 
 bool PlayerbotAI::DoSpecificAction(std::string const name, Event event, bool silent, std::string const qualifier)
 {
-    std::ostringstream out;
-
     for (uint8 i = 0; i < BOT_STATE_MAX; i++)
     {
         ActionResult res = engines[i]->ExecuteAction(name, event, qualifier);
@@ -1655,36 +1650,28 @@ bool PlayerbotAI::DoSpecificAction(std::string const name, Event event, bool sil
                 }
                 return true;
             case ACTION_RESULT_IMPOSSIBLE:
-                out << name << ": impossible";
                 if (!silent)
                 {
-                    TellError(out.str());
+                    TellError(GetLocalizedBotTextOrDefault("msg_action_impossible", "%name: impossible", {{"%name", name}}));
                     PlaySound(TEXT_EMOTE_NO);
                 }
                 return false;
             case ACTION_RESULT_USELESS:
-                out << name << ": useless";
                 if (!silent)
                 {
-                    TellError(out.str());
+                    TellError(GetLocalizedBotTextOrDefault("msg_action_useless", "%name: useless", {{"%name", name}}));
                     PlaySound(TEXT_EMOTE_NO);
                 }
                 return false;
             case ACTION_RESULT_FAILED:
                 if (!silent)
-                {
-                    out << name << ": failed";
-                    TellError(out.str());
-                }
+                    TellError(GetLocalizedBotTextOrDefault("msg_action_failed", "%name: failed", {{"%name", name}}));
                 return false;
         }
     }
 
     if (!silent)
-    {
-        out << name << ": unknown action";
-        TellError(out.str());
-    }
+        TellError(GetLocalizedBotTextOrDefault("msg_action_unknown", "%name: unknown action", {{"%name", name}}));
 
     return false;
 }
@@ -2867,6 +2854,41 @@ bool PlayerbotAI::TellError(std::string const text, PlayerbotSecurityLevel secur
     return false;
 }
 
+std::string PlayerbotAI::GetLocalizedBotText(std::string const name,
+                                             std::map<std::string, std::string> placeholders)
+{
+    return GetLocalizedBotText(name, placeholders, GetMaster());
+}
+
+std::string PlayerbotAI::GetLocalizedBotText(std::string const name,
+                                             std::map<std::string, std::string> placeholders, Player* forLocale)
+{
+    uint32 locale;
+    if (forLocale && forLocale->GetSession())
+        locale = static_cast<uint32>(forLocale->GetSession()->GetSessionDbcLocale());
+    else
+        locale = static_cast<uint32>(sWorld->GetDefaultDbcLocale());
+    return PlayerbotTextMgr::instance().GetBotTextForLocale(name, locale, placeholders);
+}
+
+std::string PlayerbotAI::GetLocalizedBotTextOrDefault(std::string const name, std::string const defaultText,
+                                                      std::map<std::string, std::string> placeholders)
+{
+    return GetLocalizedBotTextOrDefault(name, defaultText, placeholders, GetMaster());
+}
+
+std::string PlayerbotAI::GetLocalizedBotTextOrDefault(std::string const name, std::string const defaultText,
+                                                      std::map<std::string, std::string> placeholders, Player* forLocale)
+{
+    std::string text = GetLocalizedBotText(name, placeholders, forLocale);
+    if (!text.empty())
+        return text;
+    std::string result = defaultText;
+    for (auto const& p : placeholders)
+        PlayerbotTextMgr::replaceAll(result, p.first, p.second);
+    return result;
+}
+
 bool PlayerbotAI::IsTellAllowed(PlayerbotSecurityLevel securityLevel)
 {
     Player* master = GetMaster();
@@ -3461,10 +3483,10 @@ bool PlayerbotAI::CastSpell(uint32 spellId, Unit* target, Item* itemTarget)
                 }
 
                 pet->ToggleAutocast(spellInfo, !autocast);
-                std::ostringstream out;
-                out << (autocast ? "|cffff0000|Disabling" : "|cFF00ff00|Enabling") << " pet auto-cast for ";
-                out << chatHelper.FormatSpell(spellInfo);
-                TellMaster(out);
+                std::string spellStr = chatHelper.FormatSpell(spellInfo);
+                std::string msg = autocast ? GetLocalizedBotTextOrDefault("msg_pet_autocast_disabling", "|cffff0000|Disabling pet auto-cast for %spell", {{"%spell", spellStr}})
+                    : GetLocalizedBotTextOrDefault("msg_pet_autocast_enabling", "|cFF00ff00|Enabling pet auto-cast for %spell", {{"%spell", spellStr}});
+                TellMaster(msg);
                 return true;
         }
     }
@@ -3609,55 +3631,47 @@ bool PlayerbotAI::CastSpell(uint32 spellId, Unit* target, Item* itemTarget)
         // }
         if (HasStrategy("debug spell", BOT_STATE_NON_COMBAT))
         {
-            std::ostringstream out;
-            out << "Spell cast failed - ";
-            out << "Spell ID: " << spellId << " (" << ChatHelper::FormatSpell(spellInfo) << "), ";
-            out << "Error Code: " << static_cast<int>(result) << " (0x" << std::hex << static_cast<int>(result)
-                << std::dec << "), ";
-            out << "Bot: " << bot->GetName() << ", ";
+            std::ostringstream hexOut;
+            hexOut << std::hex << static_cast<int>(result);
+            std::string msg = GetLocalizedBotTextOrDefault("msg_debug_spell_cast_failed", "Spell cast failed - ");
+            msg += GetLocalizedBotTextOrDefault("msg_debug_spell_id", "Spell ID: %id (%spell), ",
+                {{"%id", std::to_string(spellId)}, {"%spell", ChatHelper::FormatSpell(spellInfo)}});
+            msg += GetLocalizedBotTextOrDefault("msg_debug_error_code", "Error Code: %code (0x%hex), ",
+                {{"%code", std::to_string(static_cast<int>(result))}, {"%hex", hexOut.str()}});
+            msg += GetLocalizedBotTextOrDefault("msg_debug_bot", "Bot: %name, ", {{"%name", bot->GetName()}});
 
-            // Check spell target type
-            if (targets.GetUnitTarget())
+            if (Unit const* ut = targets.GetUnitTarget())
             {
-                out << "Target: Unit (" << targets.GetUnitTarget()->GetName()
-                    << ", Low GUID: " << targets.GetUnitTarget()->GetGUID().GetCounter()
-                    << ", High GUID: " << static_cast<uint32>(targets.GetUnitTarget()->GetGUID().GetHigh()) << "), ";
+                msg += GetLocalizedBotTextOrDefault("msg_debug_target_unit", "Target: Unit (%name, Low GUID: %low, High GUID: %high), ",
+                    {{"%name", ut->GetName()}, {"%low", std::to_string(ut->GetGUID().GetCounter())}, {"%high", std::to_string(static_cast<uint32>(ut->GetGUID().GetHigh()))}});
+            }
+            if (GameObject const* gt = targets.GetGOTarget())
+            {
+                msg += GetLocalizedBotTextOrDefault("msg_debug_target_go", "Target: GameObject (Low GUID: %low, High GUID: %high), ",
+                    {{"%low", std::to_string(gt->GetGUID().GetCounter())}, {"%high", std::to_string(static_cast<uint32>(gt->GetGUID().GetHigh()))}});
+            }
+            if (Item const* it = targets.GetItemTarget())
+            {
+                msg += GetLocalizedBotTextOrDefault("msg_debug_target_item", "Target: Item (Low GUID: %low, High GUID: %high), ",
+                    {{"%low", std::to_string(it->GetGUID().GetCounter())}, {"%high", std::to_string(static_cast<uint32>(it->GetGUID().GetHigh()))}});
             }
 
-            if (targets.GetGOTarget())
-            {
-                out << "Target: GameObject (Low GUID: " << targets.GetGOTarget()->GetGUID().GetCounter()
-                    << ", High GUID: " << static_cast<uint32>(targets.GetGOTarget()->GetGUID().GetHigh()) << "), ";
-            }
-
-            if (targets.GetItemTarget())
-            {
-                out << "Target: Item (Low GUID: " << targets.GetItemTarget()->GetGUID().GetCounter()
-                    << ", High GUID: " << static_cast<uint32>(targets.GetItemTarget()->GetGUID().GetHigh()) << "), ";
-            }
-
-            // Check if bot is in trade mode
             if (bot->GetTradeData())
             {
-                out << "Trade Mode: Active, ";
+                msg += GetLocalizedBotTextOrDefault("msg_debug_trade_active", "Trade Mode: Active, ");
                 Item* tradeItem = bot->GetTradeData()->GetTraderData()->GetItem(TRADE_SLOT_NONTRADED);
                 if (tradeItem)
                 {
-                    out << "Trade Item: " << tradeItem->GetEntry()
-                        << " (Low GUID: " << tradeItem->GetGUID().GetCounter()
-                        << ", High GUID: " << static_cast<uint32>(tradeItem->GetGUID().GetHigh()) << "), ";
+                    msg += GetLocalizedBotTextOrDefault("msg_debug_trade_item", "Trade Item: %entry (Low GUID: %low, High GUID: %high), ",
+                        {{"%entry", std::to_string(tradeItem->GetEntry())}, {"%low", std::to_string(tradeItem->GetGUID().GetCounter())}, {"%high", std::to_string(static_cast<uint32>(tradeItem->GetGUID().GetHigh()))}});
                 }
                 else
-                {
-                    out << "Trade Item: None, ";
-                }
+                    msg += GetLocalizedBotTextOrDefault("msg_debug_trade_item_none", "Trade Item: None, ");
             }
             else
-            {
-                out << "Trade Mode: Inactive, ";
-            }
+                msg += GetLocalizedBotTextOrDefault("msg_debug_trade_inactive", "Trade Mode: Inactive, ");
 
-            TellMasterNoFacing(out);
+            TellMasterNoFacing(msg);
         }
 
         return false;
@@ -3689,11 +3703,7 @@ bool PlayerbotAI::CastSpell(uint32 spellId, Unit* target, Item* itemTarget)
         bot->SetSelection(oldSel);
 
     if (HasStrategy("debug spell", BOT_STATE_NON_COMBAT))
-    {
-        std::ostringstream out;
-        out << "Casting " << ChatHelper::FormatSpell(spellInfo);
-        TellMasterNoFacing(out);
-    }
+        TellMasterNoFacing(GetLocalizedBotTextOrDefault("msg_debug_casting_spell", "Casting %spell", {{"%spell", ChatHelper::FormatSpell(spellInfo)}}));
 
     return true;
 }
@@ -3718,10 +3728,10 @@ bool PlayerbotAI::CastSpell(uint32 spellId, float x, float y, float z, Item* ite
         }
 
         pet->ToggleAutocast(spellInfo, !autocast);
-        std::ostringstream out;
-        out << (autocast ? "|cffff0000|Disabling" : "|cFF00ff00|Enabling") << " pet auto-cast for ";
-        out << chatHelper.FormatSpell(spellInfo);
-        TellMaster(out);
+        std::string spellStr = chatHelper.FormatSpell(spellInfo);
+        std::string msg = autocast ? GetLocalizedBotTextOrDefault("msg_pet_autocast_disabling", "|cffff0000|Disabling pet auto-cast for %spell", {{"%spell", spellStr}})
+            : GetLocalizedBotTextOrDefault("msg_pet_autocast_enabling", "|cFF00ff00|Enabling pet auto-cast for %spell", {{"%spell", spellStr}});
+        TellMaster(msg);
         return true;
     }
 
@@ -3818,11 +3828,7 @@ bool PlayerbotAI::CastSpell(uint32 spellId, float x, float y, float z, Item* ite
         bot->SetSelection(oldSel);
 
     if (HasStrategy("debug spell", BOT_STATE_NON_COMBAT))
-    {
-        std::ostringstream out;
-        out << "Casting " << ChatHelper::FormatSpell(spellInfo);
-        TellMasterNoFacing(out);
-    }
+        TellMasterNoFacing(GetLocalizedBotTextOrDefault("msg_debug_casting_spell", "Casting %spell", {{"%spell", ChatHelper::FormatSpell(spellInfo)}}));
 
     return true;
 }
@@ -4037,11 +4043,7 @@ bool PlayerbotAI::CastVehicleSpell(uint32 spellId, Unit* target)
     // aiObjectContext->GetValue<botAI::PositionMap&>("position")->Get()["random"].Reset();
 
     if (HasStrategy("debug spell", BOT_STATE_NON_COMBAT))
-    {
-        std::ostringstream out;
-        out << "Casting Vehicle Spell" << ChatHelper::FormatSpell(spellInfo);
-        TellMasterNoFacing(out);
-    }
+        TellMasterNoFacing(GetLocalizedBotTextOrDefault("msg_debug_casting_vehicle_spell", "Casting vehicle spell %spell", {{"%spell", ChatHelper::FormatSpell(spellInfo)}}));
 
     return true;
 }

@@ -10,7 +10,7 @@
 
 bool FlagAction::TellUsage()
 {
-    botAI->TellError("Usage: flag cloak/helm/pvp on/set/off/clear/toggle/?");
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_flag_usage", "Usage: flag cloak/helm/pvp on/set/off/clear/toggle/?"));
     return false;
 }
 
@@ -33,9 +33,8 @@ bool FlagAction::Execute(Event event)
         else if (toggleFlag)
             bot->SetPvP(!bot->IsPvP());
 
-        std::ostringstream out;
-        out << ss[0] << " flag is " << chat->FormatBoolean(bot->IsPvP());
-        botAI->TellMaster(out.str());
+        std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_flag_is", "%type flag is %value", {{"%type", ss[0]}, {"%value", chat->FormatBoolean(bot->IsPvP())}});
+        botAI->TellMaster(msg);
         return true;
     }
 
@@ -55,8 +54,7 @@ bool FlagAction::Execute(Event event)
     else if (toggleFlag && !bot->HasFlag(PLAYER_FLAGS, playerFlags))
         bot->SetFlag(PLAYER_FLAGS, playerFlags);
 
-    std::ostringstream out;
-    out << ss[0] << " flag is " << chat->FormatBoolean(!bot->HasFlag(PLAYER_FLAGS, playerFlags));
-    botAI->TellMaster(out.str());
+    std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_flag_is", "%type flag is %value", {{"%type", ss[0]}, {"%value", chat->FormatBoolean(!bot->HasFlag(PLAYER_FLAGS, playerFlags))}});
+    botAI->TellMaster(msg);
     return true;
 }

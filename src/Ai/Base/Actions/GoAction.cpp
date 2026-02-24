@@ -29,9 +29,7 @@ bool GoAction::Execute(Event event)
         float y = bot->GetPositionY();
         Map2ZoneCoordinates(x, y, bot->GetZoneId());
 
-        std::ostringstream out;
-        out << "I am at " << x << "," << y;
-        botAI->TellMaster(out.str());
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_i_am_at", "I am at %x,%y", {{"%x", std::to_string(x)}, {"%y", std::to_string(y)}}));
         return true;
     }
 
@@ -52,15 +50,13 @@ bool GoAction::Execute(Event event)
             target->setTarget(dest, points.front());
             target->setForced(true);
 
-            std::ostringstream out;
-            out << "Traveling to " << dest->getTitle();
-            botAI->TellMasterNoFacing(out.str());
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_traveling_to", "Traveling to %dest", {{"%dest", dest->getTitle()}}));
 
             return true;
         }
         else
         {
-            botAI->TellMasterNoFacing("Clearing travel target");
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_clearing_travel_target", "Clearing travel target"));
             target->setTarget(TravelMgr::instance().nullTravelDestination, TravelMgr::instance().nullWorldPosition);
             target->setForced(false);
             return true;
@@ -78,13 +74,11 @@ bool GoAction::Execute(Event event)
                     if (ServerFacade::instance().IsDistanceGreaterThan(ServerFacade::instance().GetDistance2d(bot, go),
                                                              sPlayerbotAIConfig.reactDistance))
                     {
-                        botAI->TellError("It is too far away");
+                        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_too_far_away", "It is too far away"));
                         return false;
                     }
 
-                    std::ostringstream out;
-                    out << "Moving to " << ChatHelper::FormatGameobject(go);
-                    botAI->TellMasterNoFacing(out.str());
+                    botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_moving_to_go", "Moving to %target", {{"%target", ChatHelper::FormatGameobject(go)}}));
                     return MoveNear(bot->GetMapId(), go->GetPositionX(), go->GetPositionY(), go->GetPositionZ() + 0.5f,
                                     sPlayerbotAIConfig.followDistance);
                 }
@@ -102,9 +96,7 @@ bool GoAction::Execute(Event event)
         if (Unit* unit = botAI->GetUnit(guid))
             if (strstri(unit->GetName().c_str(), param.c_str()))
             {
-                std::ostringstream out;
-                out << "Moving to " << unit->GetName();
-                botAI->TellMasterNoFacing(out.str());
+                botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_moving_to_unit", "Moving to %name", {{"%name", unit->GetName()}}));
                 return MoveNear(bot->GetMapId(), unit->GetPositionX(), unit->GetPositionY(),
                                 unit->GetPositionZ() + 0.5f, sPlayerbotAIConfig.followDistance);
             }
@@ -137,15 +129,15 @@ bool GoAction::Execute(Event event)
 
             out << x << ";" << y << ";" << z << " =";
 
-            out << "path is: ";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_go_path_is", "path is: ");
 
             out << type;
 
-            out << " of length ";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_go_of_length", " of length ");
 
             out << points.size();
 
-            out << " with offset ";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_go_with_offset", " with offset ");
 
             out << (end - aend).length();
 
@@ -179,29 +171,27 @@ bool GoAction::Execute(Event event)
         if (ServerFacade::instance().IsDistanceGreaterThan(ServerFacade::instance().GetDistance2d(bot, x, y),
                                                  sPlayerbotAIConfig.reactDistance))
         {
-            botAI->TellMaster("It is too far away");
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("error_too_far_away", "It is too far away"));
             return false;
         }
 
         if (map->IsInWater(bot->GetPhaseMask(), x, y, z, bot->GetCollisionHeight()))
         {
-            botAI->TellError("It is in water");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_in_water", "It is in water"));
             return false;
         }
 
         float ground = map->GetHeight(x, y, z + 0.5f);
         if (ground <= INVALID_HEIGHT)
         {
-            botAI->TellError("I can't go there");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_cant_go_there", "I can't go there"));
             return false;
         }
 
         float x1 = x, y1 = y;
         Map2ZoneCoordinates(x1, y1, bot->GetZoneId());
 
-        std::ostringstream out;
-        out << "Moving to " << x1 << "," << y1;
-        botAI->TellMasterNoFacing(out.str());
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_moving_to_coords", "Moving to %x,%y", {{"%x", std::to_string(x1)}, {"%y", std::to_string(y1)}}));
 
         return MoveNear(bot->GetMapId(), x, y, z + 0.5f, sPlayerbotAIConfig.followDistance);
     }
@@ -212,16 +202,14 @@ bool GoAction::Execute(Event event)
         if (ServerFacade::instance().IsDistanceGreaterThan(ServerFacade::instance().GetDistance2d(bot, pos.x, pos.y),
                                                  sPlayerbotAIConfig.reactDistance))
         {
-            botAI->TellError("It is too far away");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_too_far_away", "It is too far away"));
             return false;
         }
 
-        std::ostringstream out;
-        out << "Moving to position " << param;
-        botAI->TellMasterNoFacing(out.str());
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_moving_to_position", "Moving to position %name", {{"%name", param}}));
         return MoveNear(bot->GetMapId(), pos.x, pos.y, pos.z + 0.5f, sPlayerbotAIConfig.followDistance);
     }
 
-    botAI->TellMaster("Whisper 'go x,y', 'go [game object]', 'go unit' or 'go position' and I will go there");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_go_usage", "Whisper 'go x,y', 'go [game object]', 'go unit' or 'go position' and I will go there"));
     return false;
 }

@@ -30,37 +30,31 @@ bool SkipSpellsListAction::Execute(Event event)
     if (cmd == "reset")
     {
         skipSpells.clear();
-        botAI->TellMaster("Ignored spell list is empty");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_ignored_spell_list_empty", "Ignored spell list is empty"));
         return true;
     }
 
     if (cmd.empty() || cmd == "?")
     {
-        std::ostringstream out;
         if (skipSpells.empty())
         {
-            botAI->TellMaster("Ignored spell list is empty");
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_ignored_spell_list_empty", "Ignored spell list is empty"));
             return true;
         }
 
-        out << "Ignored spell list: ";
-
+        std::string listStr;
         bool first = true;
         for (uint32 spellId : skipSpells)
         {
             SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
             if (!spellInfo)
                 continue;
-
-            if (first)
-                first = false;
-            else
-                out << ", ";
-
-            out << chat->FormatSpell(spellInfo);
+            if (!first)
+                listStr += ", ";
+            listStr += chat->FormatSpell(spellInfo);
+            first = false;
         }
-
-        botAI->TellMaster(out);
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_ignored_spell_list", "Ignored spell list: %list", {{"%list", listStr}}));
     }
     else
     {
@@ -71,7 +65,7 @@ bool SkipSpellsListAction::Execute(Event event)
         uint32 spellId = chat->parseSpell(cmd);
         if (!spellId)
         {
-            botAI->TellError("Unknown spell");
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_unknown_spell", "Unknown spell"));
             return false;
         }
 
@@ -86,9 +80,7 @@ bool SkipSpellsListAction::Execute(Event event)
             {
                 skipSpells.erase(j);
 
-                std::ostringstream out;
-                out << chat->FormatSpell(spellInfo) << " removed from ignored spells";
-                botAI->TellMaster(out);
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_spell_removed_from_ignored", "%spell removed from ignored spells", {{"%spell", chat->FormatSpell(spellInfo)}}));
                 return true;
             }
         }
@@ -99,9 +91,7 @@ bool SkipSpellsListAction::Execute(Event event)
             {
                 skipSpells.insert(spellId);
 
-                std::ostringstream out;
-                out << chat->FormatSpell(spellInfo) << " added to ignored spells";
-                botAI->TellMaster(out);
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_spell_added_to_ignored", "%spell added to ignored spells", {{"%spell", chat->FormatSpell(spellInfo)}}));
                 return true;
             }
         }

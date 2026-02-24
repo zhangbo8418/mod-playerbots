@@ -25,7 +25,7 @@ bool SecurityCheckAction::Execute(Event /*event*/)
             if ((botAI->GetGroupLeader()->GetSession()->GetSecurity() == SEC_PLAYER) &&
                 (!bot->GetGuildId() || bot->GetGuildId() != botAI->GetGroupLeader()->GetGuildId()))
             {
-                botAI->TellError("I will play with this loot type only if I'm in your guild :/");
+                botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_loot_guild_only", "I will play with this loot type only if I'm in your guild :/"));
                 botAI->ChangeStrategy("+passive,+stay", BOT_STATE_NON_COMBAT);
                 botAI->ChangeStrategy("+passive,+stay", BOT_STATE_COMBAT);
             }

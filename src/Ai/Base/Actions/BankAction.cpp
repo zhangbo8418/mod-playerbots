@@ -23,7 +23,7 @@ bool BankAction::Execute(Event event)
         return ExecuteBank(text, npc);
     }
 
-    botAI->TellError("Cannot find banker nearby");
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_banker_nearby", "Cannot find banker nearby"));
     return false;
 }
 
@@ -81,16 +81,12 @@ bool BankAction::Withdraw(uint32 itemid)
     bot->RemoveItem(pItem->GetBagSlot(), pItem->GetSlot(), true);
     bot->StoreItem(dest, pItem, true);
 
-    std::ostringstream out;
-    out << "got " << chat->FormatItem(pItem->GetTemplate(), pItem->GetCount()) << " from bank";
-    botAI->TellMaster(out.str());
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_got_from_bank", "got %item from bank", {{"%item", chat->FormatItem(pItem->GetTemplate(), pItem->GetCount())}}));
     return true;
 }
 
 bool BankAction::Deposit(Item* pItem)
 {
-    std::ostringstream out;
-
     ItemPosCountVec dest;
     InventoryResult msg = bot->CanBankItem(NULL_BAG, NULL_SLOT, dest, pItem, false);
     if (msg != EQUIP_ERR_OK)
@@ -102,14 +98,13 @@ bool BankAction::Deposit(Item* pItem)
     bot->RemoveItem(pItem->GetBagSlot(), pItem->GetSlot(), true);
     bot->BankItem(dest, pItem, true);
 
-    out << "put " << chat->FormatItem(pItem->GetTemplate(), pItem->GetCount()) << " to bank";
-    botAI->TellMaster(out.str());
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_put_to_bank", "put %item to bank", {{"%item", chat->FormatItem(pItem->GetTemplate(), pItem->GetCount())}}));
     return true;
 }
 
 void BankAction::ListItems()
 {
-    botAI->TellMaster("=== Bank ===");
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_bank_title", "=== Bank ==="));
 
     std::map<uint32, uint32> items;
     std::map<uint32, bool> soulbound;

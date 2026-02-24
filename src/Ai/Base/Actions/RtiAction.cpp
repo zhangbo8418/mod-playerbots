@@ -38,7 +38,7 @@ bool RtiAction::Execute(Event event)
     context->GetValue<std::string>(type)->Set(text);
 
     std::ostringstream out;
-    out << type << " set to: ";
+    out << botAI->GetLocalizedBotTextOrDefault("msg_rti_set_to", "%type set to: ", {{"%type", type}});
     AppendRti(out, type);
     botAI->TellMaster(out);
     return true;
