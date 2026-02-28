@@ -4482,7 +4482,7 @@ bool IccBqlGroupPositionAction::HandleGroupPosition(Unit* boss, Aura* frenzyAura
             // Maintain minimum distance from center position (if too close to center, move out)
             float centerX = ICC_BQL_CENTER_POSITION.GetPositionX();
             float centerY = ICC_BQL_CENTER_POSITION.GetPositionY();
-            float centerDist = bot->GetDistance2d(centerX, centerY);
+            float centerDist = bot->GetExactDist2d(centerX, centerY);
             if (centerDist < MIN_CENTER_DISTANCE && !((boss->GetPositionZ() - bot->GetPositionZ()) > 5.0f))
             {
                 float dx = bot->GetPositionX() - centerX;

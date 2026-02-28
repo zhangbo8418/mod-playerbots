@@ -132,7 +132,7 @@ namespace MagtheridonHelpers
         }
         for (Unit* hazard : debrisHazards)
         {
-            float dist = hazard->GetDistance2d(x, y);
+            float dist = hazard->GetExactDist2d(x, y);
             if (dist < 9.0f)
                 return false;
         }
@@ -145,7 +145,7 @@ namespace MagtheridonHelpers
             if (!go || go->GetEntry() != GO_BLAZE)
                 continue;
 
-            float dist = go->GetDistance2d(x, y);
+            float dist = go->GetExactDist2d(x, y);
             if (dist < 5.0f)
                 return false;
         }
