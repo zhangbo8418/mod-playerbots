@@ -2,6 +2,7 @@
 -- 1) Copy zh from obsolete Test-branch alias keys to upstream names.
 -- 2) Remove obsolete alias keys (duplicate/wrong names).
 -- 3) Fill text_loc4 on existing rows where still empty (keeps fr/de/ko).
+-- 4) Insert new keys not yet in upstream (e.g. raid callouts).
 
 UPDATE `ai_playerbot_texts` SET `text_loc4` = '距离太远，不跟随' WHERE `name` = 'area_trigger_follow_too_far_error' AND `text_loc4` = '';
 UPDATE `ai_playerbot_texts` SET `text_loc4` = '我已在攻击 %target。' WHERE `name` = 'attack_already_attacking_error' AND `text_loc4` = '';
@@ -807,3 +808,17 @@ UPDATE `ai_playerbot_texts` SET `text_loc4` = '--- 可从 %name 学习 ---' WHER
 UPDATE `ai_playerbot_texts` SET `text_loc4` = ' - 已学会' WHERE `name` = 'trainer_learned' AND `text_loc4` = '';
 UPDATE `ai_playerbot_texts` SET `text_loc4` = ' - 太贵' WHERE `name` = 'trainer_too_expensive' AND `text_loc4` = '';
 UPDATE `ai_playerbot_texts` SET `text_loc4` = '总花费：%cost' WHERE `name` = 'trainer_total_cost' AND `text_loc4` = '';
+
+DELETE FROM `ai_playerbot_texts_chance` WHERE `name` IN (
+    'icc_lk_defile_yell'
+);
+
+DELETE FROM `ai_playerbot_texts` WHERE `name` IN (
+    'icc_lk_defile_yell'
+);
+
+INSERT INTO `ai_playerbot_texts` (`name`, `text`, `say_type`, `reply_type`, `text_loc1`, `text_loc2`, `text_loc3`, `text_loc4`, `text_loc5`, `text_loc6`, `text_loc7`, `text_loc8`) VALUES
+('icc_lk_defile_yell', 'Defile on %target - move to the edge!', 0, 0, '', '', '', '污染在 %target — 靠边移动！', '', '', '', '');
+
+INSERT INTO `ai_playerbot_texts_chance` (`name`, `probability`) VALUES
+('icc_lk_defile_yell', 100);

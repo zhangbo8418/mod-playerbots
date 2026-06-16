@@ -3669,7 +3669,10 @@ bool IccLichKingAddsAction::HandleDefileMechanics(Unit* boss, Difficulty diff)
     uint32& lastYellMs = s_lastYellMs[bot->GetInstanceId()];
     if (botAI->IsMainTank(bot) && info.castTime != lastYellMs)
     {
-        botAI->Yell("Defile on " + target->GetName() + " - move to the edge!");
+        std::map<std::string, std::string> placeholders{{"%target", target->GetName()}};
+        std::string text = botAI->GetLocalizedBotTextOrDefault(
+            "icc_lk_defile_yell", "Defile on %target - move to the edge!", placeholders);
+        bot->Yell(text, LANG_UNIVERSAL);
         lastYellMs = info.castTime;
     }
 
