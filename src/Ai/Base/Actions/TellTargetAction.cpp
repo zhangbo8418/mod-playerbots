@@ -55,8 +55,6 @@ bool TellAttackersAction::Execute(Event /*event*/)
         botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault(
             "threat_entry", "%name (%threat)",
             {{"%name", unit->GetName()}, {"%threat", std::to_string(threat)}}));
-
-        ref = ref->next();
     }
 
     return true;
