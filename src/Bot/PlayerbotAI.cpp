@@ -741,8 +741,8 @@ void PlayerbotAI::HandleCommand(uint32 type, const std::string& text, Player& fr
             if (type == CHAT_MSG_WHISPER)
                 TellPlayer(&fromPlayer, BOT_TEXT("logout_cancel"));
 
-            WorldPacket p;
-            bot->GetSession()->HandleLogoutCancelOpcode(p);
+            WorldPackets::Character::LogoutCancel data = WorldPacket(CMSG_LOGOUT_CANCEL);
+            bot->GetSession()->HandleLogoutCancelOpcode(data);
             SetShouldLogOut(false);
         }
     }
