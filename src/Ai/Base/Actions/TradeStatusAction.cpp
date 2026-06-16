@@ -29,15 +29,13 @@ bool TradeStatusAction::Execute(Event event)
     // Allow the master and group members to trade
     if (trader != master && !traderBotAI && (!bot->GetGroup() || !bot->GetGroup()->IsMember(trader->GetGUID())))
     {
-bot->Whisper(botAI->GetLocalizedBotTextOrDefault("trade_busy_now", "I'm kind of busy now"),
-                     LANG_UNIVERSAL, trader);
+bot->Whisper(botAI->GetLocalizedBotTextOrDefault("trade_busy_now", "I'm kind of busy now", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
 
     if (sPlayerbotAIConfig.enableRandomBotTrading == 0 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-bot->Whisper(botAI->GetLocalizedBotTextOrDefault("trade_disabled", "Trading is disabled"),
-                     LANG_UNIVERSAL, trader);
+bot->Whisper(botAI->GetLocalizedBotTextOrDefault("trade_disabled", "Trading is disabled", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
 
@@ -179,15 +177,9 @@ bool TradeStatusAction::CheckTrade()
         {
             if (bot->GetGroup() && bot->GetGroup()->IsMember(bot->GetTrader()->GetGUID()) &&
                 botAI->HasRealPlayerMaster())
-botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                    "trade_thank_you_player",
-                    "Thank you %player",
-                    {{"%player", chat->FormatWorldobject(bot->GetTrader())}}));
+botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("trade_thank_you_player", "Thank you %player", {{"%player", chat->FormatWorldobject(bot->GetTrader())}}));
             else
-                bot->Say(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                             "trade_thank_you_player",
-                             "Thank you %player",
-                             {{"%player", chat->FormatWorldobject(bot->GetTrader())}}),
+                bot->Say(botAI->GetLocalizedBotTextOrDefault("trade_thank_you_player", "Thank you %player", {{"%player", chat->FormatWorldobject(bot->GetTrader())}}),
                          (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));
         }
         return isGettingItem;
@@ -215,14 +207,12 @@ botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault(
     int32 playerMoney = trader->GetTradeData()->GetMoney() + playerItemsMoney;
     if (botItemsMoney > 0 && sPlayerbotAIConfig.enableRandomBotTrading == 2 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-bot->Whisper(botAI->GetLocalizedBotTextOrDefault("trade_selling_disabled", "Selling is disabled."),
-                     LANG_UNIVERSAL, trader);
+bot->Whisper(botAI->GetLocalizedBotTextOrDefault("trade_selling_disabled", "Selling is disabled.", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
     if (playerItemsMoney && sPlayerbotAIConfig.enableRandomBotTrading == 3 && (sRandomPlayerbotMgr.IsRandomBot(bot)|| sRandomPlayerbotMgr.IsAddclassBot(bot)))
     {
-bot->Whisper(botAI->GetLocalizedBotTextOrDefault("trade_buying_disabled", "Buying is disabled."),
-                     LANG_UNIVERSAL, trader);
+bot->Whisper(botAI->GetLocalizedBotTextOrDefault("trade_buying_disabled", "Buying is disabled.", {}, trader), LANG_UNIVERSAL, trader);
         return false;
     }
     for (uint32 slot = 0; slot < TRADE_SLOT_TRADED_COUNT; ++slot)
@@ -231,10 +221,7 @@ bot->Whisper(botAI->GetLocalizedBotTextOrDefault("trade_buying_disabled", "Buyin
         if (item && !item->GetTemplate()->SellPrice && !item->GetTemplate()->IsConjuredConsumable())
         {
 std::ostringstream out;
-            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "trade_item_not_for_sale",
-                "%item - This is not for sale",
-                {{"%item", chat->FormatItem(item->GetTemplate())}}));
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("trade_item_not_for_sale", "%item - This is not for sale", {{"%item", chat->FormatItem(item->GetTemplate())}}));
             botAI->PlaySound(TEXT_EMOTE_NO);
             return false;
         }
@@ -248,10 +235,7 @@ std::ostringstream out;
             if ((botMoney && !item->GetTemplate()->BuyPrice) || usage == ITEM_USAGE_NONE)
             {
 std::ostringstream out;
-                botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                    "trade_item_not_needed",
-                    "%item - I don't need this",
-                    {{"%item", chat->FormatItem(item->GetTemplate())}}));
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("trade_item_not_needed", "%item - I don't need this", {{"%item", chat->FormatItem(item->GetTemplate())}}));
                 botAI->PlaySound(TEXT_EMOTE_NO);
                 return false;
             }
@@ -311,10 +295,7 @@ botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("trade_success_pleasure", 
     }
 
 std::ostringstream out;
-    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-        "trade_want_money_for_this",
-        "I want %money for this",
-        {{"%money", chat->formatMoney(-(delta + discount))}}));
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("trade_want_money_for_this", "I want %money for this", {{"%money", chat->formatMoney(-(delta + discount))}}));
     botAI->PlaySound(TEXT_EMOTE_NO);
     return false;
 }

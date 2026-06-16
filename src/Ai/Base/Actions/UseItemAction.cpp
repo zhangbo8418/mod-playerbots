@@ -49,10 +49,7 @@ bool UseItemAction::UseGameObject(ObjectGuid guid)
     go->Use(bot);
 
     std::ostringstream out;
-    botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-        "use_gameobject",
-        "Using %gameobject",
-        {{"%gameobject", chat->FormatGameobject(go)}}));
+    botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("use_gameobject", "Using %gameobject", {{"%gameobject", chat->FormatGameobject(go)}}));
     return true;
 }
 
@@ -176,7 +173,8 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
             packet << uint32(0);
             bot->GetSession()->HandleQuestgiverAcceptQuestOpcode(packet);
 
-            botAI->TellMasterNoFacing("Got quest " + chat->FormatQuest(qInfo));
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault(
+                "msg_got_quest", "Got quest %quest", {{"%quest", chat->FormatQuest(qInfo)}}));
             return true;
         }
     }
@@ -309,10 +307,8 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
 
     // botAI->SetNextCheckDelay(sPlayerbotAIConfig.globalCoolDown);
     std::string useText = targetSelected
-        ? PlayerbotTextMgr::instance().GetBotTextOrDefault(
-            "use_item_on_target", "Using %item on %target", {{"%item", itemText}, {"%target", targetText}})
-        : PlayerbotTextMgr::instance().GetBotTextOrDefault(
-            "use_item", "Using %item", {{"%item", itemText}});
+        ? botAI->GetLocalizedBotTextOrDefault("use_item_on_target", "Using %item on %target", {{"%item", itemText}, {"%target", targetText}})
+        : botAI->GetLocalizedBotTextOrDefault("use_item", "Using %item", {{"%item", itemText}});
     botAI->TellMasterNoFacing(useText);
     bot->GetSession()->HandleUseItemOpcode(packet);
     return true;
@@ -378,10 +374,7 @@ bool UseItemAction::SocketItem(Item* item, Item* gem, bool replace)
 
     if (fits)
     {
-        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-            "socketing_item_with_gem",
-            "Socketing %item with %gem",
-            {{"%item", chat->FormatItem(item->GetTemplate())}, {"%gem", chat->FormatItem(gem->GetTemplate())}}));
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("socketing_item_with_gem", "Socketing %item with %gem", {{"%item", chat->FormatItem(item->GetTemplate())}, {"%gem", chat->FormatItem(gem->GetTemplate())}}));
 
         WorldPackets::Item::SocketGems nicePacket(std::move(packet));
         nicePacket.Read();

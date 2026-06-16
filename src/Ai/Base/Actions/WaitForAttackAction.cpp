@@ -132,7 +132,7 @@ bool SetWaitForAttackTimeAction::Execute(Event event)
 
     if (newTimeStr.empty())
     {
-        std::string const text = PlayerbotTextMgr::instance().GetBotTextOrDefault(
+        std::string const text = botAI->GetLocalizedBotTextOrDefault(
             "wait_for_attack_provide_time",
             "Please provide a time to set (in seconds)",
             std::map<std::string, std::string>());
@@ -142,7 +142,7 @@ bool SetWaitForAttackTimeAction::Execute(Event event)
 
     if (!std::all_of(newTimeStr.begin(), newTimeStr.end(), ::isdigit))
     {
-        std::string const text = PlayerbotTextMgr::instance().GetBotTextOrDefault(
+        std::string const text = botAI->GetLocalizedBotTextOrDefault(
             "wait_for_attack_invalid_time",
             "Please provide valid time to set (in seconds) between 0 and 99",
             std::map<std::string, std::string>());
@@ -153,7 +153,7 @@ bool SetWaitForAttackTimeAction::Execute(Event event)
     int newTime = std::stoi(newTimeStr);
     if (newTime < 0 || newTime > 99)
     {
-        std::string const text = PlayerbotTextMgr::instance().GetBotTextOrDefault(
+        std::string const text = botAI->GetLocalizedBotTextOrDefault(
             "wait_for_attack_invalid_time",
             "Please provide valid time to set (in seconds) between 0 and 99",
             std::map<std::string, std::string>());
@@ -165,7 +165,7 @@ bool SetWaitForAttackTimeAction::Execute(Event event)
 
     std::map<std::string, std::string> placeholders;
     placeholders["%new_time"] = std::to_string(newTime);
-    std::string const text = PlayerbotTextMgr::instance().GetBotTextOrDefault(
+    std::string const text = botAI->GetLocalizedBotTextOrDefault(
         "wait_for_attack_time_set",
         "Wait for attack time set to %new_time seconds",
         placeholders);

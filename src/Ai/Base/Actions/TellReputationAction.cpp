@@ -93,7 +93,7 @@ bool TellReputationAction::Execute(Event event)
 
         std::sort(lines.begin(), lines.end());
 
-        botAI->TellMaster("=== Reputations ===");
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_reputations_title", "=== Reputations ==="));
         for (auto const& line : lines)
             botAI->TellMaster(line);
 

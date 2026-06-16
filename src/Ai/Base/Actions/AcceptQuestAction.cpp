@@ -19,10 +19,7 @@ bool AcceptAllQuestsAction::ProcessQuest(Quest const* quest, Object* questGiver)
     if (botAI->HasStrategy("debug quest", BotState::BOT_STATE_NON_COMBAT) || botAI->HasStrategy("debug rpg", BotState::BOT_STATE_COMBAT))
     {
         LOG_INFO("playerbots", "{} => Quest [{}] accepted", bot->GetName(), quest->GetTitle());
-std::string text = PlayerbotTextMgr::instance().GetBotTextOrDefault(
-            "quest_accept_debug",
-            "Quest [%quest] accepted",
-            {{"%quest", text_quest}});
+std::string text = botAI->GetLocalizedBotTextOrDefault("quest_accept_debug", "Quest [%quest] accepted", {{"%quest", text_quest}});
         bot->Say(text, LANG_UNIVERSAL);
     }
 

@@ -100,7 +100,7 @@ bool SummonAction::SummonUsingGos(Player* summoner, Player* player, bool preserv
             return Teleport(summoner, player, preserveAuras);
     }
 
-botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault(
         summoner == bot ? "meeting_stone_none_nearby" : "meeting_stone_none_near_you",
         summoner == bot ? "There is no meeting stone nearby" : "There is no meeting stone near you",
         {}));
@@ -123,7 +123,7 @@ bool SummonAction::SummonUsingNpcs(Player* summoner, Player* player, bool preser
         {
             if (!player->HasItemCount(6948, 1, false))
             {
-botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault(
                     player == bot ? "meeting_stone_no_hearthstone_self" : "meeting_stone_no_hearthstone_you",
                     player == bot ? "I have no hearthstone" : "You have no hearthstone",
                     {}));
@@ -132,7 +132,7 @@ botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
 
             if (player->HasSpellCooldown(8690))
             {
-botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault(
                     player == bot ? "meeting_stone_hearthstone_not_ready_self" : "meeting_stone_hearthstone_not_ready_you",
                     player == bot ? "My hearthstone is not ready" : "Your hearthstone is not ready",
                     {}));
@@ -151,7 +151,7 @@ botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
         }
     }
 
-botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault(
         summoner == bot ? "meeting_stone_no_innkeepers_nearby" : "meeting_stone_no_innkeepers_near_you",
         summoner == bot ? "There are no innkeepers nearby" : "There are no innkeepers near you",
         {}));

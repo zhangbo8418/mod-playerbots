@@ -65,10 +65,7 @@ if (!target)
     if (!target->IsInWorld())
     {
         if (verbose)
-botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "attack_target_not_in_world_error",
-                "%target is no longer in the world.",
-                {{"%target", target->GetName()}}));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("attack_target_not_in_world_error", "%target is no longer in the world.", {{"%target", target->GetName()}}));
 
         return false;
     }
@@ -97,10 +94,7 @@ botAI->TellError(botAI->GetLocalizedBotTextOrDefault("attack_pvp_prohibited_erro
     if (bot->IsFriendlyTo(target))
     {
         if (verbose)
-botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "attack_target_friendly_error",
-                "%target is friendly to me.",
-                {{"%target", target->GetName()}}));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("attack_target_friendly_error", "%target is friendly to me.", {{"%target", target->GetName()}}));
 
         return false;
     }
@@ -108,10 +102,7 @@ botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
     if (target->isDead())
     {
         if (verbose)
-botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "attack_target_dead_error",
-                "%target is dead.",
-                {{"%target", target->GetName()}}));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("attack_target_dead_error", "%target is dead.", {{"%target", target->GetName()}}));
 
         return false;
     }
@@ -119,10 +110,7 @@ botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
     if (!bot->IsWithinLOSInMap(target))
     {
         if (verbose)
-botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "attack_target_not_in_sight_error",
-                "%target is not in my sight.",
-                {{"%target", target->GetName()}}));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("attack_target_not_in_sight_error", "%target is not in my sight.", {{"%target", target->GetName()}}));
 
         return false;
     }
@@ -142,10 +130,7 @@ botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
     if (sameTarget && inCombat && sameAttackMode)
     {
         if (verbose)
-botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "attack_already_attacking_error",
-                "I am already attacking %target.",
-                {{"%target", target->GetName()}}));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("attack_already_attacking_error", "I am already attacking %target.", {{"%target", target->GetName()}}));
 
         return false;
     }

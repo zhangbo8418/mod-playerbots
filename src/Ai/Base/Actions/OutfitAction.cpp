@@ -33,10 +33,7 @@ botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("outfit_usage_add", "outfi
             PlayerbotRepository::instance().Save(botAI);
 
 std::ostringstream out;
-            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "outfit_set_as",
-                "Setting outfit %name as %param",
-                {{"%name", name}, {"%param", param}}));
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("outfit_set_as", "Setting outfit %name as %param", {{"%name", name}, {"%param", param}}));
             return true;
         }
 
@@ -52,20 +49,14 @@ std::ostringstream out;
         std::string const command = param.substr(space + 1);
         if (command == "equip")
         {
-botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "outfit_equipping",
-                "Equipping outfit %name",
-                {{"%name", name}}));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("outfit_equipping", "Equipping outfit %name", {{"%name", name}}));
 
             EquipItems(outfit);
             return true;
         }
         else if (command == "replace")
         {
-botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "outfit_replace_current",
-                "Replacing current equip with outfit %name",
-                {{"%name", name}}));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("outfit_replace_current", "Replacing current equip with outfit %name", {{"%name", name}}));
 
             for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; slot++)
             {
@@ -88,10 +79,7 @@ botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
         }
         else if (command == "reset")
         {
-botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "outfit_resetting",
-                "Resetting outfit %name",
-                {{"%name", name}}));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("outfit_resetting", "Resetting outfit %name", {{"%name", name}}));
 
             Save(name, ItemIds());
             PlayerbotRepository::instance().Save(botAI);
@@ -99,10 +87,7 @@ botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
         }
         else if (command == "update")
         {
-botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "outfit_updating_current",
-                "Updating with current items outfit %name",
-                {{"%name", name}}));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("outfit_updating_current", "Updating with current items outfit %name", {{"%name", name}}));
 
             Update(name);
             PlayerbotRepository::instance().Save(botAI);
@@ -120,18 +105,12 @@ botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
                 if (j != outfit.end())
                     outfit.erase(j);
 
-                botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                    "outfit_item_removed_from",
-                    "%item removed from %name",
-                    {{"%item", chat->FormatItem(proto)}, {"%name", name}}));
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("outfit_item_removed_from", "%item removed from %name", {{"%item", chat->FormatItem(proto)}, {"%name", name}}));
             }
             else
             {
                 outfit.insert(itemid);
-                botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                    "outfit_item_added_to",
-                    "%item added to %name",
-                    {{"%item", chat->FormatItem(proto)}, {"%name", name}}));
+                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("outfit_item_added_to", "%item added to %name", {{"%item", chat->FormatItem(proto)}, {"%name", name}}));
             }
         }
 

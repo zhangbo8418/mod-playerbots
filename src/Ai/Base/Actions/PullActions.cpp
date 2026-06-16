@@ -42,8 +42,7 @@ bool PullRequestAction::Execute(Event event)
     Unit* target = GetPullTarget(event);
     if (!target || !target->IsInWorld())
     {
-        std::string const text = PlayerbotTextMgr::instance().GetBotTextOrDefault(
-            "pull_no_target_error", "You have no target", {});
+        std::string const text = botAI->GetLocalizedBotTextOrDefault("pull_no_target_error", "You have no target");
         botAI->TellError(text);
         return false;
     }
@@ -51,16 +50,14 @@ bool PullRequestAction::Execute(Event event)
     float const maxPullDistance = sPlayerbotAIConfig.reactDistance * 3.0f;
     if (target->GetMapId() != bot->GetMapId() || bot->GetDistance(target) > maxPullDistance)
     {
-        std::string const text = PlayerbotTextMgr::instance().GetBotTextOrDefault(
-            "pull_target_too_far_error", "The target is too far away", {});
+        std::string const text = botAI->GetLocalizedBotTextOrDefault("pull_target_too_far_error", "The target is too far away");
         botAI->TellError(text);
         return false;
     }
 
     if (!AttackersValue::IsPossibleTarget(target, bot))
     {
-        std::string const text = PlayerbotTextMgr::instance().GetBotTextOrDefault(
-            "pull_invalid_target_error", "The target can't be pulled", {});
+        std::string const text = botAI->GetLocalizedBotTextOrDefault("pull_invalid_target_error", "The target can't be pulled");
         botAI->TellError(text);
         return false;
     }
@@ -68,10 +65,7 @@ bool PullRequestAction::Execute(Event event)
     if (!strategy->CanDoPullAction(target))
     {
         std::string const actionName = strategy->GetPullActionName();
-        std::string const text = PlayerbotTextMgr::instance().GetBotTextOrDefault(
-            "pull_action_unavailable_error",
-            "Can't perform pull action '%action_name'",
-            {{"%action_name", actionName}});
+        std::string const text = botAI->GetLocalizedBotTextOrDefault("pull_action_unavailable_error", "Can't perform pull action '%action_name'", {{"%action_name", actionName}});
         botAI->TellError(text);
         return false;
     }
