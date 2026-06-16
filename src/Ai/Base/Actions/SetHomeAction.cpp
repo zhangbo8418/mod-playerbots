@@ -6,6 +6,7 @@
 #include "SetHomeAction.h"
 
 #include "Event.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 
 bool SetHomeAction::Execute(Event /*event*/)
@@ -26,20 +27,10 @@ bool SetHomeAction::Execute(Event /*event*/)
     if (Unit* unit = botAI->GetUnit(selection))
         if (unit->HasNpcFlag(UNIT_NPC_FLAG_INNKEEPER))
         {
-            if (isRpgAction)
-            {
-                Creature* creature = botAI->GetCreature(selection);
-                bot->GetSession()->SendBindPoint(creature);
-                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_inn_new_home", "This inn is my new home"));
-                return true;
-            }
-            else
-            {
-                Creature* creature = botAI->GetCreature(selection);
-                bot->GetSession()->SendBindPoint(creature);
-                botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_inn_new_home", "This inn is my new home"));
-                return true;
-            }
+Creature* creature = botAI->GetCreature(selection);
+            bot->GetSession()->SendBindPoint(creature);
+            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("set_home_success", "This inn is my new home"));
+            return true;
         }
 
     GuidVector npcs = AI_VALUE(GuidVector, "nearest npcs");
@@ -50,10 +41,10 @@ bool SetHomeAction::Execute(Event /*event*/)
             continue;
 
         bot->GetSession()->SendBindPoint(unit);
-        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_inn_new_home", "This inn is my new home"));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("set_home_success", "This inn is my new home"));
         return true;
     }
 
-    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_innkeeper_around", "Can't find any innkeeper around"));
+    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("set_home_no_innkeeper_error", "Can't find any innkeeper around"));
     return false;
 }

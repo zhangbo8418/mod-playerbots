@@ -228,15 +228,6 @@ void ChooseTravelTargetAction::ReportTravelTarget(TravelTarget* newTarget, Trave
         QuestTravelDestination* QuestDestination = (QuestTravelDestination*)destination;
         Quest const* quest = QuestDestination->GetQuestTemplate();
         WorldPosition botLocation(bot);
-
-        CreatureTemplate const* cInfo = nullptr;
-        GameObjectTemplate const* gInfo = nullptr;
-
-        if (destination->getEntry() > 0)
-            cInfo = sObjectMgr->GetCreatureTemplate(destination->getEntry());
-        else
-            gInfo = sObjectMgr->GetGameObjectTemplate(destination->getEntry() * -1);
-
         std::string Sub;
 
         std::string prefix = newTarget->isGroupCopy() ? botAI->GetLocalizedBotTextOrDefault("msg_travel_following_group", "Following group ")
@@ -783,10 +774,6 @@ char* strstri(char const* haystack, char const* needle);
 
 TravelDestination* ChooseTravelTargetAction::FindDestination(Player* bot, std::string const name, bool zones, bool npcs, bool quests, bool mobs, bool bosses)
 {
-    PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot);
-
-    // AiObjectContext* context = botAI->GetAiObjectContext(); //not used, line marked for removal.
-
     std::vector<TravelDestination*> dests;
 
     //Quests

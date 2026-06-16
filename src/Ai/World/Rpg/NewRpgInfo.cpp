@@ -37,15 +37,23 @@ void NewRpgInfo::ChangeToDoQuest(uint32 questId, const Quest* quest)
     data = do_quest;
 }
 
-void NewRpgInfo::ChangeToTravelFlight(ObjectGuid fromFlightMaster, uint32 fromNode, uint32 toNode)
+void NewRpgInfo::ChangeToTravelFlight(uint32 flightMasterEntry, WorldPosition flightMasterPos, std::vector<uint32> path)
 {
     startT = getMSTime();
     TravelFlight flight;
-    flight.fromFlightMaster = fromFlightMaster;
-    flight.fromNode = fromNode;
-    flight.toNode = toNode;
+    flight.flightMasterEntry = flightMasterEntry;
+    flight.flightMasterPos = flightMasterPos;
+    flight.path = std::move(path);
     flight.inFlight = false;
     data = flight;
+}
+
+void NewRpgInfo::ChangeToOutdoorPvp(ObjectGuid::LowType capturePointSpawnId)
+{
+    startT = getMSTime();
+    OutdoorPvP pvp;
+    pvp.capturePointSpawnId = capturePointSpawnId;
+    data = pvp;
 }
 
 void NewRpgInfo::ChangeToRest()
@@ -60,7 +68,10 @@ void NewRpgInfo::ChangeToIdle()
     data = Idle{};
 }
 
-bool NewRpgInfo::CanChangeTo(NewRpgStatus status) { return true; }
+bool NewRpgInfo::CanChangeTo(NewRpgStatus)
+{
+    return true;
+}
 
 void NewRpgInfo::Reset()
 {
@@ -88,6 +99,7 @@ NewRpgStatus NewRpgInfo::GetStatus()
         if constexpr (std::is_same_v<T, Rest>) return RPG_REST;
         if constexpr (std::is_same_v<T, DoQuest>) return RPG_DO_QUEST;
         if constexpr (std::is_same_v<T, TravelFlight>) return RPG_TRAVEL_FLIGHT;
+        if constexpr (std::is_same_v<T, OutdoorPvP>) return RPG_OUTDOOR_PVP;
         return RPG_IDLE;
     }, data);
 }
@@ -146,10 +158,18 @@ std::string NewRpgInfo::ToString()
         else if constexpr (std::is_same_v<T, TravelFlight>)
         {
             out << "TRAVEL_FLIGHT";
-            out << "\nfromFlightMaster: " << arg.fromFlightMaster.GetEntry();
-            out << "\nfromNode: " << arg.fromNode;
-            out << "\ntoNode: " << arg.toNode;
+            out << "\nflightMasterEntry: " << arg.flightMasterEntry;
+            out << "\nfromNode: " << arg.path[0];
+            out << "\ntoNode: " << arg.path[arg.path.size() - 1];
             out << "\ninFlight: " << arg.inFlight;
+        }
+        else if constexpr (std::is_same_v<T, OutdoorPvP>)
+        {
+            out << "OUTDOOR_PVP";
+            if (!arg.capturePointSpawnId)
+                out << "\nNo capture point assigned.";
+            else
+                out << "\ncapturePointSpawnId: " << arg.capturePointSpawnId;
         }
         else
             out << "UNKNOWN";

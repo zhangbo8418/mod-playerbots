@@ -6,6 +6,7 @@
 #include "ArenaTeamActions.h"
 
 #include "ArenaTeamMgr.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 
 bool ArenaTeamAcceptAction::Execute(Event event)
@@ -31,7 +32,8 @@ bool ArenaTeamAcceptAction::Execute(Event event)
     if (bot->GetArenaTeamId(at->GetSlot()))
     {
         // bot is already in an arena team
-        bot->Say(botAI->GetLocalizedBotTextOrDefault("error_petition_in_team", "Sorry, I am already in such team"), LANG_UNIVERSAL);
+std::string text = botAI->GetLocalizedBotTextOrDefault("arena_team_already_in_team", "Sorry, I am already in such team");
+        bot->Say(text, LANG_UNIVERSAL);
         accept = false;
     }
 
@@ -39,7 +41,8 @@ bool ArenaTeamAcceptAction::Execute(Event event)
     {
         WorldPacket data(CMSG_ARENA_TEAM_ACCEPT);
         bot->GetSession()->HandleArenaTeamAcceptOpcode(data);
-        bot->Say(botAI->GetLocalizedBotTextOrDefault("msg_thanks_invite", "Thanks for the invite!"), LANG_UNIVERSAL);
+std::string text = botAI->GetLocalizedBotTextOrDefault("arena_team_thanks_for_invite", "Thanks for the invite!");
+        bot->Say(text, LANG_UNIVERSAL);
         LOG_INFO("playerbots", "Bot {} <{}> accepts Arena Team invite", bot->GetGUID().ToString().c_str(),
                  bot->GetName().c_str());
         return true;

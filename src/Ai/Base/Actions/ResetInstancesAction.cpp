@@ -8,18 +8,13 @@
 #include "PlayerbotAI.h"
 #include "Group.h"
 
+#include "InstancePackets.h"
+
 bool ResetInstancesAction::Execute(Event /*event*/)
 {
-    // Mirror the core's ResetInstances logic instead of faking a client packet
-    if (Group* group = bot->GetGroup())
-    {
-        if (group->IsLeader(bot->GetGUID()))
-            group->ResetInstances(INSTANCE_RESET_ALL, false, bot);
-    }
-    else
-    {
-        Player::ResetInstances(bot->GetGUID(), INSTANCE_RESET_ALL, false);
-    }
+    WorldPacket packet(CMSG_RESET_INSTANCES, 0);
+    WorldPackets::Instance::ResetInstances resetInstance(std::move(packet));
+    bot->GetSession()->HandleResetInstancesOpcode(resetInstance);
 
     return true;
 }

@@ -142,14 +142,17 @@ bool CastCustomSpellAction::Execute(Event event)
     std::ostringstream spellName;
     spellName << ChatHelper::FormatSpell(spellInfo) << onStr;
 
+    bool const hasItemTarget = itemTarget &&
+        (spellInfo->Targets & TARGET_FLAG_ITEM || spellInfo->Targets & TARGET_FLAG_GAMEOBJECT_ITEM);
+
     if (bot->GetTrader())
-        spellName << botAI->GetLocalizedBotTextOrDefault("msg_cast_trade_item", "trade item");
-    else if (itemTarget)
+        spellName << botAI->GetLocalizedBotTextOrDefault("cast_trade_item", "trade item");
+    else if (hasItemTarget)
         spellName << chat->FormatItem(itemTarget->GetTemplate());
-    else if (target == bot)
-        spellName << botAI->GetLocalizedBotTextOrDefault("msg_cast_self", "self");
-    else
+    else if (target != bot)
         spellName << target->GetName();
+    else
+        spellName << botAI->GetLocalizedBotTextOrDefault("cast_self", "self");
 
     std::string spellNameStr = spellName.str();
 

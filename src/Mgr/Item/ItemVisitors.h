@@ -66,6 +66,29 @@ private:
     Player* bot;
 };
 
+class HasRelicBySubclassVisitor : public IterateItemsVisitor
+{
+public:
+    HasRelicBySubclassVisitor(uint32 subClass) : subClass(subClass) {}
+
+    bool Visit(Item* item) override
+    {
+        ItemTemplate const* proto = item->GetTemplate();
+        if (proto && proto->InventoryType == INVTYPE_RELIC && proto->SubClass == subClass)
+        {
+            found = true;
+            return false;
+        }
+
+        return true;
+    }
+
+    bool found = false;
+
+private:
+    uint32 subClass;
+};
+
 class FindItemsByQualityVisitor : public IterateItemsVisitor
 {
 public:
@@ -302,9 +325,6 @@ public:
     FindMountVisitor(Player* bot) : FindUsableItemVisitor(bot) {}
 
     bool Accept(ItemTemplate const* proto) override;
-
-private:
-    uint32 effectId;
 };
 
 class FindPetVisitor : public FindUsableItemVisitor

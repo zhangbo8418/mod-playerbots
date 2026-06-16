@@ -9,6 +9,7 @@
 #include "Event.h"
 #include "ItemVisitors.h"
 #include "Mail.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 
 bool SendMailAction::Execute(Event event)
@@ -33,34 +34,35 @@ bool SendMailAction::Execute(Event event)
     Player* receiver = GetMaster();
     Player* tellTo = receiver;
 
-    std::vector<std::string> ss = split(text, ' ');
-    if (ss.size() > 1)
-    {
-        if (Player* p = ObjectAccessor::FindPlayer(ObjectGuid(uint64(ss[ss.size() - 1].c_str()))))
-            receiver = p;
-    }
-
     if (!receiver)
         receiver = event.getOwner();
 
     if (!receiver || receiver == bot)
-    {
         return false;
-    }
 
     if (!tellTo)
         tellTo = receiver;
 
+    if (!sPlayerbotAIConfig.botSendMailEnabled)
+    {
+        bot->Whisper(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+                         "send_mail_disabled", "I cannot send mail", {}),
+                     LANG_UNIVERSAL, tellTo);
+        return false;
+    }
+
     if (!mailboxFound && !randomBot)
     {
-        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_no_mailbox_nearby", "There is no mailbox nearby", {}, tellTo), LANG_UNIVERSAL, tellTo);
+bot->Whisper(botAI->GetLocalizedBotTextOrDefault("send_mail_no_mailbox_nearby", "There is no mailbox nearby"),
+                     LANG_UNIVERSAL, tellTo);
         return false;
     }
 
     ItemIds ids = chat->parseItems(text);
     if (ids.size() > 1)
     {
-        bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_one_item_only", "You can not request more than one item", {}, tellTo), LANG_UNIVERSAL, tellTo);
+bot->Whisper(botAI->GetLocalizedBotTextOrDefault("send_mail_one_item_only", "You can not request more than one item"),
+                     LANG_UNIVERSAL, tellTo);
         return false;
     }
 
@@ -72,13 +74,14 @@ bool SendMailAction::Execute(Event event)
 
         if (randomBot)
         {
-            bot->Whisper(botAI->GetLocalizedBotTextOrDefault("msg_cannot_send_money", "I cannot send money", {}, tellTo), LANG_UNIVERSAL, tellTo);
+bot->Whisper(botAI->GetLocalizedBotTextOrDefault("send_mail_cannot_send_money", "I cannot send money"),
+                         LANG_UNIVERSAL, tellTo);
             return false;
         }
 
         if (bot->GetMoney() < money)
         {
-            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_not_enough_money", "I don't have enough money"));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("send_mail_not_enough_money", "I don't have enough money"));
             return false;
         }
 
@@ -99,7 +102,11 @@ bool SendMailAction::Execute(Event event)
 
         CharacterDatabase.CommitTransaction(trans);
 
-        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_sending_mail_to", "Sending mail to %name", {{"%name", receiver->GetName()}}));
+std::ostringstream out;
+        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+            "send_mail_sending_to",
+            "Sending mail to %receiver",
+            {{"%receiver", receiver->GetName()}}));
         return true;
     }
 
@@ -122,8 +129,12 @@ bool SendMailAction::Execute(Event event)
         {
             if (item->IsSoulBound() || item->IsConjuredConsumable())
             {
-                std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_cannot_send_item", "Cannot send %item", {{"%item", ChatHelper::FormatItem(item->GetTemplate())}}, tellTo);
-                bot->Whisper(msg, LANG_UNIVERSAL, tellTo);
+std::ostringstream out;
+                out << PlayerbotTextMgr::instance().GetBotTextOrDefault(
+                    "send_mail_cannot_send_item",
+                    "Cannot send %item",
+                    {{"%item", ChatHelper::FormatItem(item->GetTemplate())}});
+                bot->Whisper(out.str(), LANG_UNIVERSAL, tellTo);
                 continue;
             }
 
@@ -136,8 +147,12 @@ bool SendMailAction::Execute(Event event)
                 uint32 price = item->GetCount() * proto->SellPrice;
                 if (!price)
                 {
-                    std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_item_not_for_sale_short", "%item: it is not for sale", {{"%item", ChatHelper::FormatItem(item->GetTemplate())}}, tellTo);
-                    bot->Whisper(msg, LANG_UNIVERSAL, tellTo);
+std::ostringstream out;
+                    out << PlayerbotTextMgr::instance().GetBotTextOrDefault(
+                        "send_mail_item_not_for_sale",
+                        "%item: it is not for sale",
+                        {{"%item", ChatHelper::FormatItem(item->GetTemplate())}});
+                    bot->Whisper(out.str(), LANG_UNIVERSAL, tellTo);
                     return false;
                 }
 
@@ -155,8 +170,12 @@ bool SendMailAction::Execute(Event event)
 
             CharacterDatabase.CommitTransaction(trans);
 
-            std::string msg = botAI->GetLocalizedBotTextOrDefault("msg_sent_mail_to", "Sent mail to %name", {{"%name", receiver->GetName()}}, tellTo);
-            bot->Whisper(msg, LANG_UNIVERSAL, tellTo);
+std::ostringstream out;
+            out << PlayerbotTextMgr::instance().GetBotTextOrDefault(
+                "send_mail_sent_to",
+                "Sent mail to %receiver",
+                {{"%receiver", receiver->GetName()}});
+            bot->Whisper(out.str(), LANG_UNIVERSAL, tellTo);
             return true;
         }
     }

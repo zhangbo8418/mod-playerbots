@@ -24,7 +24,8 @@ bool SetCraftAction::Execute(Event event)
     if (link == "reset")
     {
         data.Reset();
-        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_will_not_craft", "I will not craft anything"));
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault(
+            "craft_reset", "I will not craft anything"));
         return true;
     }
 
@@ -37,7 +38,8 @@ bool SetCraftAction::Execute(Event event)
     ItemIds itemIds = chat->parseItems(link);
     if (itemIds.empty())
     {
-        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_craft_usage", "Usage: 'craft [itemId]' or 'craft reset'"));
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault(
+            "craft_usage", "Usage: 'craft [itemId]' or 'craft reset'"));
         return false;
     }
 
@@ -66,7 +68,8 @@ bool SetCraftAction::Execute(Event event)
         if (!spellInfo)
             continue;
 
-        if (SkillLineAbilityEntry const* skillLine = skillSpells[spellId])
+        SkillLineAbilityEntry const* skillLine = skillSpells[spellId];
+        if (skillLine != nullptr)
         {
             for (uint8 i = 0; i < 3; ++i)
             {
@@ -93,7 +96,8 @@ bool SetCraftAction::Execute(Event event)
 
     if (data.required.empty())
     {
-        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_cannot_craft_this", "I cannot craft this"));
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault(
+            "craft_cannot_craft", "I cannot craft this"));
         return false;
     }
 
@@ -108,7 +112,8 @@ void SetCraftAction::TellCraft()
     CraftData& data = AI_VALUE(CraftData&, "craft");
     if (data.IsEmpty())
     {
-        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_will_not_craft", "I will not craft anything"));
+        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault(
+            "craft_reset", "I will not craft anything"));
         return;
     }
 
@@ -116,8 +121,7 @@ void SetCraftAction::TellCraft()
     if (!proto)
         return;
 
-    std::ostringstream out;
-    out << botAI->GetLocalizedBotTextOrDefault("msg_will_craft_using_reagents", "I will craft %item using reagents: ", {{"%item", chat->FormatItem(proto)}});
+    std::ostringstream reagentsOut;
     bool first = true;
     for (std::map<uint32, uint32>::iterator i = data.required.begin(); i != data.required.end(); ++i)
     {
@@ -128,18 +132,23 @@ void SetCraftAction::TellCraft()
         {
             if (first)
                 first = false;
-
             else
-                out << ", ";
+                reagentsOut << ", ";
 
-            out << chat->FormatItem(reagent, required);
+            reagentsOut << chat->FormatItem(reagent, required);
+
             uint32 given = data.obtained[item];
             if (given)
-                out << "|cffffff00(x" << given << " given)|r ";
+                reagentsOut << "|cffffff00(x" << given << " given)|r ";
         }
     }
-    out << botAI->GetLocalizedBotTextOrDefault("msg_craft_fee", " (craft fee: %fee)", {{"%fee", chat->formatMoney(GetCraftFee(data))}});
-    botAI->TellMaster(out.str());
+
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault(
+        "craft_summary",
+        "I will craft %item using reagents: %reagents (craft fee: %money)",
+        {{"%item", chat->FormatItem(proto)},
+         {"%reagents", reagentsOut.str()},
+         {"%money", chat->formatMoney(GetCraftFee(data))}}));
 }
 
 uint32 SetCraftAction::GetCraftFee(CraftData& data)

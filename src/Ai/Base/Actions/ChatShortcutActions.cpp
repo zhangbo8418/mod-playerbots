@@ -7,6 +7,7 @@
 
 #include "Event.h"
 #include "Formations.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 #include "PositionValue.h"
 
@@ -68,9 +69,7 @@ bool FollowChatShortcutAction::Execute(Event /*event*/)
         std::string const target = formation->GetTargetName();
         bool moved = false;
         if (!target.empty())
-        {
             moved = Follow(AI_VALUE(Unit*, target));
-        }
         else
         {
             WorldLocation loc = formation->GetLocation();
@@ -82,14 +81,12 @@ bool FollowChatShortcutAction::Execute(Event /*event*/)
                         true, priority);
         }
 
-        if (Pet* pet = bot->GetPet())
-        {
+        if (bot->GetPet())
             botAI->PetFollow();
-        }
 
         if (moved)
         {
-            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_shortcut_following", "Following"));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("following", "Following"));
             return true;
         }
     }
@@ -112,7 +109,7 @@ bool FollowChatShortcutAction::Execute(Event /*event*/)
     }
     */
 
-    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_shortcut_following", "Following"));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("following", "Following"));
     return true;
 }
 
@@ -129,7 +126,7 @@ bool StayChatShortcutAction::Execute(Event /*event*/)
     SetReturnPosition(bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ());
     SetStayPosition(bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ());
 
-    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_shortcut_staying", "Staying"));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("staying", "Staying"));
     return true;
 }
 
@@ -144,7 +141,7 @@ bool MoveFromGroupChatShortcutAction::Execute(Event /*event*/)
     botAI->ChangeStrategy("+move from group", BOT_STATE_NON_COMBAT);
     botAI->ChangeStrategy("+move from group", BOT_STATE_COMBAT);
 
-    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_shortcut_moving_away", "Moving away from group"));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("move_from_group", "Moving away from group"));
     return true;
 }
 
@@ -163,11 +160,11 @@ bool FleeChatShortcutAction::Execute(Event /*event*/)
 
     if (bot->GetMapId() != master->GetMapId() || bot->GetDistance(master) > sPlayerbotAIConfig.sightDistance)
     {
-        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_shortcut_flee_far", "I will not flee with you - too far away"));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("fleeing_far", "I will not flee with you - too far away"));
         return true;
     }
 
-    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_shortcut_fleeing", "Fleeing"));
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("fleeing", "Fleeing"));
     return true;
 }
 
@@ -184,7 +181,7 @@ bool GoawayChatShortcutAction::Execute(Event /*event*/)
     ResetReturnPosition();
     ResetStayPosition();
 
-    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_shortcut_running", "Running away"));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("running_away", "Running away"));
     return true;
 }
 
@@ -200,7 +197,7 @@ bool GrindChatShortcutAction::Execute(Event /*event*/)
     ResetReturnPosition();
     ResetStayPosition();
 
-    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_shortcut_grinding", "Grinding"));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("grinding", "Grinding"));
     return true;
 }
 
@@ -220,7 +217,7 @@ bool TankAttackChatShortcutAction::Execute(Event /*event*/)
     ResetReturnPosition();
     ResetStayPosition();
 
-    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_shortcut_attacking", "Attacking"));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("attacking", "Attacking"));
     return true;
 }
 
@@ -238,6 +235,20 @@ bool MaxDpsChatShortcutAction::Execute(Event /*event*/)
     botAI->ChangeStrategy("-threat,-conserve mana,-cast time,+dps debuff,+boost", BOT_STATE_COMBAT);
     botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_shortcut_max_dps", "Max DPS!"));
 
+    return true;
+}
+
+bool NaxxChatShortcutAction::Execute(Event /*event*/)
+{
+    Player* master = GetMaster();
+    if (!master)
+        return false;
+
+    botAI->Reset();
+    botAI->ChangeStrategy("+naxx", BOT_STATE_NON_COMBAT);
+    botAI->ChangeStrategy("+naxx", BOT_STATE_COMBAT);
+    botAI->TellMasterNoFacing("Add Naxx Strategies!");
+    // bot->Say("Add Naxx Strategies!", LANG_UNIVERSAL);
     return true;
 }
 

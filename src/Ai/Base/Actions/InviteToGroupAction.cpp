@@ -167,8 +167,6 @@ std::vector<Player*> InviteGuildToGroupAction::getGuildMembers()
 
 bool InviteGuildToGroupAction::Execute(Event /*event*/)
 {
-    Guild* guild = sGuildMgr->GetGuildById(bot->GetGuildId());
-
     for (auto& member : getGuildMembers())
     {
         Player* player = member;
@@ -310,9 +308,8 @@ bool LfgAction::Execute(Event event)
     allowedRoles[BOT_ROLE_HEALER] = 1;
     allowedRoles[BOT_ROLE_DPS] = 3;
 
-    BotRoles role = botAI->IsTank(requester, false)
-                        ? BOT_ROLE_TANK
-                        : (botAI->IsHeal(requester, false) ? BOT_ROLE_HEALER : BOT_ROLE_DPS);
+    BotRoles role = botAI->IsTank(requester, true) ? BOT_ROLE_TANK
+                                                   : (botAI->IsHeal(requester, true) ? BOT_ROLE_HEALER : BOT_ROLE_DPS);
     Classes cls = (Classes)requester->getClass();
 
     if (group)
@@ -385,8 +382,8 @@ bool LfgAction::Execute(Event event)
             if (!botAI->IsSafe(player))
                 return false;
 
-            role = botAI->IsTank(player, false) ? BOT_ROLE_TANK
-                                                : (botAI->IsHeal(player, false) ? BOT_ROLE_HEALER : BOT_ROLE_DPS);
+            role = botAI->IsTank(player, true) ? BOT_ROLE_TANK
+                                               : (botAI->IsHeal(player, true) ? BOT_ROLE_HEALER : BOT_ROLE_DPS);
             cls = (Classes)player->getClass();
 
             if (allowedRoles[role] > 0)
@@ -405,7 +402,7 @@ bool LfgAction::Execute(Event event)
             allowedClassNr[cls][role]--;
     }
 
-    role = botAI->IsTank(bot, false) ? BOT_ROLE_TANK : (botAI->IsHeal(bot, false) ? BOT_ROLE_HEALER : BOT_ROLE_DPS);
+    role = botAI->IsTank(bot, true) ? BOT_ROLE_TANK : (botAI->IsHeal(bot, true) ? BOT_ROLE_HEALER : BOT_ROLE_DPS);
     cls = (Classes)bot->getClass();
 
     if (allowedRoles[role] == 0)

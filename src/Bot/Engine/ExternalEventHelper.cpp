@@ -30,11 +30,14 @@ bool ExternalEventHelper::ParseChatCommand(std::string const command, Player* ow
             return true;
     }
 
-    if (!ChatHelper::parseable(command))
+    if (!ChatHelper::parseableItem(command))
         return false;
 
-    HandleCommand("c", command, owner);
-    HandleCommand("t", command, owner);
+    if (sPlayerbotAIConfig.enableAutoTradeOnItemMention)
+    {
+        HandleCommand("c", command, owner);
+        HandleCommand("t", command, owner);
+    }
 
     return true;
 }

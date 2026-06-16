@@ -7,6 +7,7 @@
 #define _PLAYERBOT_TRAVELMGR_H
 
 #include <boost/functional/hash.hpp>
+#include <map>
 #include <random>
 
 #include "AiObject.h"
@@ -15,6 +16,7 @@
 #include "GridDefines.h"
 #include "PlayerbotAIConfig.h"
 
+class Creature;
 class GuidPosition;
 class ObjectGuid;
 class Quest;
@@ -179,8 +181,7 @@ public:
     // Quick square distance in 2d plane.
     float sqDistance2d(WorldPosition center)
     {
-        return (GetPositionX() - center.GetPositionX()) * (GetPositionX() - center.GetPositionX()) +
-               (GetPositionY() - center.GetPositionY()) * (GetPositionY() - center.GetPositionY());
+        return GetExactDist2dSq(center.GetPositionX(), center.GetPositionY());
     }
 
     // Quick square distance calculation without map check. Used for getting the minimum distant points.
@@ -193,8 +194,7 @@ public:
 
     float sqDistance2d(WorldPosition* center)
     {
-        return (GetPositionX() - center->GetPositionX()) * (GetPositionX() - center->GetPositionX()) +
-               (GetPositionY() - center->GetPositionY()) * (GetPositionY() - center->GetPositionY());
+        return GetExactDist2dSq(center->GetPositionX(), center->GetPositionY());
     }
 
     float sqDistance(WorldPosition* center)
@@ -846,6 +846,21 @@ protected:
 class TravelMgr
 {
 public:
+    struct NpcLocation
+    {
+        WorldLocation loc;
+        uint32 entry;
+    };
+
+    struct FlightMasterInfo
+    {
+        WorldPosition pos;
+        uint32        zoneId;          // resolved once at cache load
+        uint32        taxiNodeId;      // DBC taxi node nearest to this flight master
+        uint32        templateEntry;   // creature template ID (for ObjectGuid construction)
+        uint32        dbGuid;          // DB spawn GUID (for ObjectGuid construction)
+    };
+
     static TravelMgr& instance()
     {
         static TravelMgr instance;
@@ -855,6 +870,18 @@ public:
 
     void Clear();
     void LoadQuestTravelTable();
+
+    // Navigation
+    void Init();
+
+    FlightMasterInfo const* GetNearestFlightMasterInfo(Player* bot) const;
+    std::vector<std::vector<uint32>> GetOptimalFlightDestinations(Player* bot);
+    const std::vector<WorldLocation> GetTeleportLocations(Player* bot);
+    const std::vector<WorldLocation> GetTravelHubs(Player* bot);
+    std::vector<WorldLocation> GetCityLocations(Player* bot);
+    std::vector<uint32> GetFlightNodesInZone(uint32 zoneId, TeamId team, uint32 excludeNode = 0) const;
+    bool SelectAuctioneerByMap(Player* bot, NpcLocation& outAuctioneer);
+    const std::vector<WorldLocation>& GetLocsPerLevelCache(uint8 level) { return locsPerLevelCache[level]; }
 
     template <class D, class W, class URBG>
     void weighted_shuffle(D first, D last, W first_weight, W last_weight, URBG&& g)
@@ -945,6 +972,37 @@ private:
 
     TravelMgr(TravelMgr&&) = delete;
     TravelMgr& operator=(TravelMgr&&) = delete;
+
+    // Navigation initialization
+    void PrepareZone2LevelBracket();
+    void PrepareDestinationCache();
+
+    // Internal types
+    struct LevelBracket
+    {
+        uint32 low;
+        uint32 high;
+        bool InsideBracket(uint32 val) const { return val >= low && val <= high; }
+    };
+
+    struct BankerLocation
+    {
+        WorldLocation loc;
+        uint32 entry;
+    };
+
+    // Navigation caches
+    std::map<uint32, FlightMasterInfo> allianceFlightMasterCache;
+    std::map<uint32, FlightMasterInfo> hordeFlightMasterCache;
+    std::map<uint8, std::vector<WorldLocation>> allianceHubsPerLevelCache;
+    std::map<uint8, std::vector<WorldLocation>> hordeHubsPerLevelCache;
+    std::map<uint8, std::vector<BankerLocation>> bankerLocsPerLevelCache;
+    std::unordered_map<uint32, WorldLocation> bankerEntryToLocation;
+    std::map<uint8, std::vector<WorldLocation>> locsPerLevelCache;
+    std::unordered_map<uint32, std::vector<WorldLocation>> creatureSpawnsByTemplate;
+    std::map<uint32, LevelBracket> zone2LevelBracket;
 };
+
+#define sTravelMgr TravelMgr::instance()
 
 #endif

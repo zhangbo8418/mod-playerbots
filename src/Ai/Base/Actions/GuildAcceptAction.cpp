@@ -8,6 +8,7 @@
 #include "Event.h"
 #include "GuildPackets.h"
 #include "PlayerbotSecurity.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 
 bool GuildAcceptAction::Execute(Event event)
@@ -28,17 +29,17 @@ bool GuildAcceptAction::Execute(Event event)
     uint32 guildId = inviter->GetGuildId();
     if (!guildId)
     {
-        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_guild_accept_not_in_guild", "You are not in a guild!"));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("guild_accept_inviter_not_in_guild", "You are not in a guild!"));
         accept = false;
     }
     else if (bot->GetGuildId())
     {
-        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_guild_accept_in_guild", "Sorry, I am in a guild already"));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("guild_accept_already_in_guild", "Sorry, I am in a guild already"));
         accept = false;
     }
     else if (!botAI->GetSecurity()->CheckLevelFor(PLAYERBOT_SECURITY_INVITE, false, inviter, true))
     {
-        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_guild_accept_dont_want", "Sorry, I don't want to join your guild :("));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("guild_accept_declined", "Sorry, I don't want to join your guild :("));
         accept = false;
     }
 

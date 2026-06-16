@@ -7,6 +7,7 @@
 
 #include "Event.h"
 #include "LastMovementValue.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 #include "PlayerbotAIConfig.h"
 #include "Config.h"
@@ -24,15 +25,21 @@ bool TaxiAction::Execute(Event event)
     {
         movement.taxiNodes.clear();
         movement.Set(nullptr);
-        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_ready_for_flight", "I am ready for the next flight"));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("taxi_ready_next_flight", "I am ready for the next flight"));
         return true;
     }
 
     GuidVector units = *context->GetValue<GuidVector>("nearest npcs");
     for (ObjectGuid const guid : units)
     {
-        Creature* npc = bot->GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_FLIGHTMASTER);
-        if (!npc)
+        Creature* npc = ObjectAccessor::GetCreature(*bot, guid);
+        if (!npc || !npc->IsAlive())
+            continue;
+
+        if (!(npc->GetNpcFlags() & UNIT_NPC_FLAG_FLIGHTMASTER))
+            continue;
+
+        if (bot->GetDistance(npc) > sPlayerbotAIConfig.farDistance)
             continue;
 
         uint32 curloc = sObjectMgr->GetNearestTaxiNode(npc->GetPositionX(), npc->GetPositionY(), npc->GetPositionZ(),
@@ -50,21 +57,17 @@ bool TaxiAction::Execute(Event event)
                 }
         }
 
-        // stagger bot takeoff
-        uint32 delayMin = sConfigMgr->GetOption<uint32>("AiPlayerbot.BotTaxiDelayMinMs", 350u, false);
-        uint32 delayMax = sConfigMgr->GetOption<uint32>("AiPlayerbot.BotTaxiDelayMaxMs", 5000u, false);
-        uint32 gapMs = sConfigMgr->GetOption<uint32>("AiPlayerbot.BotTaxiGapMs", 200u, false);
-        uint32 gapJitterMs = sConfigMgr->GetOption<uint32>("AiPlayerbot.BotTaxiGapJitterMs", 100u, false);
-
         // Only for follower bots
         if (botAI->HasRealPlayerMaster())
         {
             uint32 index = botAI->GetGroupSlotIndex(bot);
-            uint32 delay = delayMin + index * gapMs + urand(0, gapJitterMs);
+            uint32 delay = sPlayerbotAIConfig.botTaxiDelayMin +
+                          index * sPlayerbotAIConfig.botTaxiGapMs +
+                          urand(0, sPlayerbotAIConfig.botTaxiGapJitterMs);
 
-            delay = std::min(delay, delayMax);
+            delay = std::min(delay, sPlayerbotAIConfig.botTaxiDelayMax);
 
-            // Store the npc’s GUID so we can re-acquire the pointer later
+            // Store the NPC's GUID so we can re-acquire the pointer later
             ObjectGuid npcGuid = npc->GetGUID();
 
             // schedule the take-off
@@ -118,13 +121,13 @@ bool TaxiAction::Execute(Event event)
         {
             movement.taxiNodes.clear();
             movement.Set(nullptr);
-            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_cant_fly_with_you", "I can't fly with you"));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("taxi_cant_fly_with_you", "I can't fly with you"));
             return false;
         }
 
         return true;
     }
 
-    botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_flightmaster", "Cannot find any flightmaster to talk"));
+botAI->TellError(botAI->GetLocalizedBotTextOrDefault("taxi_no_flightmaster_nearby", "Cannot find any flightmaster to talk"));
     return false;
 }

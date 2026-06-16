@@ -3,8 +3,8 @@
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
 
-#ifndef _PLAYERBOT_PLAYERbotAI_H
-#define _PLAYERBOT_PLAYERbotAI_H
+#ifndef _PLAYERBOT_PLAYERBOTAI_H
+#define _PLAYERBOT_PLAYERBOTAI_H
 
 #include <stack>
 
@@ -404,7 +404,9 @@ public:
                                   std::string const qualifier = "");
     void ChangeStrategy(std::string const name, BotState type);
     void ClearStrategies(BotState type);
+    void SelectiveResetStrategies(BotState type);
     std::vector<std::string> GetStrategies(BotState type);
+    Strategy* GetStrategy(std::string const name, BotState type);
     void ApplyInstanceStrategies(uint32 mapId, bool tellMaster = false);
     void EvaluateHealerDpsStrategy();
     bool ContainsStrategy(StrategyType type);
@@ -423,13 +425,14 @@ public:
     static bool IsRangedDps(Player* player, bool bySpec = false);
     static bool IsCombo(Player* player);
     static bool IsBotMainTank(Player* player);
-    static bool IsMainTank(Player* player);
+    static bool IsMainTank(Player* player, bool ignoreMemberFlag = false);
     static uint32 GetGroupTankNum(Player* player);
     static bool IsAssistTank(Player* player);
-    static bool IsAssistTankOfIndex(Player* player, int index, bool ignoreDeadPlayers = false);
-    static bool IsAssistHealOfIndex(Player* player, int index, bool ignoreDeadPlayers = false);
-    static bool IsAssistRangedDpsOfIndex(Player* player, int index, bool ignoreDeadPlayers = false);
+    static bool IsAssistTankOfIndex(Player* player, uint8 index, bool ignoreDeadPlayers = false);
+    static bool IsAssistHealOfIndex(Player* player, uint8 index, bool ignoreDeadPlayers = false);
+    static bool IsAssistRangedDpsOfIndex(Player* player, uint8 index, bool ignoreDeadPlayers = false);
     bool HasAggro(Unit* unit);
+    bool IsMovementImpaired(Unit* unit);
     static int32 GetAssistTankIndex(Player* player);
     int32 GetGroupSlotIndex(Player* player);
     int32 GetRangedIndex(Player* player);
@@ -478,6 +481,7 @@ public:
     void SpellInterrupted(uint32 spellid);
     int32 CalculateGlobalCooldown(uint32 spellid);
     void InterruptSpell();
+    void RequestSpellInterrupt();
     void RemoveAura(std::string const name);
     void RemoveShapeshift();
     void WaitForSpellCast(Spell* spell);
@@ -497,11 +501,11 @@ public:
     void ImbueItem(Item* item, Unit* target);
     void ImbueItem(Item* item);
     void EnchantItemT(uint32 spellid, uint8 slot);
-    uint32 GetBuffedCount(Player* player, std::string const spellname);
     int32 GetNearGroupMemberCount(float dis = sPlayerbotAIConfig.sightDistance);
 
     virtual bool CanCastSpell(std::string const name, Unit* target, Item* itemTarget = nullptr);
     virtual bool CastSpell(std::string const name, Unit* target, Item* itemTarget = nullptr);
+    virtual bool HasSpell(std::string const spellName) const;
     virtual bool HasAura(std::string const spellName, Unit* player, bool maxStack = false, bool checkIsOwner = false,
                          int maxAmount = -1, bool checkDuration = false);
     virtual bool HasAnyAuraOf(Unit* player, ...);
@@ -514,7 +518,6 @@ public:
     bool CanCastSpell(uint32 spellid, float x, float y, float z, bool checkHasSpell = true,
                       Item* itemTarget = nullptr);
 
-    bool HasAura(uint32 spellId, Unit const* player);
     Aura* GetAura(std::string const spellName, Unit* unit, bool checkIsOwner = false, bool checkDuration = false,
                   int checkStack = -1);
     bool CastSpell(uint32 spellId, Unit* target, Item* itemTarget = nullptr);
@@ -548,13 +551,11 @@ public:
     // Checks if the bot is summoned as alt of a player
     bool IsAlt();
     Player* GetGroupLeader();
-    // Returns a semi-random (cycling) number that is fixed for each bot.
-    uint32 GetFixedBotNumer(uint32 maxNum = 100, float cyclePerMin = 1);
+    uint32 GetFixedBotNumber(uint32 maxNum = 100);
     GrouperType GetGrouperType();
     GuilderType GetGuilderType();
     bool HasPlayerNearby(WorldPosition* pos, float range = sPlayerbotAIConfig.reactDistance);
     bool HasPlayerNearby(float range = sPlayerbotAIConfig.reactDistance);
-    bool HasManyPlayersNearby(uint32 trigerrValue = 20, float range = sPlayerbotAIConfig.sightDistance);
     bool AllowActive(ActivityType activityType);
     bool AllowActivity(ActivityType activityType = ALL_ACTIVITY, bool checkNow = false);
     uint32 AutoScaleActivity(uint32 mod);
@@ -564,7 +565,7 @@ public:
     bool IsSafe(WorldObject* obj);
     ChatChannelSource GetChatChannelSource(Player* bot, uint32 type, std::string channelName);
 
-    bool CheckLocationDistanceByLevel(Player* player, const WorldLocation &loc, bool fromStartUp = false);
+    bool StarterLevelDistanceCheck(Player* player, const WorldLocation &loc, bool fromStartUp = false);
 
     bool HasCheat(BotCheatMask mask)
     {
@@ -622,7 +623,6 @@ private:
     Item* FindItemInInventory(std::function<bool(ItemTemplate const*)> checkItem) const;
     void HandleCommands();
     void HandleCommand(uint32 type, const std::string& text, Player& fromPlayer, const uint32 lang = LANG_UNIVERSAL);
-    bool _isBotInitializing = false;
     inline bool IsValidUnit(const Unit* unit) const
     {
         return unit && unit->IsInWorld() && !unit->IsDuringRemoveFromWorld();
@@ -657,6 +657,7 @@ protected:
     BotCheatMask cheatMask = BotCheatMask::none;
     Position jumpDestination = Position();
     uint32 nextTransportCheck = 0;
+    bool spellInterruptRequested = false;
 };
 
 #endif

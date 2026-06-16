@@ -6,6 +6,7 @@
 #include "ShareQuestAction.h"
 
 #include "Event.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 
 bool ShareQuestAction::Execute(Event event)
@@ -32,7 +33,7 @@ bool ShareQuestAction::Execute(Event event)
             WorldPacket p;
             p << entry;
             bot->GetSession()->HandlePushQuestToParty(p);
-            botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_shared", "Quest shared"));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("quest_shared", "Quest shared"));
             return true;
         }
     }
@@ -40,9 +41,8 @@ bool ShareQuestAction::Execute(Event event)
     return false;
 }
 
-bool AutoShareQuestAction::Execute(Event event)
+bool AutoShareQuestAction::Execute(Event /*event*/)
 {
-    Player* requester = event.getOwner() ? event.getOwner() : GetMaster();
     bool shared = false;
 
     for (uint8 slot = 0; slot < MAX_QUEST_LOG_SIZE; ++slot)
@@ -99,7 +99,7 @@ bool AutoShareQuestAction::Execute(Event event)
         WorldPacket p;
         p << logQuest;
         bot->GetSession()->HandlePushQuestToParty(p);
-        botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_shared", "Quest shared"));
+botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("quest_shared", "Quest shared"));
         shared = true;
     }
 

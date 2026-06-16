@@ -212,12 +212,10 @@ bool BuyAction::Execute(Event event)
     }
 
     if (!vendored)
-    {
-        botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_no_vendors_nearby", "There are no vendors nearby"));
-        return false;
-    }
+        botAI->TellError(botAI->GetLocalizedBotTextOrDefault(
+            "no_vendors_nearby", "There are no vendors nearby"));
 
-    return true;
+    return vendored;
 }
 
 bool BuyAction::BuyItem(VendorItemData const* tItems, ObjectGuid vendorguid, ItemTemplate const* proto)

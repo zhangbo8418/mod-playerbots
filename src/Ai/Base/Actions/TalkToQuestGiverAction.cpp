@@ -244,7 +244,6 @@ bool TurnInQueryQuestAction::Execute(Event event)
     WorldPacket pakcet = event.getPacket();
     ObjectGuid guid;
     uint32 questId;
-    ObjectGuid unk1;
     pakcet >> guid >> questId;
     Object* object =
         ObjectAccessor::GetObjectByTypeMask(*bot, guid, TYPEMASK_UNIT | TYPEMASK_GAMEOBJECT | TYPEMASK_ITEM);

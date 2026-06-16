@@ -49,15 +49,20 @@ struct NewRpgInfo
     // RPG_TRAVEL_FLIGHT
     struct TravelFlight
     {
-        ObjectGuid fromFlightMaster{};
-        uint32 fromNode{0};
-        uint32 toNode{0};
+        uint32 flightMasterEntry{0};
+        WorldPosition flightMasterPos{};
+        std::vector<uint32> path;
         bool inFlight{false};
     };
     // RPG_REST
     struct Rest
     {
         Rest() = default;
+    };
+    // RPG_OUTDOOR_PVP
+    struct OutdoorPvP
+    {
+        ObjectGuid::LowType capturePointSpawnId{0};
     };
     struct Idle
     {
@@ -80,7 +85,8 @@ struct NewRpgInfo
         WanderRandom,
         DoQuest,
         Rest,
-        TravelFlight
+        TravelFlight,
+        OutdoorPvP
     >;
     RpgData data;
 
@@ -91,7 +97,8 @@ struct NewRpgInfo
     void ChangeToWanderNpc();
     void ChangeToWanderRandom();
     void ChangeToDoQuest(uint32 questId, const Quest* quest);
-    void ChangeToTravelFlight(ObjectGuid fromFlightMaster, uint32 fromNode, uint32 toNode);
+    void ChangeToTravelFlight(uint32 flightMasterEntry, WorldPosition flightMasterPos, std::vector<uint32> path);
+    void ChangeToOutdoorPvp(ObjectGuid::LowType capturePointSpawnId = 0);
     void ChangeToRest();
     void ChangeToIdle();
     bool CanChangeTo(NewRpgStatus status);
