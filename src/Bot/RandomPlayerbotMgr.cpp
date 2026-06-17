@@ -57,6 +57,8 @@
 #include "CellImpl.h"
 #include "GridNotifiersImpl.h"
 
+static Player* FindFirstRealConnectedPlayerInGroup(Group* group, Player* excludePlayer);
+
 struct GuidClassRaceInfo
 {
     ObjectGuid::LowType guid;
