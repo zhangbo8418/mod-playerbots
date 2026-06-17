@@ -2862,10 +2862,10 @@ void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
     if (group && !bot->InBattleground() && !group->isLFGGroup() && IsRandomBot(bot) &&
         !FindFirstRealConnectedPlayerInGroup(group, nullptr))
     {
+        ScheduleGroupDelayedLeave(group, 0);
+
         if (group->IsMember(bot->GetGUID()))
             group->RemoveMember(bot->GetGUID(), GROUP_REMOVEMETHOD_LEAVE);
-
-        ScheduleGroupDelayedLeave(group, 0);
     }
 }
 
