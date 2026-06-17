@@ -6,7 +6,10 @@
 #ifndef _PLAYERBOT_PLAYERBOTAI_H
 #define _PLAYERBOT_PLAYERBOTAI_H
 
+#include <atomic>
+#include <mutex>
 #include <stack>
+#include <vector>
 
 #include "Chat.h"
 #include "ChatFilter.h"
@@ -348,10 +351,12 @@ public:
     void AddHandler(uint16 opcode, std::string const handler);
     void Handle(ExternalEventHelper& helper);
     void AddPacket(WorldPacket const& packet);
+    bool HasHandler(uint16 opcode) const;
 
 private:
     std::map<uint16, std::string> handlers;
-    std::stack<WorldPacket> queue;
+    std::vector<WorldPacket> queue;
+    std::mutex mutex;
 };
 
 class ChatCommandHolder
@@ -393,6 +398,8 @@ public:
     void HandleCommand(uint32 type, std::string const text, Player* fromPlayer);
     void QueueChatResponse(const ChatQueuedReply reply);
     void HandleBotOutgoingPacket(WorldPacket const& packet);
+    void HandleBotOutgoingPacketInternal(WorldPacket const& packet);
+    void ProcessDeferredOutgoingPackets();
     void HandleMasterIncomingPacket(WorldPacket const& packet);
     void HandleMasterOutgoingPacket(WorldPacket const& packet);
     void HandleTeleportAck();
@@ -643,6 +650,9 @@ protected:
     ChatHelper chatHelper;
     std::list<ChatCommandHolder> chatCommands;
     std::list<ChatQueuedReply> chatReplies;
+    std::mutex deferredOutgoingMutex;
+    std::atomic<bool> hasDeferredOutgoingPackets{false};
+    std::vector<WorldPacket> deferredOutgoingPackets;
     PacketHandlingHelper botOutgoingPacketHandlers;
     PacketHandlingHelper masterIncomingPacketHandlers;
     PacketHandlingHelper masterOutgoingPacketHandlers;

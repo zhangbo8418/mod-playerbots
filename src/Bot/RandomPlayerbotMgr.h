@@ -105,6 +105,7 @@ public:
     static bool HandlePlayerbotConsoleCommand(ChatHandler* handler, char const* args);
     bool IsRandomBot(Player* bot);
     bool IsRandomBot(ObjectGuid::LowType bot);
+    static void SavePlayerToDB(Player* player, bool create = false, bool logout = false);
     bool IsAddclassBot(Player* bot);
     bool IsAddclassBot(ObjectGuid::LowType bot);
     void Randomize(Player* bot);
@@ -168,6 +169,7 @@ public:
 
     void PrepareAddclassCache();
     void Init();
+    bool IsBotInitializing() const { return _isBotInitializing; }
     std::map<uint8, std::unordered_set<ObjectGuid>> addclassCache;
 
     // Account type management

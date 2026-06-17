@@ -33,6 +33,7 @@
 #include "QuestDef.h"
 #include "RandomItemMgr.h"
 #include "RandomPlayerbotFactory.h"
+#include "RandomPlayerbotMgr.h"
 #include "ReputationMgr.h"
 #include "SharedDefines.h"
 #include "StatsWeightCalculator.h"
@@ -682,6 +683,7 @@ void PlayerbotFactory::Randomize(bool incremental)
     {
         uint32 specIndex = InitTalentsTree();
         sRandomPlayerbotMgr.SetValue(bot->GetGUID().GetCounter(), "specNo", specIndex + 1);
+        InitSecondaryTalentSpec(specIndex);
     }
     if (botAI)
     {
@@ -856,7 +858,7 @@ void PlayerbotFactory::Randomize(bool incremental)
     bot->SetMoney(urand(level * 100000, level * 5 * 100000));
     bot->SetHealth(bot->GetMaxHealth());
     bot->SetPower(POWER_MANA, bot->GetMaxPower(POWER_MANA));
-    bot->SaveToDB(false, false);
+    RandomPlayerbotMgr::SavePlayerToDB(bot, false, false);
     LOG_DEBUG("playerbots", "Initialization Done.");
     if (pmo)
         pmo->finish();
@@ -1555,7 +1557,7 @@ uint32 PlayerbotFactory::InitTalentsTree(bool increment /*false*/, bool use_temp
     return sPlayerbotAIConfig.randomClassSpecIndex[cls][specTab];
 }
 
-void PlayerbotFactory::InitTalentsBySpecNo(Player* bot, int specNo, bool reset)
+void PlayerbotFactory::InitTalentsBySpecNo(Player* bot, int specNo, bool reset, bool updateStoredSpecNo)
 {
     if (reset)
     {
@@ -1638,7 +1640,46 @@ void PlayerbotFactory::InitTalentsBySpecNo(Player* bot, int specNo, bool reset)
     }
 
     bot->SendTalentsInfoData(false);
-    sRandomPlayerbotMgr.SetValue(bot->GetGUID().GetCounter(), "specNo", (uint32)specNo + 1);
+    if (updateStoredSpecNo && sRandomPlayerbotMgr.IsRandomBot(bot))
+        sRandomPlayerbotMgr.SetValue(bot->GetGUID().GetCounter(), "specNo", (uint32)specNo + 1);
+}
+
+void PlayerbotFactory::InitSecondaryTalentSpec(uint32 primarySpecNo)
+{
+    uint32 const minDualSpecLevel = sWorld->getIntConfig(CONFIG_MIN_DUALSPEC_LEVEL);
+    if (bot->GetLevel() < minDualSpecLevel)
+        return;
+
+    if (bot->GetSpecsCount() < 2)
+    {
+        bot->CastSpell(bot, 63680, true, nullptr, nullptr, bot->GetGUID());
+        bot->CastSpell(bot, 63624, true, nullptr, nullptr, bot->GetGUID());
+    }
+
+    if (bot->GetSpecsCount() < 2)
+        return;
+
+    uint8 const cls = bot->getClass();
+    std::vector<int> candidates;
+    for (int specNo = 0; specNo < MAX_SPECNO; ++specNo)
+    {
+        if (sPlayerbotAIConfig.premadeSpecName[cls][specNo].empty())
+            break;
+
+        if (static_cast<uint32>(specNo) != primarySpecNo)
+            candidates.push_back(specNo);
+    }
+
+    if (candidates.empty())
+        return;
+
+    int const secondarySpecNo = candidates[urand(0, candidates.size() - 1)];
+    uint8 const activeSpec = bot->GetActiveSpec();
+    uint8 const secondarySpec = activeSpec == 0 ? 1 : 0;
+
+    bot->ActivateSpec(secondarySpec);
+    InitTalentsBySpecNo(bot, secondarySpecNo, true, false);
+    bot->ActivateSpec(activeSpec);
 }
 
 void PlayerbotFactory::InitTalentsByParsedSpecLink(Player* bot, std::vector<std::vector<uint32>> parsedSpecLink,

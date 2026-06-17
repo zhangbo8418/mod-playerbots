@@ -6,6 +6,7 @@
 #include "DruidTriggers.h"
 #include "DynamicObject.h"
 #include "Player.h"
+#include "PlayerbotAIConfig.h"
 #include "Playerbots.h"
 #include "ServerFacade.h"
 
@@ -31,7 +32,15 @@ bool BearFormTrigger::IsActive() { return !botAI->HasAnyAuraOf(bot, "bear form",
 bool TreeFormTrigger::IsActive()
 {
     constexpr uint32 SPELL_TREE_OF_LIFE = 33891;
-    return !bot->HasAura(SPELL_TREE_OF_LIFE);
+    if (bot->HasAura(SPELL_TREE_OF_LIFE))
+        return false;
+
+    // Tree of Life blocks wrath/starfire; avoid morph loop when healer DPS is active and no heal is needed.
+    if (botAI->HasStrategy("healer dps", BOT_STATE_COMBAT) && bot->IsInCombat() &&
+        AI_VALUE2(uint8, "health", "party member to heal") >= sPlayerbotAIConfig.almostFullHealth)
+        return false;
+
+    return true;
 }
 
 bool CatFormTrigger::IsActive() { return !botAI->HasAura("cat form", bot); }

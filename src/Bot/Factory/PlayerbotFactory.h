@@ -64,7 +64,7 @@ public:
     static uint32 tradeSkills[];
     static float CalculateEnchantScore(uint32 enchant_id, Player* bot);
     uint32 InitTalentsTree(bool incremental = false, bool use_template = true, bool reset = false);
-    static void InitTalentsBySpecNo(Player* bot, int specNo, bool reset);
+    static void InitTalentsBySpecNo(Player* bot, int specNo, bool reset, bool updateStoredSpecNo = true);
     static void InitTalentsByParsedSpecLink(Player* bot, std::vector<std::vector<uint32>> parsedSpecLink, bool reset);
     void InitAvailableSpells();
     void InitClassSpells();
@@ -89,6 +89,7 @@ public:
     void InitReputation();
     void InitAttunementQuests();
     void InitGuild();
+    void InitSecondaryTalentSpec(uint32 primarySpecNo);
 
 private:
     enum class ProfessionSpecializationSpell : uint32

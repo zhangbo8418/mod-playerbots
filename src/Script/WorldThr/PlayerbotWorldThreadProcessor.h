@@ -8,7 +8,9 @@
 
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <queue>
+#include <thread>
 
 #include "Log.h"
 #include "PlayerbotOperation.h"
@@ -104,6 +106,9 @@ public:
 
     bool IsEnabled() const { return m_enabled; }
 
+    static void MarkWorldThread();
+    static bool IsWorldThread();
+
 private:
     PlayerbotWorldThreadProcessor()
     : m_enabled(true),
@@ -152,6 +157,8 @@ private:
     // Timing
     uint32 m_timeSinceLastUpdate;
     uint32 m_updateInterval;  // Minimum ms between updates
+
+    static std::optional<std::thread::id> s_worldThreadId;
 };
 
 #endif

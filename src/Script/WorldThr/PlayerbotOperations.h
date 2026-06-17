@@ -412,6 +412,53 @@ private:
     std::string m_arenaTeamName;
 };
 
+// Deferred bot logout (must run on world thread)
+class BotDeferredLogoutOperation : public PlayerbotOperation
+{
+public:
+    explicit BotDeferredLogoutOperation(ObjectGuid botGuid) : m_botGuid(botGuid) {}
+
+    bool Execute() override
+    {
+        if (sRandomPlayerbotMgr.GetPlayerBot(m_botGuid))
+        {
+            sRandomPlayerbotMgr.LogoutPlayerBotInternal(m_botGuid);
+            return true;
+        }
+
+        Player* bot = ObjectAccessor::FindPlayer(m_botGuid);
+        if (!bot)
+            return false;
+
+        PlayerbotAI* botAI = PlayerbotsMgr::instance().GetPlayerbotAI(bot);
+        if (!botAI)
+            return false;
+
+        Player* master = botAI->GetMaster();
+        if (!master)
+            return false;
+
+        PlayerbotMgr* mgr = PlayerbotsMgr::instance().GetPlayerbotMgr(master);
+        if (!mgr || !mgr->GetPlayerBot(m_botGuid))
+            return false;
+
+        mgr->LogoutPlayerBotInternal(m_botGuid);
+        return true;
+    }
+
+    ObjectGuid GetBotGuid() const override { return m_botGuid; }
+    uint32 GetPriority() const override { return 80; }
+    std::string GetName() const override { return "BotDeferredLogout"; }
+
+    bool IsValid() const override
+    {
+        return ObjectAccessor::FindPlayer(m_botGuid) != nullptr;
+    }
+
+private:
+    ObjectGuid m_botGuid;
+};
+
 // Bot logout group cleanup operation
 class BotLogoutGroupCleanupOperation : public PlayerbotOperation
 {

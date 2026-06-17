@@ -347,6 +347,18 @@ void PlayerbotMgr::CancelLogout()
 
 void PlayerbotHolder::LogoutPlayerBot(ObjectGuid guid)
 {
+    if (!PlayerbotWorldThreadProcessor::IsWorldThread())
+    {
+        PlayerbotWorldThreadProcessor::instance().QueueOperation(
+            std::make_unique<BotDeferredLogoutOperation>(guid));
+        return;
+    }
+
+    LogoutPlayerBotInternal(guid);
+}
+
+void PlayerbotHolder::LogoutPlayerBotInternal(ObjectGuid guid)
+{
     if (Player* bot = GetPlayerBot(guid))
     {
         PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot);
@@ -358,7 +370,7 @@ void PlayerbotHolder::LogoutPlayerBot(ObjectGuid guid)
         PlayerbotWorldThreadProcessor::instance().QueueOperation(std::move(cleanupOp));
 
         LOG_DEBUG("playerbots", "Bot {} logging out", bot->GetName().c_str());
-        bot->SaveToDB(false, false);
+        RandomPlayerbotMgr::SavePlayerToDB(bot, false, false);
 
         WorldSession* botWorldSessionPtr = bot->GetSession();
         WorldSession* masterWorldSessionPtr = nullptr;
@@ -423,7 +435,7 @@ void PlayerbotHolder::DisablePlayerBot(ObjectGuid guid)
 
         LOG_DEBUG("playerbots", "Bot {} logged out", bot->GetName().c_str());
 
-        bot->SaveToDB(false, false);
+        RandomPlayerbotMgr::SavePlayerToDB(bot, false, false);
 
         if (botAI->GetAiObjectContext())  // Maybe some day re-write to delate all pointer values.
         {
@@ -588,7 +600,7 @@ botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("hello", "Hello!"), PLAYER
         bot->RemovePlayerFlag(PLAYER_FLAGS_NO_XP_GAIN);
     }
 
-    bot->SaveToDB(false, false);
+    RandomPlayerbotMgr::SavePlayerToDB(bot, false, false);
     bool addClassBot = sRandomPlayerbotMgr.IsAccountType(accountId, 2);
     if (addClassBot && master && abs((int)master->GetLevel() - (int)bot->GetLevel()) > 3)
     {
@@ -1613,7 +1625,7 @@ void PlayerbotMgr::SaveToDB()
     {
         Player* const bot = it->second;
         if (GET_PLAYERBOT_AI(bot) && GET_PLAYERBOT_AI(bot)->GetMaster() == GetMaster())
-            bot->SaveToDB(false, false);
+            RandomPlayerbotMgr::SavePlayerToDB(bot, false, false);
     }
 }
 

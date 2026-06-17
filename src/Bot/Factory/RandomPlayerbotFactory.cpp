@@ -6,6 +6,7 @@
 #include "RandomPlayerbotFactory.h"
 
 #include "AccountMgr.h"
+#include "RandomPlayerbotMgr.h"
 #include "ArenaTeamMgr.h"
 #include "DatabaseEnv.h"
 #include "PlayerbotAI.h"
@@ -718,7 +719,7 @@ void RandomPlayerbotFactory::CreateRandomBots()
                 continue;
             }
 
-            playerBot->SaveToDB(true, false);
+            RandomPlayerbotMgr::SavePlayerToDB(playerBot, true, false);
             sCharacterCache->AddCharacterCacheEntry(playerBot->GetGUID(), accountId, playerBot->GetName(),
                                                     playerBot->getGender(), playerBot->getRace(),
                                                     playerBot->getClass(), playerBot->GetLevel());

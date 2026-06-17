@@ -85,26 +85,74 @@ uint32 PlayerbotChatHandler::extractQuestId(std::string const str)
 
 void PacketHandlingHelper::AddHandler(uint16 opcode, std::string const handler) { handlers[opcode] = handler; }
 
+bool PacketHandlingHelper::HasHandler(uint16 opcode) const
+{
+    return handlers.find(opcode) != handlers.end();
+}
+
+namespace
+{
+thread_local ObjectGuid t_playerbotUpdatingBotGuid;
+
+bool ShouldHandleBotOutgoingOpcode(uint16 opcode, PacketHandlingHelper const& handlers)
+{
+    switch (opcode)
+    {
+        case SMSG_SPELL_FAILURE:
+        case SMSG_SPELL_DELAYED:
+        case SMSG_EMOTE:
+        case SMSG_MESSAGECHAT:
+        case SMSG_GM_MESSAGECHAT:
+        case SMSG_FORCE_MOVE_ROOT:
+        case SMSG_FORCE_MOVE_UNROOT:
+        case SMSG_MOVE_KNOCK_BACK:
+        case SMSG_DISMOUNT:
+            return true;
+        default:
+            return handlers.HasHandler(opcode);
+    }
+}
+
+class PlayerbotUpdateScope
+{
+public:
+    explicit PlayerbotUpdateScope(ObjectGuid guid) : _previous(t_playerbotUpdatingBotGuid)
+    {
+        t_playerbotUpdatingBotGuid = guid;
+    }
+
+    ~PlayerbotUpdateScope() { t_playerbotUpdatingBotGuid = _previous; }
+
+    PlayerbotUpdateScope(PlayerbotUpdateScope const&) = delete;
+    PlayerbotUpdateScope& operator=(PlayerbotUpdateScope const&) = delete;
+
+private:
+    ObjectGuid _previous;
+};
+}
+
 void PacketHandlingHelper::Handle(ExternalEventHelper& helper)
 {
-    while (!queue.empty())
+    std::vector<WorldPacket> batch;
     {
-        WorldPacket packet = queue.top();
-        queue.pop(); // remove first so handling can't modify the queue while we're using it
-
-        helper.HandlePacket(handlers, packet);
+        std::lock_guard<std::mutex> lock(mutex);
+        batch.swap(queue);
     }
+
+    for (WorldPacket const& packet : batch)
+        helper.HandlePacket(handlers, packet);
 }
 
 void PacketHandlingHelper::AddPacket(WorldPacket const& packet)
 {
     if (packet.empty())
         return;
-    // assert(handlers);
-    // assert(packet);
-    // assert(packet.GetOpcode());
-    if (handlers.find(packet.GetOpcode()) != handlers.end())
-        queue.push(WorldPacket(packet));
+
+    if (handlers.find(packet.GetOpcode()) == handlers.end())
+        return;
+
+    std::lock_guard<std::mutex> lock(mutex);
+    queue.push_back(WorldPacket(packet));
 }
 
 PlayerbotAI::PlayerbotAI()
@@ -481,12 +529,16 @@ void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal
     if (!bot->GetMap())
         return; // instances are created and destroyed on demand
 
+    PlayerbotUpdateScope const updateScope(bot->GetGUID());
+
     // kinda expensive call to make on every single updateAI, do we really need this information?
     std::string const mapString = WorldPosition(bot).isOverworld() ? std::to_string(bot->GetMapId()) : "I";
     PerfMonitorOperation* pmo =
         sPerfMonitor.start(PERF_MON_TOTAL, "PlayerbotAI::UpdateAIInternal " + mapString);
 
     ExternalEventHelper helper(aiObjectContext);
+
+    ProcessDeferredOutgoingPackets();
 
     // chat replies
     for (auto it = chatReplies.begin(); it != chatReplies.end();)
@@ -1107,6 +1159,47 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
 }
 
 void PlayerbotAI::HandleBotOutgoingPacket(WorldPacket const& packet)
+{
+    if (packet.empty() || !bot || !bot->IsInWorld() || bot->IsDuringRemoveFromWorld())
+        return;
+
+    if (!ShouldHandleBotOutgoingOpcode(packet.GetOpcode(), botOutgoingPacketHandlers))
+        return;
+
+    if (bot->GetGUID() == t_playerbotUpdatingBotGuid)
+    {
+        HandleBotOutgoingPacketInternal(packet);
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(deferredOutgoingMutex);
+    deferredOutgoingPackets.emplace_back(packet);
+    hasDeferredOutgoingPackets.store(true, std::memory_order_release);
+}
+
+void PlayerbotAI::ProcessDeferredOutgoingPackets()
+{
+    if (!hasDeferredOutgoingPackets.load(std::memory_order_acquire))
+        return;
+
+    std::vector<WorldPacket> batch;
+    {
+        std::lock_guard<std::mutex> lock(deferredOutgoingMutex);
+        if (deferredOutgoingPackets.empty())
+        {
+            hasDeferredOutgoingPackets.store(false, std::memory_order_release);
+            return;
+        }
+
+        batch.swap(deferredOutgoingPackets);
+        hasDeferredOutgoingPackets.store(false, std::memory_order_release);
+    }
+
+    for (WorldPacket const& packet : batch)
+        HandleBotOutgoingPacketInternal(packet);
+}
+
+void PlayerbotAI::HandleBotOutgoingPacketInternal(WorldPacket const& packet)
 {
     if (packet.empty())
         return;

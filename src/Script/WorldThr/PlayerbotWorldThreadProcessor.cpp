@@ -10,8 +10,25 @@
 #include "Timer.h"
 #include "Log.h"
 
+std::optional<std::thread::id> PlayerbotWorldThreadProcessor::s_worldThreadId;
+
+void PlayerbotWorldThreadProcessor::MarkWorldThread()
+{
+    s_worldThreadId = std::this_thread::get_id();
+}
+
+bool PlayerbotWorldThreadProcessor::IsWorldThread()
+{
+    if (!s_worldThreadId.has_value())
+        return true;
+
+    return std::this_thread::get_id() == s_worldThreadId.value();
+}
+
 void PlayerbotWorldThreadProcessor::Update(uint32 diff)
 {
+    MarkWorldThread();
+
     if (!m_enabled)
         return;
 

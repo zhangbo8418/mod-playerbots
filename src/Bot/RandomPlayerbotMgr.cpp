@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <boost/thread/thread.hpp>
 #include <cstdlib>
+#include <condition_variable>
+#include <mutex>
 #include <ctime>
 #include <iomanip>
 #include <random>
@@ -1387,7 +1389,15 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
         // do not randomize or teleport immediately after server start (prevent lagging)
         if (!GetEventValue(bot, "randomize"))
         {
-            randomTime = urand(3, std::max(4, static_cast<int>(randomBotUpdateInterval * 0.4)));
+            if (_isBotInitializing)
+            {
+                uint32 const spread = std::max(8u, sPlayerbotAIConfig.maxRandomBots / 25);
+                randomTime = urand(spread / 3, spread) + (bot % 5);
+            }
+            else
+            {
+                randomTime = urand(3, std::max(4, static_cast<int>(randomBotUpdateInterval * 0.4)));
+            }
             ScheduleRandomize(bot, randomTime);
         }
         if (!GetEventValue(bot, "teleport"))
@@ -2110,6 +2120,67 @@ void RandomPlayerbotMgr::Refresh(Player* bot)
 
     if (pmo)
         pmo->finish();
+}
+
+namespace
+{
+class RandomBotCharacterSaveLimiter
+{
+public:
+    static RandomBotCharacterSaveLimiter& Instance()
+    {
+        static RandomBotCharacterSaveLimiter instance;
+        return instance;
+    }
+
+    void Save(Player* player, bool create, bool logout, size_t maxConcurrent)
+    {
+        std::unique_lock<std::mutex> lock(_mutex);
+        _cv.wait(lock, [&] { return _active < maxConcurrent; });
+        ++_active;
+        lock.unlock();
+
+        player->SaveToDB(create, logout);
+
+        {
+            std::lock_guard<std::mutex> guard(_mutex);
+            --_active;
+        }
+        _cv.notify_one();
+    }
+
+private:
+    std::mutex _mutex;
+    std::condition_variable _cv;
+    size_t _active = 0;
+};
+
+size_t GetRandomBotSaveConcurrency()
+{
+    uint32 const perInterval = sPlayerbotAIConfig.randomBotsPerInterval;
+    if (sRandomPlayerbotMgr.IsBotInitializing())
+        return std::clamp<uint32>(perInterval / 15, 2, 4);
+
+    return std::clamp<uint32>(perInterval / 8, 4, 8);
+}
+}
+
+void RandomPlayerbotMgr::SavePlayerToDB(Player* player, bool create, bool logout)
+{
+    if (!player)
+        return;
+
+    WorldSession* session = player->GetSession();
+    bool const isRandomAccount =
+        session && sPlayerbotAIConfig.IsInRandomAccountList(session->GetAccountId());
+
+    if (!isRandomAccount)
+    {
+        player->SaveToDB(create, logout);
+        return;
+    }
+
+    RandomBotCharacterSaveLimiter::Instance().Save(player, create, logout, GetRandomBotSaveConcurrency());
 }
 
 bool RandomPlayerbotMgr::IsRandomBot(Player* bot)
