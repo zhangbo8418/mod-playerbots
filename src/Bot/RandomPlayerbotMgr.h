@@ -6,6 +6,8 @@
 #ifndef _PLAYERBOT_RANDOMPLAYERBOTMGR_H
 #define _PLAYERBOT_RANDOMPLAYERBOTMGR_H
 
+#include <mutex>
+
 #include "NewRpgInfo.h"
 #include "ObjectGuid.h"
 #include "PlayerbotMgr.h"
@@ -118,6 +120,7 @@ public:
     void HandleCommand(uint32 type, std::string const text, Player* fromPlayer, std::string channelName = "");
     std::string const HandleRemoteCommand(std::string const request);
     void OnPlayerLogout(Player* player);
+    void HandlePlayerLogoutGroupLogic(ObjectGuid const& playerGuid);
     void OnPlayerLogin(Player* player);
     void OnPlayerLoginError(uint32 bot);
     Player* GetRandomPlayer();
@@ -257,6 +260,7 @@ private:
     uint32 playersLevel;
 
     // Groups scheduled for bot leave when no real player remains (groupGuidLow -> leave at time)
+    std::mutex m_groupsScheduledToLeaveMutex;
     std::map<ObjectGuid::LowType, time_t> m_groupsScheduledToLeave;
     void ProcessScheduledGroupLeaves();
 

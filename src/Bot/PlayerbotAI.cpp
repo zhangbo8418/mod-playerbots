@@ -4503,6 +4503,9 @@ Player* PlayerbotAI::FindNewMaster()
         if (!member || member == bot || !member->IsInWorld() || !member->IsInSameRaidWith(bot))
             continue;
 
+        if (!member->GetSession() || member->GetSession()->PlayerLogout())
+            continue;
+
         PlayerbotAI* memberBotAI = GET_PLAYERBOT_AI(member);
         if ((!memberBotAI || memberBotAI->IsRealPlayer()) && !bot->InBattleground())
             return member;

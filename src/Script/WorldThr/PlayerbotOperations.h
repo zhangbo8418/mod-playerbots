@@ -412,6 +412,26 @@ private:
     std::string m_arenaTeamName;
 };
 
+// Real player logout: transfer leader / schedule delayed bot leave (world thread only)
+class PlayerLogoutGroupOperation : public PlayerbotOperation
+{
+public:
+    explicit PlayerLogoutGroupOperation(ObjectGuid playerGuid) : m_playerGuid(playerGuid) {}
+
+    bool Execute() override
+    {
+        sRandomPlayerbotMgr.HandlePlayerLogoutGroupLogic(m_playerGuid);
+        return true;
+    }
+
+    ObjectGuid GetBotGuid() const override { return m_playerGuid; }
+    uint32 GetPriority() const override { return 90; }
+    std::string GetName() const override { return "PlayerLogoutGroup"; }
+
+private:
+    ObjectGuid m_playerGuid;
+};
+
 // Deferred bot logout (must run on world thread)
 class BotDeferredLogoutOperation : public PlayerbotOperation
 {
