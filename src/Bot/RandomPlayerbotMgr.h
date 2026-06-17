@@ -180,6 +180,7 @@ public:
     bool IsAccountType(uint32 accountId, uint8 accountType);
 
     void ScheduleGroupDelayedLeave(Group* group);
+    void ScheduleGroupDelayedLeave(Group* group, uint32 delaySeconds);
 
 protected:
     void OnBotLoginInternal(Player* const bot) override;

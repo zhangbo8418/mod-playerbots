@@ -107,7 +107,8 @@ AiPlayerbot.DisabledWithoutRealPlayer = 0
 AiPlayerbot.DisabledWithoutRealPlayerLoginDelay = 30
 AiPlayerbot.DisabledWithoutRealPlayerLogoutDelay = 300
 
-# When the last real player leaves a group, bots leave after this delay (seconds) to avoid disband on accidental disconnect
+# When the last real player leaves a group, bots leave after this delay (seconds) to avoid disband on accidental disconnect.
+# Does not apply on server restart / bot login recovery (those leave on the next world tick).
 # Default: 180
 AiPlayerbot.BotLeaveGroupDelayWhenNoRealPlayer = 180
 

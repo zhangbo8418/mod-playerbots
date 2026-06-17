@@ -1506,12 +1506,24 @@ bool RandomPlayerbotMgr::ProcessBot(Player* bot)
         return false;
     }
 
-    // leave group if leader is rndbot
+    // leave bot-only groups (no connected real player), but respect post-logout grace delay
     Group* group = bot->GetGroup();
-    if (group && !group->isLFGGroup() && IsRandomBot(group->GetLeader()))
+    if (group && !group->isLFGGroup() && !bot->InBattleground() && IsRandomBot(bot) &&
+        !FindFirstRealConnectedPlayerInGroup(group, nullptr))
     {
-        botAI->LeaveOrDisbandGroup();
-        LOG_INFO("playerbots", "Bot {} remove from group since leader is random bot.", bot->GetName().c_str());
+        bool gracePending = false;
+        {
+            std::lock_guard<std::mutex> lock(m_groupsScheduledToLeaveMutex);
+            auto const it = m_groupsScheduledToLeave.find(group->GetGUID().GetCounter());
+            if (it != m_groupsScheduledToLeave.end() && it->second > time(nullptr))
+                gracePending = true;
+        }
+
+        if (!gracePending && group->IsMember(bot->GetGUID()))
+        {
+            group->RemoveMember(bot->GetGUID(), GROUP_REMOVEMETHOD_LEAVE);
+            LOG_INFO("playerbots", "Bot {} left bot-only group.", bot->GetName().c_str());
+        }
     }
 
     // only randomize and teleport idle bots
@@ -2740,10 +2752,15 @@ void RandomPlayerbotMgr::HandlePlayerLogoutGroupLogic(ObjectGuid const& playerGu
 
 void RandomPlayerbotMgr::ScheduleGroupDelayedLeave(Group* group)
 {
+    ScheduleGroupDelayedLeave(group, sPlayerbotAIConfig.botLeaveGroupDelayWhenNoRealPlayer);
+}
+
+void RandomPlayerbotMgr::ScheduleGroupDelayedLeave(Group* group, uint32 delaySeconds)
+{
     if (!group)
         return;
 
-    time_t const leaveAt = time(nullptr) + sPlayerbotAIConfig.botLeaveGroupDelayWhenNoRealPlayer;
+    time_t const leaveAt = time(nullptr) + delaySeconds;
     std::lock_guard<std::mutex> lock(m_groupsScheduledToLeaveMutex);
     m_groupsScheduledToLeave[group->GetGUID().GetCounter()] = leaveAt;
 }
@@ -2838,12 +2855,15 @@ void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
     }
 
     // After server crash/restart, group is restored from DB but leader may be offline or group may have no real player
-    // → schedule delayed leave so bots don't stay stuck (and become uninvitable) if no real player logs in
+    // → leave immediately so bots are invitable again (logout grace delay does not apply here)
     Group* group = bot->GetGroup();
-    if (group && !bot->InBattleground() && !group->isLFGGroup())
+    if (group && !bot->InBattleground() && !group->isLFGGroup() && IsRandomBot(bot) &&
+        !FindFirstRealConnectedPlayerInGroup(group, nullptr))
     {
-        if (!FindFirstRealConnectedPlayerInGroup(group, nullptr))
-            ScheduleGroupDelayedLeave(group);
+        if (group->IsMember(bot->GetGUID()))
+            group->RemoveMember(bot->GetGUID(), GROUP_REMOVEMETHOD_LEAVE);
+
+        ScheduleGroupDelayedLeave(group, 0);
     }
 }
 
