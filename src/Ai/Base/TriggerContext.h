@@ -52,6 +52,7 @@ public:
         creators["low mana"] = &TriggerContext::LowMana;
         creators["medium mana"] = &TriggerContext::MediumMana;
         creators["low energy"] = &TriggerContext::LowEnergy;
+        creators["low runic power"] = &TriggerContext::LowRunicPower;
         creators["high mana"] = &TriggerContext::HighMana;
         creators["almost full mana"] = &TriggerContext::AlmostFullMana;
         creators["enough mana"] = &TriggerContext::EnoughMana;
@@ -317,6 +318,7 @@ private:
     static Trigger* LowMana(PlayerbotAI* botAI) { return new LowManaTrigger(botAI); }
     static Trigger* MediumMana(PlayerbotAI* botAI) { return new MediumManaTrigger(botAI); }
     static Trigger* LowEnergy(PlayerbotAI* botAI) { return new LowEnergyTrigger(botAI); }
+    static Trigger* LowRunicPower(PlayerbotAI* botAI) { return new LowRunicPowerTrigger(botAI); }
     static Trigger* HighMana(PlayerbotAI* botAI) { return new HighManaTrigger(botAI); }
     static Trigger* AlmostFullMana(PlayerbotAI* botAI) { return new AlmostFullManaTrigger(botAI); }
     static Trigger* EnoughMana(PlayerbotAI* botAI) { return new EnoughManaTrigger(botAI); }

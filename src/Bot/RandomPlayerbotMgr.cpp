@@ -2632,8 +2632,8 @@ void RandomPlayerbotMgr::HandleCommand(uint32 type, std::string const text, Play
 //      · If still none: only random bots in that group leave (IsRandomBot); alt/addclass are not kicked.
 //
 // 3) Crash/restart (OnBotLoginInternal)
-//    - When a random bot logs in, if it is in a group and the group has no connected real player -> schedule
-//      delayed leave for that group so bots do not stay stuck and uninvitable.
+//    - When a random bot logs in, if it is in a group and the group has no connected real player -> leave
+//      immediately and schedule cleanup for any remaining bots on the next tick.
 //
 // Find first real (non-bot) connected player in group, excluding excludePlayer
 static Player* FindFirstRealConnectedPlayerInGroup(Group* group, Player* excludePlayer)

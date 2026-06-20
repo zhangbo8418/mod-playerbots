@@ -17,11 +17,27 @@ namespace
     constexpr uint32 SPELL_WILL_OF_THE_FORSAKEN = 7744;
     constexpr uint32 SPELL_STONEFORM = 20594;
     constexpr uint32 SPELL_ESCAPE_ARTIST = 20589;
+
+    class RacialsStrategyActionNodeFactory : public NamedObjectFactory<ActionNode>
+    {
+    public:
+        RacialsStrategyActionNodeFactory() { creators["lifeblood"] = &lifeblood; }
+
+    private:
+        static ActionNode* lifeblood(PlayerbotAI* /*botAI*/)
+        {
+            return new ActionNode("lifeblood",
+                                  /*P*/ {},
+                                  /*A*/ { NextAction("gift of the naaru") },
+                                  /*C*/ {});
+        }
+    };
 }
 
 RacialsStrategy::RacialsStrategy(PlayerbotAI* botAI) : Strategy(botAI)
 {
-    // No custom ActionNodeFactory needed
+    if (botAI->HasSpell("lifeblood"))
+        actionNodeFactories.Add(new RacialsStrategyActionNodeFactory());
 }
 
 void RacialsStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
@@ -42,9 +58,8 @@ void RacialsStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 
     if (bot->HasSpell(SPELL_ARCANE_TORRENT_RUNIC_POWER))
     {
-        // No low runic power trigger exists; this trigger should be modified if one is added
         triggers.push_back(new TriggerNode(
-            "generic boost", { NextAction("arcane torrent", ACTION_NORMAL + 5) }));
+            "low runic power", { NextAction("arcane torrent", ACTION_NORMAL + 5) }));
     }
 
     if (bot->HasSpell(SPELL_WAR_STOMP))
@@ -89,17 +104,15 @@ void RacialsStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
             "generic boost", { NextAction("blood fury", ACTION_NORMAL + 5) }));
     }
 
-    if (botAI->HasSpell("gift of the naaru"))
-    {
-        // Currently targets self only
-        triggers.push_back(new TriggerNode(
-            "medium health", { NextAction("gift of the naaru", ACTION_LIGHT_HEAL + 5) }));
-    }
-
     if (botAI->HasSpell("lifeblood"))
     {
         triggers.push_back(new TriggerNode(
             "medium health", { NextAction("lifeblood", ACTION_LIGHT_HEAL + 5) }));
+    }
+    else if (botAI->HasSpell("gift of the naaru"))
+    {
+        triggers.push_back(new TriggerNode(
+            "medium health", { NextAction("gift of the naaru", ACTION_LIGHT_HEAL + 5) }));
     }
 
     triggers.push_back(new TriggerNode(

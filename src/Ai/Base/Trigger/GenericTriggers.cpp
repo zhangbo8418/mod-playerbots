@@ -40,6 +40,18 @@ bool LowEnergyTrigger::IsActive()
     return AI_VALUE2(uint8, "energy", "self target") < threshold;
 }
 
+bool LowRunicPowerTrigger::IsActive()
+{
+    if (bot->getClass() != CLASS_DEATH_KNIGHT)
+        return false;
+
+    int32 const maxPower = bot->GetMaxPower(POWER_RUNIC_POWER);
+    if (maxPower <= 0)
+        return false;
+
+    return bot->GetPower(POWER_RUNIC_POWER) * 100 / maxPower < threshold;
+}
+
 bool NoPetTrigger::IsActive()
 {
     return bot->GetMinionGUID().IsEmpty() && !AI_VALUE(Unit*, "pet target") && !bot->GetGuardianPet() &&

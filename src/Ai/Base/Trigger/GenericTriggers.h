@@ -540,6 +540,20 @@ private:
     uint8 threshold;
 };
 
+class LowRunicPowerTrigger : public Trigger
+{
+public:
+    LowRunicPowerTrigger(PlayerbotAI* botAI, uint8 threshold = 30)
+        : Trigger(botAI, "low runic power"), threshold(threshold)
+    {
+    }
+
+    bool IsActive() override;
+
+private:
+    uint8 threshold;
+};
+
 BEGIN_TRIGGER(PanicTrigger, Trigger) // cppcheck-suppress unknownMacro
 std::string const getName() override { return "panic"; }
 END_TRIGGER()

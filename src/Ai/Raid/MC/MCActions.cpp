@@ -111,7 +111,7 @@ bool McGolemaggTankAction::FindCoreRagers(Unit*& coreRager1, Unit*& coreRager2) 
             }
         }
     }
-    return coreRager1 != nullptr && coreRager2 != nullptr;
+    return coreRager1 != nullptr;
 }
 
 bool McGolemaggMainTankAttackGolemaggAction::Execute(Event /*event*/)
@@ -124,8 +124,9 @@ bool McGolemaggMainTankAttackGolemaggAction::Execute(Event /*event*/)
         if (!FindCoreRagers(coreRager1, coreRager2))
             return false; // safety check
 
-        // We only need to move if the Core Ragers still have Golemagg's Trust
-        if (coreRager1->HasAura(SPELL_GOLEMAGGS_TRUST) || coreRager2->HasAura(SPELL_GOLEMAGGS_TRUST))
+        // We only need to move if any living Core Rager still has Golemagg's Trust
+        if (coreRager1->HasAura(SPELL_GOLEMAGGS_TRUST) ||
+            (coreRager2 && coreRager2->HasAura(SPELL_GOLEMAGGS_TRUST)))
             return MoveUnitToPosition(boss, GOLEMAGG_TANK_POSITION, boss->GetCombatReach());
     }
     return false;
@@ -143,13 +144,16 @@ bool McGolemaggAssistTankAttackCoreRagerAction::Execute(Event event)
     if (!isFirstAssistTank && !isSecondAssistTank)
         return Attack(boss);
 
-    // Step 1: Find both Core Ragers
+    // Step 1: Find living Core Ragers (one may already be dead)
     Unit* coreRager1;
     Unit* coreRager2;
     if (!FindCoreRagers(coreRager1, coreRager2))
-        return false; // safety check
+        return false;
 
     // Step 2: Assign Core Rager to bot
+    if (isSecondAssistTank && !coreRager2)
+        return Attack(boss);
+
     Unit* myCoreRager = nullptr;
     Unit* otherCoreRager = nullptr;
     if (isFirstAssistTank)
@@ -172,8 +176,8 @@ bool McGolemaggAssistTankAttackCoreRagerAction::Execute(Event event)
         return botAI->DoSpecificAction("taunt spell", event, true);
     }
 
-    Unit* otherCoreRagerVictim = otherCoreRager->GetVictim();
-    if (otherCoreRagerVictim) // Core Rager victim can be NULL
+    Unit* otherCoreRagerVictim = otherCoreRager ? otherCoreRager->GetVictim() : nullptr;
+    if (otherCoreRagerVictim)
     {
         // Step 3.2: Check if the other Core Rager isn't attacking its assist tank.
         Player* otherCoreRagerPlayerVictim = otherCoreRagerVictim->ToPlayer();
@@ -193,7 +197,7 @@ bool McGolemaggAssistTankAttackCoreRagerAction::Execute(Event event)
 
     // Step 4: Prevent Golemagg's Trust on Core Ragers
     if (myCoreRager->HasAura(SPELL_GOLEMAGGS_TRUST) ||
-        (otherCoreRagerVictim == bot && otherCoreRager->HasAura(SPELL_GOLEMAGGS_TRUST)))
+        (otherCoreRager && otherCoreRagerVictim == bot && otherCoreRager->HasAura(SPELL_GOLEMAGGS_TRUST)))
     {
         // Step 4.1: Move Core Ragers to dedicated tank position (only if Golemagg is far enough away from said position)
         float bossDistanceToCoreRagerTankPosition = boss->GetExactDist2d(
@@ -251,6 +255,10 @@ bool McCoreHoundMarkAction::Execute(Event /*event*/)
     if (!target)
         return false;
 
-    bot->GetGroup()->SetTargetIcon(RtiTargetValue::skullIndex, bot->GetGUID(), target->GetGUID());
+    Group* group = bot->GetGroup();
+    if (!group)
+        return false;
+
+    group->SetTargetIcon(RtiTargetValue::skullIndex, bot->GetGUID(), target->GetGUID());
     return true;
 }
