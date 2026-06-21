@@ -13,13 +13,14 @@
 #include "ObjectGuid.h"
 #include "Player.h"
 #include "PlayerbotTextMgr.h"
+#include "World.h"
 
 inline uint32 GetPlayerSessionLocale(Player* player)
 {
     if (player && player->GetSession())
         return static_cast<uint32>(player->GetSession()->GetSessionDbcLocale());
 
-    return LOCALE_enUS;
+    return static_cast<uint32>(sWorld->GetDefaultDbcLocale());
 }
 
 inline std::string GetPlayerLocalizedText(Player* player, std::string const key, std::string const defaultText,

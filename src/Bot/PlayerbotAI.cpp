@@ -38,6 +38,7 @@
 #include "ObjectMgr.h"
 #include "PerfMonitor.h"
 #include "Player.h"
+#include "PlayerbotTextHelper.h"
 #include "PlayerbotTextMgr.h"
 #include "PlayerbotAIConfig.h"
 #include "PlayerbotMgr.h"
@@ -3080,12 +3081,7 @@ std::string PlayerbotAI::GetLocalizedBotText(std::string const name,
 std::string PlayerbotAI::GetLocalizedBotText(std::string const name,
                                              std::map<std::string, std::string> placeholders, Player* forLocale)
 {
-    uint32 locale;
-    if (forLocale && forLocale->GetSession())
-        locale = static_cast<uint32>(forLocale->GetSession()->GetSessionDbcLocale());
-    else
-        locale = static_cast<uint32>(sWorld->GetDefaultDbcLocale());
-    return PlayerbotTextMgr::instance().GetBotTextForLocale(name, locale, placeholders);
+    return PlayerbotTextMgr::instance().GetBotTextForLocale(name, GetPlayerSessionLocale(forLocale), placeholders);
 }
 
 std::string PlayerbotAI::GetLocalizedBotTextOrDefault(std::string const name, std::string const defaultText,
