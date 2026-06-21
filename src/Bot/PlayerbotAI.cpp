@@ -5424,7 +5424,8 @@ std::string const PlayerbotAI::HandleRemoteCommand(std::string const command)
         out << GetLocalizedBotTextOrDefault("msg_remote_budget_money",
             "Current money: %money free to use:%free\n",
             {{"%money", ChatHelper::formatMoney(bot->GetMoney())},
-             {"%free", ChatHelper::formatMoney(AI_VALUE2(uint32, "free money for", (uint32)NeedMoneyFor::anything))}});
+             {"%free", ChatHelper::formatMoney(
+                 GetAiObjectContext()->GetValue<uint32>("free money for", (uint32)NeedMoneyFor::anything)->Get())}});
         out << GetLocalizedBotTextOrDefault("msg_remote_budget_header", "Purpose | Available / Needed \n");
 
         for (uint32 i = 1; i < (uint32)NeedMoneyFor::anything; i++)
@@ -5469,8 +5470,10 @@ std::string const PlayerbotAI::HandleRemoteCommand(std::string const command)
 
             out << GetLocalizedBotTextOrDefault("msg_remote_budget_line", "%purpose | %available / %needed\n",
                 {{"%purpose", GetLocalizedBotTextOrDefault(purposeKey, purposeDefault)},
-                 {"%available", ChatHelper::formatMoney(AI_VALUE2(uint32, "free money for", i))},
-                 {"%needed", ChatHelper::formatMoney(AI_VALUE2(uint32, "money needed for", i))}});
+                 {"%available", ChatHelper::formatMoney(
+                     GetAiObjectContext()->GetValue<uint32>("free money for", i)->Get())},
+                 {"%needed", ChatHelper::formatMoney(
+                     GetAiObjectContext()->GetValue<uint32>("money needed for", i)->Get())}});
         }
 
         return out.str();

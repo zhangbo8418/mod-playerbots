@@ -3158,8 +3158,8 @@ void RandomPlayerbotMgr::PrintStats()
         {
             uint32 lvl = lvlPerClass[cls] * 10 / perClass[cls];
             float flvl = lvl / 10.0f;
-            LOG_INFO("playerbots", "    {}: {}, avg lvl: {}", ChatHelper::FormatClass(cls).c_str(), perClass[cls],
-                     flvl);
+            ChatHelper chatHelper(nullptr);
+            LOG_INFO("playerbots", "    {}: {}, avg lvl: {}", chatHelper.FormatClass(cls), perClass[cls], flvl);
         }
     }
 
