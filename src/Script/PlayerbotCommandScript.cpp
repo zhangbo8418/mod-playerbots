@@ -18,10 +18,31 @@
 #include "GuildTaskMgr.h"
 #include "PerfMonitor.h"
 #include "PlayerbotMgr.h"
+#include "PlayerbotTextMgr.h"
 #include "RandomPlayerbotMgr.h"
 #include "ScriptMgr.h"
 
 using namespace Acore::ChatCommands;
+
+namespace
+{
+std::string GetPlayerLocalizedText(Player* player, std::string const key, std::string const defaultText,
+                                   std::map<std::string, std::string> placeholders = {})
+{
+    uint32 locale = LOCALE_enUS;
+    if (player && player->GetSession())
+        locale = static_cast<uint32>(player->GetSession()->GetSessionDbcLocale());
+
+    std::string localized = PlayerbotTextMgr::instance().GetBotTextForLocale(key, locale, placeholders);
+    if (!localized.empty())
+        return localized;
+
+    std::string result = defaultText;
+    for (auto const& placeholder : placeholders)
+        PlayerbotTextMgr::replaceAll(result, placeholder.first, placeholder.second);
+    return result;
+}
+}
 
 class playerbots_commandscript : public CommandScript
 {
@@ -115,7 +136,9 @@ public:
     {
         if (!args || !*args)
         {
-            handler->PSendSysMessage("Usage: .playerbots account setKey <securityKey>");
+            Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
+            handler->PSendSysMessage(GetPlayerLocalizedText(player, "msg_account_setkey_usage",
+                "Usage: .playerbots account setKey <securityKey>").c_str());
             return false;
         }
 
@@ -130,7 +153,8 @@ public:
         }
         else
         {
-            handler->PSendSysMessage("PlayerbotMgr instance not found.");
+            handler->PSendSysMessage(GetPlayerLocalizedText(player, "msg_bot_mgr_not_found",
+                "PlayerbotMgr instance not found.").c_str());
             return false;
         }
     }
@@ -145,7 +169,9 @@ public:
 
         if (!accountName || !key)
         {
-            handler->PSendSysMessage("Usage: .playerbots account link <accountName> <securityKey>");
+            Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
+            handler->PSendSysMessage(GetPlayerLocalizedText(player, "msg_account_link_usage",
+                "Usage: .playerbots account link <accountName> <securityKey>").c_str());
             return false;
         }
 
@@ -159,7 +185,8 @@ public:
         }
         else
         {
-            handler->PSendSysMessage("PlayerbotMgr instance not found.");
+            handler->PSendSysMessage(GetPlayerLocalizedText(player, "msg_bot_mgr_not_found",
+                "PlayerbotMgr instance not found.").c_str());
             return false;
         }
     }
@@ -176,7 +203,8 @@ public:
         }
         else
         {
-            handler->PSendSysMessage("PlayerbotMgr instance not found.");
+            handler->PSendSysMessage(GetPlayerLocalizedText(player, "msg_bot_mgr_not_found",
+                "PlayerbotMgr instance not found.").c_str());
             return false;
         }
     }
@@ -189,7 +217,9 @@ public:
         char* accountName = strtok((char*)args, " ");
         if (!accountName)
         {
-            handler->PSendSysMessage("Usage: .playerbots account unlink <accountName>");
+            Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
+            handler->PSendSysMessage(GetPlayerLocalizedText(player, "msg_account_unlink_usage",
+                "Usage: .playerbots account unlink <accountName>").c_str());
             return false;
         }
 
@@ -203,7 +233,8 @@ public:
         }
         else
         {
-            handler->PSendSysMessage("PlayerbotMgr instance not found.");
+            handler->PSendSysMessage(GetPlayerLocalizedText(player, "msg_bot_mgr_not_found",
+                "PlayerbotMgr instance not found.").c_str());
             return false;
         }
     }

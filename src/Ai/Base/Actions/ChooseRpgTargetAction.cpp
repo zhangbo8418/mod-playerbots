@@ -256,12 +256,9 @@ bool ChooseRpgTargetAction::Execute(Event /*event*/)
 
     if (botAI->HasStrategy("debug", BOT_STATE_NON_COMBAT) && guidP.GetWorldObject())
     {
-        std::ostringstream out;
-        out << "found: ";
-        out << chat->FormatWorldobject(guidP.GetWorldObject());
-        out << " " << relevances.front();
-
-        botAI->TellMasterNoFacing(out);
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_debug_rpg_found", "found: %target %relevance",
+            {{"%target", chat->FormatWorldobject(guidP.GetWorldObject())},
+             {"%relevance", std::to_string(relevances.front())}}));
     }
 
     SET_AI_VALUE(GuidPosition, "rpg target", guidP);

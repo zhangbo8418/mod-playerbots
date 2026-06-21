@@ -506,18 +506,18 @@ void Engine::PushDefaultActions()
 
 std::string const Engine::ListStrategies()
 {
-    std::string s = "Strategies: ";
-
     if (strategies.empty())
-        return s;
+        return botAI->GetLocalizedBotTextOrDefault("msg_strategies_empty", "Strategies: ");
 
+    std::string list;
     for (std::map<std::string, Strategy*>::iterator i = strategies.begin(); i != strategies.end(); i++)
     {
-        s.append(i->first);
-        s.append(", ");
+        list.append(i->first);
+        list.append(", ");
     }
 
-    return s.substr(0, s.length() - 2);
+    list = list.substr(0, list.length() - 2);
+    return botAI->GetLocalizedBotTextOrDefault("msg_strategies_list", "Strategies: %list", {{"%list", list}});
 }
 
 std::vector<std::string> Engine::GetStrategies()
@@ -580,21 +580,16 @@ bool Engine::ListenAndExecute(Action* action, Event event)
 
     if (botAI->HasStrategy("debug", BOT_STATE_NON_COMBAT))
     {
-        std::ostringstream out;
-        out << "do: ";
-        out << action->getName();
+        std::map<std::string, std::string> placeholders;
+        placeholders["%action"] = action->getName();
+        placeholders["%executed"] = actionExecuted ? "1" : "0";
+        placeholders["%relevance"] = std::to_string(action->getRelevance());
+        placeholders["%source"] = event.GetSource().empty()
+            ? std::string()
+            : " [" + event.GetSource() + "]";
 
-        if (actionExecuted)
-            out << " 1 (";
-        else
-            out << " 0 (";
-
-        out << action->getRelevance() << ")";
-
-        if (!event.GetSource().empty())
-            out << " [" << event.GetSource() << "]";
-
-        botAI->TellMasterNoFacing(out);
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_debug_do_action",
+            "do: %action %executed (%relevance%)%source", placeholders));
     }
 
     actionExecuted = actionExecutionListeners.OverrideResult(action, actionExecuted, event);

@@ -25,31 +25,31 @@ std::string TellReputationAction::BuildReputationLine(FactionEntry const* entry)
     switch (rank)
     {
         case REP_HATED:
-            out << "cc2222hated";
+            out << "cc2222" << botAI->GetLocalizedBotTextOrDefault("msg_rep_hated", "hated");
             break;
         case REP_HOSTILE:
-            out << "ff0000hostile";
+            out << "ff0000" << botAI->GetLocalizedBotTextOrDefault("msg_rep_hostile", "hostile");
             break;
         case REP_UNFRIENDLY:
-            out << "ee6622unfriendly";
+            out << "ee6622" << botAI->GetLocalizedBotTextOrDefault("msg_rep_unfriendly", "unfriendly");
             break;
         case REP_NEUTRAL:
-            out << "ffff00neutral";
+            out << "ffff00" << botAI->GetLocalizedBotTextOrDefault("msg_rep_neutral", "neutral");
             break;
         case REP_FRIENDLY:
-            out << "00ff00friendly";
+            out << "00ff00" << botAI->GetLocalizedBotTextOrDefault("msg_rep_friendly", "friendly");
             break;
         case REP_HONORED:
-            out << "00ff88honored";
+            out << "00ff88" << botAI->GetLocalizedBotTextOrDefault("msg_rep_honored", "honored");
             break;
         case REP_REVERED:
-            out << "00ffccrevered";
+            out << "00ffcc" << botAI->GetLocalizedBotTextOrDefault("msg_rep_revered", "revered");
             break;
         case REP_EXALTED:
-            out << "00ffffexalted";
+            out << "00ffff" << botAI->GetLocalizedBotTextOrDefault("msg_rep_exalted", "exalted");
             break;
         default:
-            out << "808080unknown";
+            out << "808080" << botAI->GetLocalizedBotTextOrDefault("msg_rep_unknown", "unknown");
             break;
     }
 

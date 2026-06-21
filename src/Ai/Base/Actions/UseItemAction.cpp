@@ -276,17 +276,17 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
         if (isDrink && isFood)
         {
             p = std::min(hp, mp);
-            TellConsumableUse(item, "Feasting", p);
+            TellConsumableUse(item, "msg_consumable_feasting", "Feasting", p);
         }
         else if (isDrink)
         {
             p = mp;
-            TellConsumableUse(item, "Drinking", p);
+            TellConsumableUse(item, "msg_consumable_drinking", "Drinking", p);
         }
         else if (isFood)
         {
             p = std::min(hp, mp);
-            TellConsumableUse(item, "Eating", p);
+            TellConsumableUse(item, "msg_consumable_eating", "Eating", p);
         }
 
         if (!bot->IsInCombat() && !bot->InBattleground())
@@ -314,16 +314,16 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
     return true;
 }
 
-void UseItemAction::TellConsumableUse(Item* item, std::string const action, float percent)
+void UseItemAction::TellConsumableUse(Item* item, char const* actionKey, char const* actionDefault, float percent)
 {
-    std::ostringstream out;
-    out << action << " " << chat->FormatItem(item->GetTemplate());
-
+    std::string itemText = chat->FormatItem(item->GetTemplate());
     if (item->GetTemplate()->Stackable > 1)
-        out << "/x" << item->GetCount();
+        itemText += "/x" + std::to_string(item->GetCount());
 
-    out << " (" << round(percent) << "%)";
-    botAI->TellMasterNoFacing(out.str());
+    botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_consumable_use", "%action %item (%percent%)",
+        {{"%action", botAI->GetLocalizedBotTextOrDefault(actionKey, actionDefault)},
+         {"%item", itemText},
+         {"%percent", std::to_string(static_cast<uint32>(round(percent)))}}));
 }
 
 bool UseItemAction::SocketItem(Item* item, Item* gem, bool replace)

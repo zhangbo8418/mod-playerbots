@@ -79,7 +79,8 @@ bool DebugAction::Execute(Event event)
             TravelNodeRoute route = TravelNodeMap::instance().getRoute(botPos, *points.front(), beginPath, bot);
 
             std::ostringstream out;
-            out << "Traveling to " << dest->getTitle() << ": ";
+            out << botAI->GetLocalizedBotTextOrDefault("msg_debug_traveling_to", "Traveling to %title: ",
+                {{"%title", dest->getTitle()}});
 
             for (auto node : route.getNodes())
             {

@@ -5359,39 +5359,61 @@ std::string const PlayerbotAI::HandleRemoteCommand(std::string const command)
         TravelTarget* target = GetAiObjectContext()->GetValue<TravelTarget*>("travel target")->Get();
         if (target->getDestination())
         {
-            out << "Destination = " << target->getDestination()->getName();
-
-            out << ": " << target->getDestination()->getTitle();
-
-            out << " v: " << target->getDestination()->getVisitors();
+            out << GetLocalizedBotTextOrDefault("msg_remote_travel_dest", "Destination = %name",
+                {{"%name", target->getDestination()->getName()}});
+            out << GetLocalizedBotTextOrDefault("msg_remote_travel_title", ": %title",
+                {{"%title", target->getDestination()->getTitle()}});
+            out << GetLocalizedBotTextOrDefault("msg_remote_travel_visitors", " v: %count",
+                {{"%count", std::to_string(target->getDestination()->getVisitors())}});
 
             if (!(*target->getPosition() == WorldPosition()))
             {
-                out << "(" << target->getPosition()->getAreaName() << ")";
-                out << " distance: " << target->getPosition()->distance(bot) << "y";
-                out << " v: " << target->getPosition()->getVisitors();
+                out << GetLocalizedBotTextOrDefault("msg_remote_travel_position",
+                    "(%area) distance: %dist y: %count",
+                    {{"%area", target->getPosition()->getAreaName()},
+                     {"%dist", std::to_string(static_cast<uint32>(target->getPosition()->distance(bot)))},
+                     {"%count", std::to_string(target->getPosition()->getVisitors())}});
             }
         }
 
-        out << " Status = ";
+        out << GetLocalizedBotTextOrDefault("msg_remote_travel_status_label", " Status = ");
 
-        if (target->getStatus() == TRAVEL_STATUS_NONE)
-            out << " none";
-        else if (target->getStatus() == TRAVEL_STATUS_PREPARE)
-            out << " prepare";
+        char const* statusKey = "msg_remote_travel_status_none";
+        char const* statusDefault = " none";
+        if (target->getStatus() == TRAVEL_STATUS_PREPARE)
+        {
+            statusKey = "msg_remote_travel_status_prepare";
+            statusDefault = " prepare";
+        }
         else if (target->getStatus() == TRAVEL_STATUS_TRAVEL)
-            out << " travel";
+        {
+            statusKey = "msg_remote_travel_status_travel";
+            statusDefault = " travel";
+        }
         else if (target->getStatus() == TRAVEL_STATUS_WORK)
-            out << " work";
+        {
+            statusKey = "msg_remote_travel_status_work";
+            statusDefault = " work";
+        }
         else if (target->getStatus() == TRAVEL_STATUS_COOLDOWN)
-            out << " cooldown";
+        {
+            statusKey = "msg_remote_travel_status_cooldown";
+            statusDefault = " cooldown";
+        }
         else if (target->getStatus() == TRAVEL_STATUS_EXPIRED)
-            out << " expired";
+        {
+            statusKey = "msg_remote_travel_status_expired";
+            statusDefault = " expired";
+        }
+        out << GetLocalizedBotTextOrDefault(statusKey, statusDefault);
 
         if (target->getStatus() != TRAVEL_STATUS_EXPIRED)
-            out << " Expire in " << (target->getTimeLeft() / 1000) << "s";
+            out << GetLocalizedBotTextOrDefault("msg_remote_travel_expire", " Expire in %secs",
+                {{"%secs", std::to_string(target->getTimeLeft() / 1000)}});
 
-        out << " Retry " << target->getRetryCount(true) << "/" << target->getRetryCount(false);
+        out << GetLocalizedBotTextOrDefault("msg_remote_travel_retry", " Retry %ok/%fail",
+            {{"%ok", std::to_string(target->getRetryCount(true))},
+             {"%fail", std::to_string(target->getRetryCount(false))}});
 
         return out.str();
     }
@@ -5399,56 +5421,62 @@ std::string const PlayerbotAI::HandleRemoteCommand(std::string const command)
     {
         std::ostringstream out;
 
-        AiObjectContext* context = GetAiObjectContext();
-
-        out << "Current money: " << ChatHelper::formatMoney(bot->GetMoney()) << " free to use:"
-            << ChatHelper::formatMoney(AI_VALUE2(uint32, "free money for", (uint32)NeedMoneyFor::anything)) << "\n";
-        out << "Purpose | Available / Needed \n";
+        out << GetLocalizedBotTextOrDefault("msg_remote_budget_money",
+            "Current money: %money free to use:%free\n",
+            {{"%money", ChatHelper::formatMoney(bot->GetMoney())},
+             {"%free", ChatHelper::formatMoney(AI_VALUE2(uint32, "free money for", (uint32)NeedMoneyFor::anything))}});
+        out << GetLocalizedBotTextOrDefault("msg_remote_budget_header", "Purpose | Available / Needed \n");
 
         for (uint32 i = 1; i < (uint32)NeedMoneyFor::anything; i++)
         {
             NeedMoneyFor needMoneyFor = NeedMoneyFor(i);
 
+            char const* purposeKey = "msg_budget_purpose_nothing";
+            char const* purposeDefault = "nothing";
             switch (needMoneyFor)
             {
-                case NeedMoneyFor::none:
-                    out << "nothing";
-                    break;
                 case NeedMoneyFor::repair:
-                    out << "repair";
+                    purposeKey = "msg_budget_purpose_repair";
+                    purposeDefault = "repair";
                     break;
                 case NeedMoneyFor::ammo:
-                    out << "ammo";
+                    purposeKey = "msg_budget_purpose_ammo";
+                    purposeDefault = "ammo";
                     break;
                 case NeedMoneyFor::spells:
-                    out << "spells";
+                    purposeKey = "msg_budget_purpose_spells";
+                    purposeDefault = "spells";
                     break;
                 case NeedMoneyFor::travel:
-                    out << "travel";
+                    purposeKey = "msg_budget_purpose_travel";
+                    purposeDefault = "travel";
                     break;
                 case NeedMoneyFor::consumables:
-                    out << "consumables";
+                    purposeKey = "msg_budget_purpose_consumables";
+                    purposeDefault = "consumables";
                     break;
                 case NeedMoneyFor::gear:
-                    out << "gear";
+                    purposeKey = "msg_budget_purpose_gear";
+                    purposeDefault = "gear";
                     break;
                 case NeedMoneyFor::guild:
-                    out << "guild";
+                    purposeKey = "msg_budget_purpose_guild";
+                    purposeDefault = "guild";
                     break;
                 default:
                     break;
             }
 
-            out << " | " << ChatHelper::formatMoney(AI_VALUE2(uint32, "free money for", i)) << " / "
-                << ChatHelper::formatMoney(AI_VALUE2(uint32, "money needed for", i)) << "\n";
+            out << GetLocalizedBotTextOrDefault("msg_remote_budget_line", "%purpose | %available / %needed\n",
+                {{"%purpose", GetLocalizedBotTextOrDefault(purposeKey, purposeDefault)},
+                 {"%available", ChatHelper::formatMoney(AI_VALUE2(uint32, "free money for", i))},
+                 {"%needed", ChatHelper::formatMoney(AI_VALUE2(uint32, "money needed for", i))}});
         }
 
         return out.str();
     }
 
-    std::ostringstream out;
-    out << "invalid command: " << command;
-    return out.str();
+    return GetLocalizedBotTextOrDefault("msg_remote_invalid_command", "invalid command: %command", {{"%command", command}});
 }
 
 bool PlayerbotAI::HasSkill(SkillType skill) { return bot->HasSkill(skill) && bot->GetSkillValue(skill) > 0; }

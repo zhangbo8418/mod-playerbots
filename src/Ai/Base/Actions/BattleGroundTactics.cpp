@@ -28,6 +28,7 @@
 #include "IVMapMgr.h"
 #include "PathGenerator.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 #include "PositionValue.h"
 #include "PvpTriggers.h"
 #include "ServerFacade.h"
@@ -1274,17 +1275,41 @@ static std::pair<uint32, uint32> IC_AttackObjectives[] = {
 };
 
 // useful commands for fixing BG bugs and checking waypoints/paths
+namespace
+{
+std::string GetPlayerLocalizedText(Player* player, std::string const key, std::string const defaultText,
+                                   std::map<std::string, std::string> placeholders = {})
+{
+    uint32 locale = LOCALE_enUS;
+    if (player && player->GetSession())
+        locale = static_cast<uint32>(player->GetSession()->GetSessionDbcLocale());
+
+    std::string localized = PlayerbotTextMgr::instance().GetBotTextForLocale(key, locale, placeholders);
+    if (!localized.empty())
+        return localized;
+
+    std::string result = defaultText;
+    for (auto const& placeholder : placeholders)
+        PlayerbotTextMgr::replaceAll(result, placeholder.first, placeholder.second);
+    return result;
+}
+}
+
 bool BGTactics::HandleConsoleCommand(ChatHandler* handler, char const* args)
 {
+    Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
+
     if (!sPlayerbotAIConfig.enabled)
     {
-        handler->PSendSysMessage("|cffff0000Playerbot system is currently disabled!");
+        handler->PSendSysMessage(GetPlayerLocalizedText(player, "msg_bot_disabled_chat",
+            "|cffff0000Playerbot system is currently disabled!").c_str());
         return true;
     }
     WorldSession* session = handler->GetSession();
     if (!session)
     {
-        handler->PSendSysMessage("Command can only be used from an active session");
+        handler->PSendSysMessage(GetPlayerLocalizedText(player, "msg_command_active_session_required",
+            "Command can only be used from an active session").c_str());
         return true;
     }
     std::string const commandOutput = HandleConsoleCommandPrivate(session, args);

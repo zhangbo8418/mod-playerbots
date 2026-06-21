@@ -9,6 +9,7 @@
 #include "Event.h"
 #include "ItemVisitors.h"
 #include "Mail.h"
+#include "PlayerbotMailSubjects.h"
 #include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 
@@ -81,16 +82,16 @@ botAI->TellError(botAI->GetLocalizedBotTextOrDefault("send_mail_not_enough_money
         }
 
         std::ostringstream body;
-        body << "Hello, " << receiver->GetName() << ",\n";
-        body << "\n";
-        body << "Here is the money you asked for";
-        body << "\n";
-        body << "Thanks,\n";
-        body << bot->GetName() << "\n";
+        body << botAI->GetLocalizedBotTextOrDefault("mail_body_greeting", "Hello, %name,\n\n",
+            {{"%name", receiver->GetName()}}, receiver);
+        body << botAI->GetLocalizedBotTextOrDefault("mail_body_money_asked", "Here is the money you asked for", {}, receiver);
+        body << "\n\n";
+        body << botAI->GetLocalizedBotTextOrDefault("mail_body_signoff", "Thanks,\n%botname\n",
+            {{"%botname", bot->GetName()}}, receiver);
 
         CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
 
-        MailDraft draft("Money you asked for", body.str());
+        MailDraft draft(PlayerbotMailSubjects::MoneyAsked, body.str());
         draft.AddMoney(money);
         bot->SetMoney(bot->GetMoney() - money);
         draft.SendMailTo(trans, MailReceiver(receiver), MailSender(bot));
@@ -102,14 +103,14 @@ botAI->TellError(botAI->GetLocalizedBotTextOrDefault("send_mail_not_enough_money
     }
 
     std::ostringstream body;
-    body << "Hello, " << receiver->GetName() << ",\n";
-    body << "\n";
-    body << "Here are the item(s) you asked for";
-    body << "\n";
-    body << "Thanks,\n";
-    body << bot->GetName() << "\n";
+    body << botAI->GetLocalizedBotTextOrDefault("mail_body_greeting", "Hello, %name,\n\n",
+        {{"%name", receiver->GetName()}}, receiver);
+    body << botAI->GetLocalizedBotTextOrDefault("mail_body_items_asked", "Here are the item(s) you asked for", {}, receiver);
+    body << "\n\n";
+    body << botAI->GetLocalizedBotTextOrDefault("mail_body_signoff", "Thanks,\n%botname\n",
+        {{"%botname", bot->GetName()}}, receiver);
 
-    MailDraft draft("Item(s) you asked for", body.str());
+    MailDraft draft(PlayerbotMailSubjects::ItemsAsked, body.str());
     for (ItemIds::iterator i = ids.begin(); i != ids.end(); i++)
     {
         FindItemByIdVisitor visitor(*i);

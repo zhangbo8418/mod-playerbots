@@ -66,6 +66,34 @@ private:
 };
 
 std::unordered_set<ObjectGuid> BotInitGuard::botsBeingInitialized;
+
+namespace
+{
+std::string GetMasterLocalizedText(ObjectGuid masterGuid, std::string const key, std::string const defaultText,
+                                   std::map<std::string, std::string> placeholders = {})
+{
+    Player* master = ObjectAccessor::FindConnectedPlayer(masterGuid);
+    uint32 locale = LOCALE_enUS;
+    if (master && master->GetSession())
+        locale = static_cast<uint32>(master->GetSession()->GetSessionDbcLocale());
+
+    std::string localized = PlayerbotTextMgr::instance().GetBotTextForLocale(key, locale, placeholders);
+    if (!localized.empty())
+        return localized;
+
+    std::string result = defaultText;
+    for (auto const& placeholder : placeholders)
+        PlayerbotTextMgr::replaceAll(result, placeholder.first, placeholder.second);
+    return result;
+}
+
+std::string GetMasterLocalizedText(Player* master, std::string const key, std::string const defaultText,
+                                   std::map<std::string, std::string> placeholders = {})
+{
+    return GetMasterLocalizedText(master ? master->GetGUID() : ObjectGuid::Empty, key, defaultText, placeholders);
+}
+}
+
 std::unordered_map<ObjectGuid, uint32> PlayerbotHolder::botLoading;
 
 PlayerbotHolder::PlayerbotHolder() : PlayerbotAIBase(false) {}
@@ -113,7 +141,8 @@ void PlayerbotHolder::AddPlayerBot(ObjectGuid playerGuid, uint32 masterAccountId
     if (!isRndbot && !sameAccount && !sameGuild && !addClassBot && !linkedAccount)
     {
         allowed = false;
-        out << "Failure: You are not allowed to control bot " << botName.c_str();
+        out << GetMasterLocalizedText(masterPlayer, "msg_bot_add_not_allowed",
+            "Failure: You are not allowed to control bot %name", {{"%name", botName}});
     }
     if (masterAccountId && masterPlayer)
     {
@@ -133,7 +162,9 @@ void PlayerbotHolder::AddPlayerBot(ObjectGuid playerGuid, uint32 masterAccountId
         if (count >= PlayerbotAIConfig::instance().maxAddedBots)
         {
             allowed = false;
-            out << "Failure: You have added too many bots (more than " << sPlayerbotAIConfig.maxAddedBots << ")";
+            out << GetMasterLocalizedText(masterPlayer, "msg_bot_add_too_many",
+                "Failure: You have added too many bots (more than %max)",
+                {{"%max", std::to_string(sPlayerbotAIConfig.maxAddedBots)}});
         }
     }
     if (!allowed)
@@ -685,7 +716,7 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
                                                      bool admin, uint32 masterAccountId, uint32)
 {
     if (!sPlayerbotAIConfig.enabled || guid.IsEmpty())
-        return "bot system is disabled";
+        return GetMasterLocalizedText(masterguid, "msg_bot_system_disabled", "bot system is disabled");
 
     //bool isRandomBot = sRandomPlayerbotMgr.IsRandomBot(guid.GetCounter()); //not used, line marked for removal.
     //bool isRandomAccount = sPlayerbotAIConfig.IsInRandomAccountList(botAccount); //not used, shadowed, line marked for removal.
@@ -694,7 +725,7 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
     if (cmd == "add" || cmd == "addaccount" || cmd == "login")
     {
         if (ObjectAccessor::FindPlayer(guid))
-            return "player already logged in";
+            return GetMasterLocalizedText(masterguid, "msg_bot_already_logged_in", "player already logged in");
 
         // For addaccount command, verify it's an account name
         if (cmd == "addaccount")
@@ -702,29 +733,29 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
             uint32 accountId = sCharacterCache->GetCharacterAccountIdByGuid(guid);
             if (!accountId)
             {
-                return "character not found";
+                return GetMasterLocalizedText(masterguid, "msg_bot_character_not_found", "character not found");
             }
 
             if (!sPlayerbotAIConfig.allowAccountBots && accountId != masterAccountId &&
                 !(sPlayerbotAIConfig.allowTrustedAccountBots && IsAccountLinked(accountId, masterAccountId)))
             {
-                return "you can only add bots from your own account or linked accounts";
+                return GetMasterLocalizedText(masterguid, "msg_bot_own_account_only", "you can only add bots from your own account or linked accounts");
             }
         }
 
         AddPlayerBot(guid, masterAccountId);
-        return "ok";
+        return GetMasterLocalizedText(masterguid, "msg_bot_ok", "ok");
     }
     else if (cmd == "remove" || cmd == "logout" || cmd == "rm")
     {
         if (!ObjectAccessor::FindPlayer(guid))
-            return "player is offline";
+            return GetMasterLocalizedText(masterguid, "msg_bot_player_offline", "player is offline");
 
         if (!GetPlayerBot(guid))
-            return "not your bot";
+            return GetMasterLocalizedText(masterguid, "msg_bot_not_your_bot", "not your bot");
 
         LogoutPlayerBot(guid);
-        return "ok";
+        return GetMasterLocalizedText(masterguid, "msg_bot_ok", "ok");
     }
 
     // if (admin)
@@ -734,14 +765,14 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
         bot = sRandomPlayerbotMgr.GetPlayerBot(guid);
 
     if (!bot)
-        return "bot not found";
+        return GetMasterLocalizedText(masterguid, "msg_bot_not_found", "bot not found");
 
     bool addClassBot = sRandomPlayerbotMgr.IsAddclassBot(guid.GetCounter());
 
     if (!addClassBot)
     {
         if (!(cmd == "refresh=raid" && sPlayerbotAIConfig.resetInstanceIdForAltBots))
-            return "ERROR: You can only use this command on addclass bots.";
+            return GetMasterLocalizedText(masterguid, "msg_bot_addclass_only", "ERROR: You can only use this command on addclass bots.");
     }
 
     if (!admin)
@@ -749,7 +780,7 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
         Player* master = ObjectAccessor::FindConnectedPlayer(masterguid);
         if (master && (master->IsInCombat() || bot->IsInCombat()))
         {
-            return "ERROR: You can not use this command during combat.";
+            return GetMasterLocalizedText(masterguid, "msg_bot_combat_command_error", "ERROR: You can not use this command during combat.");
         }
     }
 
@@ -760,14 +791,14 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
             if (master->GetSession()->GetSecurity() <= SEC_PLAYER && sPlayerbotAIConfig.autoInitOnly &&
                 cmd != "init=auto")
             {
-                return "The command is not allowed, use init=auto instead.";
+                return GetMasterLocalizedText(masterguid, "msg_bot_init_use_auto", "The command is not allowed, use init=auto instead.");
             }
 
             //  Use boot guard
             BotInitGuard guard(bot->GetGUID());
             if (guard.IsLocked())
             {
-                return "Initialization already in progress, please wait.";
+                return GetMasterLocalizedText(masterguid, "msg_bot_init_in_progress", "Initialization already in progress, please wait.");
             }
 
             int gs;
@@ -775,31 +806,31 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
             {
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_NORMAL);
                 factory.Randomize(false);
-                return "ok";
+                return GetMasterLocalizedText(masterguid, "msg_bot_ok", "ok");
             }
             else if (cmd == "init=green" || cmd == "init=uncommon")
             {
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_UNCOMMON);
                 factory.Randomize(false);
-                return "ok";
+                return GetMasterLocalizedText(masterguid, "msg_bot_ok", "ok");
             }
             else if (cmd == "init=blue" || cmd == "init=rare")
             {
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_RARE);
                 factory.Randomize(false);
-                return "ok";
+                return GetMasterLocalizedText(masterguid, "msg_bot_ok", "ok");
             }
             else if (cmd == "init=epic" || cmd == "init=purple")
             {
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_EPIC);
                 factory.Randomize(false);
-                return "ok";
+                return GetMasterLocalizedText(masterguid, "msg_bot_ok", "ok");
             }
             else if (cmd == "init=legendary" || cmd == "init=yellow")
             {
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_LEGENDARY);
                 factory.Randomize(false);
-                return "ok";
+                return GetMasterLocalizedText(masterguid, "msg_bot_ok", "ok");
             }
             else if (cmd == "init=auto")
             {
@@ -810,14 +841,15 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
                     mixedGearScore = 1;
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_LEGENDARY, mixedGearScore);
                 factory.Randomize(false);
-                return "ok, gear score limit: " + std::to_string(mixedGearScore / PlayerbotAI::GetItemScoreMultiplier(ItemQualities(ITEM_QUALITY_EPIC))) +
-                       "(for epic)";
+                return GetMasterLocalizedText(masterguid, "msg_bot_init_gs_ok", "ok, gear score limit: %score(for epic)",
+        {{"%score", std::to_string(mixedGearScore / PlayerbotAI::GetItemScoreMultiplier(ItemQualities(ITEM_QUALITY_EPIC)))}});
             }
             else if (cmd.starts_with("init=") && sscanf(cmd.c_str(), "init=%d", &gs) != -1)
             {
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_LEGENDARY, gs);
                 factory.Randomize(false);
-                return "ok, gear score limit: " + std::to_string(gs / PlayerbotAI::GetItemScoreMultiplier(ItemQualities(ITEM_QUALITY_EPIC))) + "(for epic)";
+                return GetMasterLocalizedText(masterguid, "msg_bot_init_gs_ok", "ok, gear score limit: %score(for epic)",
+        {{"%score", std::to_string(gs / PlayerbotAI::GetItemScoreMultiplier(ItemQualities(ITEM_QUALITY_EPIC)))}});
             }
         }
 
@@ -826,7 +858,7 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
             // after the command is executed, the AI ​​needs to go back online or exit the raid and re-enter.
             PlayerbotFactory factory(bot, bot->GetLevel());
             factory.UnbindInstance();
-            return "ok";
+            return GetMasterLocalizedText(masterguid, "msg_bot_ok", "ok");
         }
     }
 
@@ -834,28 +866,28 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
     {
         PlayerbotFactory factory(bot, bot->GetLevel());
         factory.Randomize(true);
-        return "ok";
+        return GetMasterLocalizedText(masterguid, "msg_bot_ok", "ok");
     }
     else if (cmd == "refresh")
     {
         PlayerbotFactory factory(bot, bot->GetLevel());
         factory.Refresh();
-        return "ok";
+        return GetMasterLocalizedText(masterguid, "msg_bot_ok", "ok");
     }
     else if (cmd == "random")
     {
         sRandomPlayerbotMgr.Randomize(bot);
-        return "ok";
+        return GetMasterLocalizedText(masterguid, "msg_bot_ok", "ok");
     }
     else if (cmd == "quests")
     {
         PlayerbotFactory factory(bot, bot->GetLevel());
         factory.InitInstanceQuests();
-        return "Initialization quests";
+        return GetMasterLocalizedText(masterguid, "msg_bot_init_quests_ok", "Initialization quests");
     }
     // }
 
-    return "unknown command";
+    return GetMasterLocalizedText(masterguid, "msg_bot_unknown_command", "unknown command");
 }
 
 // Added for gender choice : Returns the gender of an offline character: 0 = male, 1 = female.
@@ -872,24 +904,29 @@ static uint8 GetOfflinePlayerGender(ObjectGuid guid)
 
 bool PlayerbotMgr::HandlePlayerbotMgrCommand(ChatHandler* handler, char const* args)
 {
+    Player* player = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
+
     if (!sPlayerbotAIConfig.enabled)
     {
-        handler->PSendSysMessage("|cffff0000Playerbot system is currently disabled!");
+        handler->PSendSysMessage(GetMasterLocalizedText(player, "msg_bot_disabled_chat",
+            "|cffff0000Playerbot system is currently disabled!").c_str());
         return false;
     }
 
     WorldSession* m_session = handler->GetSession();
     if (!m_session)
     {
-        handler->PSendSysMessage("You may only add bots from an active session");
+        handler->PSendSysMessage(GetMasterLocalizedText(player, "msg_bot_active_session_required",
+            "You may only add bots from an active session").c_str());
         return false;
     }
 
-    Player* player = m_session->GetPlayer();
+    player = m_session->GetPlayer();
     PlayerbotMgr* mgr = GET_PLAYERBOT_MGR(player);
     if (!mgr)
     {
-        handler->PSendSysMessage("You cannot control bots yet");
+        handler->PSendSysMessage(GetMasterLocalizedText(player, "msg_bot_cannot_control_yet",
+            "You cannot control bots yet").c_str());
         return false;
     }
 
@@ -911,8 +948,8 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
 
     if (!*args)
     {
-        messages.push_back("usage: list/reload/tweak/self or add/addaccount/init/remove PLAYERNAME\n");
-        messages.push_back("usage: addclass CLASSNAME [male|female|0|1]");
+        messages.push_back(GetMasterLocalizedText(master, "msg_bot_usage_full", "usage: list/reload/tweak/self or add/addaccount/init/remove PLAYERNAME"));
+        messages.push_back(GetMasterLocalizedText(master, "msg_bot_usage_addclass", "usage: addclass CLASSNAME [male|female|0|1]"));
         return messages;
     }
 
@@ -922,7 +959,8 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
 
     if (!cmd)
     {
-        messages.push_back("usage: list/reload/tweak/self or add/init/remove PLAYERNAME or addclass CLASSNAME [male|female]");
+        messages.push_back(GetMasterLocalizedText(master, "msg_bot_usage_short",
+            "usage: list/reload/tweak/self or add/init/remove PLAYERNAME or addclass CLASSNAME [male|female]"));
         return messages;
     }
 
@@ -933,12 +971,12 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
             // OnBotLogin(master);
             PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_EPIC);
             factory.Randomize(false);
-            messages.push_back("initself ok");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_initself_ok", "initself ok"));
             return messages;
         }
         else
         {
-            messages.push_back("ERROR: Only GM can use this command.");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_gm_only", "ERROR: Only GM can use this command."));
             return messages;
         }
     }
@@ -952,12 +990,12 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
                 // OnBotLogin(master);
                 PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_UNCOMMON);
                 factory.Randomize(false);
-                messages.push_back("initself ok");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_initself_ok", "initself ok"));
                 return messages;
             }
             else
             {
-                messages.push_back("ERROR: Only GM can use this command.");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_gm_only", "ERROR: Only GM can use this command."));
                 return messages;
             }
         }
@@ -968,12 +1006,12 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
                 // OnBotLogin(master);
                 PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_RARE);
                 factory.Randomize(false);
-                messages.push_back("initself ok");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_initself_ok", "initself ok"));
                 return messages;
             }
             else
             {
-                messages.push_back("ERROR: Only GM can use this command.");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_gm_only", "ERROR: Only GM can use this command."));
                 return messages;
             }
         }
@@ -984,12 +1022,12 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
                 // OnBotLogin(master);
                 PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_EPIC);
                 factory.Randomize(false);
-                messages.push_back("initself ok");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_initself_ok", "initself ok"));
                 return messages;
             }
             else
             {
-                messages.push_back("ERROR: Only GM can use this command.");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_gm_only", "ERROR: Only GM can use this command."));
                 return messages;
             }
         }
@@ -1000,12 +1038,12 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
                 // OnBotLogin(master);
                 PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_LEGENDARY);
                 factory.Randomize(false);
-                messages.push_back("initself ok");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_initself_ok", "initself ok"));
                 return messages;
             }
             else
             {
-                messages.push_back("ERROR: Only GM can use this command.");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_gm_only", "ERROR: Only GM can use this command."));
                 return messages;
             }
         }
@@ -1017,12 +1055,13 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
                 // OnBotLogin(master);
                 PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_LEGENDARY, gs);
                 factory.Randomize(false);
-                messages.push_back("initself ok, gs = " + std::to_string(gs));
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_initself_gs_ok", "initself ok, gs = %score",
+                {{"%score", std::to_string(gs)}}));
                 return messages;
             }
             else
             {
-                messages.push_back("ERROR: Only GM can use this command.");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_gm_only", "ERROR: Only GM can use this command."));
                 return messages;
             }
         }
@@ -1039,12 +1078,12 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         if (master->CanBeGameMaster())
         {
             sPlayerbotAIConfig.Initialize();
-            messages.push_back("Config reloaded.");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_config_reloaded", "Config reloaded."));
             return messages;
         }
         else
         {
-            messages.push_back("ERROR: Only GM can use this command.");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_gm_only", "ERROR: Only GM can use this command."));
             return messages;
         }
     }
@@ -1055,7 +1094,8 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         if (sPlayerbotAIConfig.tweakValue > 2)
             sPlayerbotAIConfig.tweakValue = 0;
 
-        messages.push_back("Set tweakvalue to " + std::to_string(sPlayerbotAIConfig.tweakValue));
+        messages.push_back(GetMasterLocalizedText(master, "msg_bot_tweakvalue_set", "Set tweakvalue to %value",
+            {{"%value", std::to_string(sPlayerbotAIConfig.tweakValue)}}));
         return messages;
     }
 
@@ -1063,16 +1103,16 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
     {
         if (GET_PLAYERBOT_AI(master))
         {
-            messages.push_back("Disable player botAI");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_disable_botai", "Disable player botAI"));
             delete GET_PLAYERBOT_AI(master);
         }
         else if (sPlayerbotAIConfig.selfBotLevel == 0)
-            messages.push_back("Self-bot is disabled");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_selfbot_disabled", "Self-bot is disabled"));
         else if (sPlayerbotAIConfig.selfBotLevel == 1 && !master->CanBeGameMaster())
-            messages.push_back("You do not have permission to enable player botAI");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_no_selfbot_permission", "You do not have permission to enable player botAI"));
         else
         {
-            messages.push_back("Enable player botAI");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_enable_botai", "Enable player botAI"));
             PlayerbotsMgr::instance().AddPlayerbotData(master, true);
             GET_PLAYERBOT_AI(master)->SetMaster(master);
             PlayerbotRepository::instance().Load(GET_PLAYERBOT_AI(master));
@@ -1091,13 +1131,13 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
     {
         if (sPlayerbotAIConfig.addClassCommand == 0 && !master->CanBeGameMaster())
         {
-            messages.push_back("You do not have permission to create bot by addclass command");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_no_addclass_permission", "You do not have permission to create bot by addclass command"));
             return messages;
         }
         if (!charname)
         {
-            messages.push_back(
-                "addclass: invalid CLASSNAME(warrior/paladin/hunter/rogue/priest/shaman/mage/warlock/druid/dk)");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_addclass_invalid_classname",
+                "addclass: invalid CLASSNAME(warrior/paladin/hunter/rogue/priest/shaman/mage/warlock/druid/dk)"));
             return messages;
         }
         uint8 claz;
@@ -1143,7 +1183,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         }
         else
         {
-            messages.push_back("Error: Invalid Class. Try again.");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_addclass_invalid_class", "Error: Invalid Class. Try again."));
             return messages;
         }
         //  Added for gender choice : Parsing gender
@@ -1159,14 +1199,15 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
                 gender = GENDER_FEMALE; // 1
             else
             {
-                messages.push_back("Unknown gender : " + g + " (male/female/0/1)");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_unknown_gender", "Unknown gender : %gender (male/female/0/1)",
+                {{"%gender", g}}));
                 return messages;
             }
         } //end
 
         if (claz == 6 && master->GetLevel() < sWorld->getIntConfig(CONFIG_START_HEROIC_PLAYER_LEVEL))
         {
-            messages.push_back("Your level is too low to summon Deathknight");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_dk_level_too_low", "Your level is too low to summon Deathknight"));
             return messages;
         }
         uint8 teamId = master->GetTeamId(true);
@@ -1184,10 +1225,11 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
             if (guildId && PlayerbotGuildMgr::instance().IsRealGuild(guildId))
                 continue;
             AddPlayerBot(guid, master->GetSession()->GetAccountId());
-            messages.push_back("Add class " + std::string(charname));
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_addclass_start", "Add class %class",
+            {{"%class", charname}}));
             return messages;
         }
-        messages.push_back("Add class failed, no available characters!");
+        messages.push_back(GetMasterLocalizedText(master, "msg_bot_addclass_failed", "Add class failed, no available characters!"));
         return messages;
     }
 
@@ -1204,7 +1246,8 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         }
         else
         {
-            messages.push_back("usage: list/reload/tweak/self or add/init/remove PLAYERNAME");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_usage_playername",
+                "usage: list/reload/tweak/self or add/init/remove PLAYERNAME"));
             return messages;
         }
     }
@@ -1221,7 +1264,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         Group* group = master->GetGroup();
         if (!group)
         {
-            messages.push_back("you must be in group");
+            messages.push_back(GetMasterLocalizedText(master, "msg_bot_must_be_in_group", "you must be in group"));
             return messages;
         }
 
@@ -1264,19 +1307,22 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
                 std::string charName = s;
                 if (!normalizePlayerName(charName))
                 {
-                    messages.push_back("Neither account nor character '" + s + "' found");
+                    messages.push_back(GetMasterLocalizedText(master, "msg_bot_account_char_not_found", "Neither account nor character '%name' found",
+                    {{"%name", s}}));
                     continue;
                 }
                 ObjectGuid charGuid = sCharacterCache->GetCharacterGuidByName(charName);
                 if (!charGuid)
                 {
-                    messages.push_back("Neither account nor character '" + s + "' found");
+                    messages.push_back(GetMasterLocalizedText(master, "msg_bot_account_char_not_found", "Neither account nor character '%name' found",
+                    {{"%name", s}}));
                     continue;
                 }
                 accountId = sCharacterCache->GetCharacterAccountIdByGuid(charGuid);
                 if (!accountId)
                 {
-                    messages.push_back("Could not find account for character '" + s + "'");
+                    messages.push_back(GetMasterLocalizedText(master, "msg_bot_account_for_char_not_found", "Could not find account for character '%name'",
+                {{"%name", s}}));
                     continue;
                 }
             }
@@ -1297,13 +1343,15 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
             // For regular add command, only add the specific character
             if (!normalizePlayerName(s))
             {
-                messages.push_back("Character '" + *i + "' not found");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_char_not_found", "Character '%name' not found",
+                {{"%name", *i}}));
                 continue;
             }
             ObjectGuid charGuid = sCharacterCache->GetCharacterGuidByName(s);
             if (!charGuid)
             {
-                messages.push_back("Character '" + s + "' not found");
+                messages.push_back(GetMasterLocalizedText(master, "msg_bot_char_not_found", "Character '%name' not found",
+                    {{"%name", s}}));
                 continue;
             }
             bots.insert(s);
@@ -1320,7 +1368,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         ObjectGuid member = sCharacterCache->GetCharacterGuidByName(bot);
         if (!member)
         {
-            out << "character not found";
+            out << GetMasterLocalizedText(master, "msg_bot_character_not_found", "character not found");
         }
         else if (master && member != master->GetGUID())
         {
@@ -1366,17 +1414,16 @@ std::string const PlayerbotHolder::ListBots(Player* master)
     std::set<std::string> bots;
     std::map<uint8, std::string> classNames;
 
-    classNames[CLASS_DEATH_KNIGHT] = "Death Knight";
-    classNames[CLASS_DRUID] = "Druid";
-    classNames[CLASS_HUNTER] = "Hunter";
-    classNames[CLASS_MAGE] = "Mage";
-    classNames[CLASS_PALADIN] = "Paladin";
-    classNames[CLASS_PRIEST] = "Priest";
-    classNames[CLASS_ROGUE] = "Rogue";
-    classNames[CLASS_SHAMAN] = "Shaman";
-    classNames[CLASS_WARLOCK] = "Warlock";
-    classNames[CLASS_WARRIOR] = "Warrior";
-    classNames[CLASS_DEATH_KNIGHT] = "DeathKnight";
+    classNames[CLASS_DEATH_KNIGHT] = GetMasterLocalizedText(master, "msg_class_death_knight", "Death Knight");
+    classNames[CLASS_DRUID] = GetMasterLocalizedText(master, "msg_class_druid", "Druid");
+    classNames[CLASS_HUNTER] = GetMasterLocalizedText(master, "msg_class_hunter", "Hunter");
+    classNames[CLASS_MAGE] = GetMasterLocalizedText(master, "msg_class_mage", "Mage");
+    classNames[CLASS_PALADIN] = GetMasterLocalizedText(master, "msg_class_paladin", "Paladin");
+    classNames[CLASS_PRIEST] = GetMasterLocalizedText(master, "msg_class_priest", "Priest");
+    classNames[CLASS_ROGUE] = GetMasterLocalizedText(master, "msg_class_rogue", "Rogue");
+    classNames[CLASS_SHAMAN] = GetMasterLocalizedText(master, "msg_class_shaman", "Shaman");
+    classNames[CLASS_WARLOCK] = GetMasterLocalizedText(master, "msg_class_warlock", "Warlock");
+    classNames[CLASS_WARRIOR] = GetMasterLocalizedText(master, "msg_class_warrior", "Warrior");
 
     std::map<std::string, std::string> online;
     std::vector<std::string> names;
@@ -1435,7 +1482,7 @@ std::string const PlayerbotHolder::ListBots(Player* master)
 
     std::ostringstream out;
     bool first = true;
-    out << "Bot roster: ";
+    out << GetMasterLocalizedText(master, "msg_bot_roster_prefix", "Bot roster: ");
     for (std::vector<std::string>::iterator i = names.begin(); i != names.end(); ++i)
     {
         if (first)
@@ -1450,21 +1497,26 @@ std::string const PlayerbotHolder::ListBots(Player* master)
     return out.str();
 }
 
-std::string const PlayerbotHolder::LookupBots(Player*)
+std::string const PlayerbotHolder::LookupBots(Player* master)
 {
+    auto classLine = [&](char const* icon, char const* key, char const* defaultName)
+    {
+        return std::string(icon) + " " + GetMasterLocalizedText(master, key, defaultName);
+    };
+
     std::list<std::string> messages;
-    messages.push_back("Classes Available:");
-    messages.push_back("|TInterface\\icons\\INV_Sword_27.png:25:25:0:-1|t Warrior");
-    messages.push_back("|TInterface\\icons\\INV_Hammer_01.png:25:25:0:-1|t Paladin");
-    messages.push_back("|TInterface\\icons\\INV_Weapon_Bow_07.png:25:25:0:-1|t Hunter");
-    messages.push_back("|TInterface\\icons\\INV_ThrowingKnife_04.png:25:25:0:-1|t Rogue");
-    messages.push_back("|TInterface\\icons\\INV_Staff_30.png:25:25:0:-1|t Priest");
-    messages.push_back("|TInterface\\icons\\inv_jewelry_talisman_04.png:25:25:0:-1|t Shaman");
-    messages.push_back("|TInterface\\icons\\INV_staff_30.png:25:25:0:-1|t Mage");
-    messages.push_back("|TInterface\\icons\\INV_staff_30.png:25:25:0:-1|t Warlock");
-    messages.push_back("|TInterface\\icons\\Ability_Druid_Maul.png:25:25:0:-1|t Druid");
-    messages.push_back("DK");
-    messages.push_back("(Usage: .bot lookup CLASS)");
+    messages.push_back(GetMasterLocalizedText(master, "msg_bot_classes_available", "Classes Available:"));
+    messages.push_back(classLine("|TInterface\\icons\\INV_Sword_27.png:25:25:0:-1|t", "msg_class_warrior", "Warrior"));
+    messages.push_back(classLine("|TInterface\\icons\\INV_Hammer_01.png:25:25:0:-1|t", "msg_class_paladin", "Paladin"));
+    messages.push_back(classLine("|TInterface\\icons\\INV_Weapon_Bow_07.png:25:25:0:-1|t", "msg_class_hunter", "Hunter"));
+    messages.push_back(classLine("|TInterface\\icons\\INV_ThrowingKnife_04.png:25:25:0:-1|t", "msg_class_rogue", "Rogue"));
+    messages.push_back(classLine("|TInterface\\icons\\INV_Staff_30.png:25:25:0:-1|t", "msg_class_priest", "Priest"));
+    messages.push_back(classLine("|TInterface\\icons\\inv_jewelry_talisman_04.png:25:25:0:-1|t", "msg_class_shaman", "Shaman"));
+    messages.push_back(classLine("|TInterface\\icons\\INV_staff_30.png:25:25:0:-1|t", "msg_class_mage", "Mage"));
+    messages.push_back(classLine("|TInterface\\icons\\INV_staff_30.png:25:25:0:-1|t", "msg_class_warlock", "Warlock"));
+    messages.push_back(classLine("|TInterface\\icons\\Ability_Druid_Maul.png:25:25:0:-1|t", "msg_class_druid", "Druid"));
+    messages.push_back(GetMasterLocalizedText(master, "msg_class_dk_short", "DK"));
+    messages.push_back(GetMasterLocalizedText(master, "msg_bot_lookup_usage", "(Usage: .bot lookup CLASS)"));
     std::string ret_msg;
     for (std::string msg : messages)
     {
@@ -1845,7 +1897,8 @@ void PlayerbotMgr::HandleSetSecurityKeyCommand(Player* player, const std::string
         "REPLACE INTO playerbots_account_keys (account_id, security_key) VALUES ({}, '{}')",
         accountId, hashedKey.str());
 
-    ChatHandler(player->GetSession()).PSendSysMessage("Security key set successfully.");
+    ChatHandler(player->GetSession()).PSendSysMessage(GetMasterLocalizedText(player, "msg_account_security_key_set",
+        "Security key set successfully.").c_str());
 }
 
 void PlayerbotMgr::HandleLinkAccountCommand(Player* player, const std::string& accountName, const std::string& key)
@@ -1853,7 +1906,8 @@ void PlayerbotMgr::HandleLinkAccountCommand(Player* player, const std::string& a
     QueryResult result = LoginDatabase.Query("SELECT id FROM account WHERE username = '{}'", accountName);
     if (!result)
     {
-        ChatHandler(player->GetSession()).PSendSysMessage("Account not found.");
+        ChatHandler(player->GetSession()).PSendSysMessage(GetMasterLocalizedText(player, "msg_account_not_found",
+            "Account not found.").c_str());
         return;
     }
 
@@ -1863,7 +1917,8 @@ void PlayerbotMgr::HandleLinkAccountCommand(Player* player, const std::string& a
     result = PlayerbotsDatabase.Query("SELECT security_key FROM playerbots_account_keys WHERE account_id = {}", linkedAccountId);
     if (!result)
     {
-        ChatHandler(player->GetSession()).PSendSysMessage("Invalid security key.");
+        ChatHandler(player->GetSession()).PSendSysMessage(GetMasterLocalizedText(player, "msg_account_invalid_security_key",
+            "Invalid security key.").c_str());
         return;
     }
 
@@ -1880,7 +1935,8 @@ void PlayerbotMgr::HandleLinkAccountCommand(Player* player, const std::string& a
     std::string storedKey = result->Fetch()->Get<std::string>();
     if (hashedKey.str() != storedKey)
     {
-        ChatHandler(player->GetSession()).PSendSysMessage("Invalid security key.");
+        ChatHandler(player->GetSession()).PSendSysMessage(GetMasterLocalizedText(player, "msg_account_invalid_security_key",
+            "Invalid security key.").c_str());
         return;
     }
 
@@ -1892,7 +1948,8 @@ void PlayerbotMgr::HandleLinkAccountCommand(Player* player, const std::string& a
         "INSERT IGNORE INTO playerbots_account_links (account_id, linked_account_id) VALUES ({}, {})",
         linkedAccountId, accountId);
 
-    ChatHandler(player->GetSession()).PSendSysMessage("Account linked successfully.");
+    ChatHandler(player->GetSession()).PSendSysMessage(GetMasterLocalizedText(player, "msg_account_linked_success",
+        "Account linked successfully.").c_str());
 }
 
 void PlayerbotMgr::HandleViewLinkedAccountsCommand(Player* player)
@@ -1902,11 +1959,13 @@ void PlayerbotMgr::HandleViewLinkedAccountsCommand(Player* player)
 
     if (!result)
     {
-        ChatHandler(player->GetSession()).PSendSysMessage("No linked accounts.");
+        ChatHandler(player->GetSession()).PSendSysMessage(GetMasterLocalizedText(player, "msg_account_no_linked",
+            "No linked accounts.").c_str());
         return;
     }
 
-    ChatHandler(player->GetSession()).PSendSysMessage("Linked accounts:");
+    ChatHandler(player->GetSession()).PSendSysMessage(GetMasterLocalizedText(player, "msg_account_linked_title",
+        "Linked accounts:").c_str());
     do
     {
         Field* fields = result->Fetch();
@@ -1921,7 +1980,8 @@ void PlayerbotMgr::HandleViewLinkedAccountsCommand(Player* player)
         }
         else
         {
-            ChatHandler(player->GetSession()).PSendSysMessage("- Unknown account");
+            ChatHandler(player->GetSession()).PSendSysMessage(GetMasterLocalizedText(player, "msg_account_unknown",
+                "- Unknown account").c_str());
         }
     } while (result->NextRow());
 }
@@ -1931,7 +1991,8 @@ void PlayerbotMgr::HandleUnlinkAccountCommand(Player* player, const std::string&
     QueryResult result = LoginDatabase.Query("SELECT id FROM account WHERE username = '{}'", accountName);
     if (!result)
     {
-        ChatHandler(player->GetSession()).PSendSysMessage("Account not found.");
+        ChatHandler(player->GetSession()).PSendSysMessage(GetMasterLocalizedText(player, "msg_account_not_found",
+            "Account not found.").c_str());
         return;
     }
 
@@ -1942,5 +2003,6 @@ void PlayerbotMgr::HandleUnlinkAccountCommand(Player* player, const std::string&
     PlayerbotsDatabase.Execute("DELETE FROM playerbots_account_links WHERE (account_id = {} AND linked_account_id = {}) OR (account_id = {} AND linked_account_id = {})",
                                 accountId, linkedAccountId, linkedAccountId, accountId);
 
-    ChatHandler(player->GetSession()).PSendSysMessage("Account unlinked successfully.");
+    ChatHandler(player->GetSession()).PSendSysMessage(GetMasterLocalizedText(player, "msg_account_unlinked_success",
+        "Account unlinked successfully.").c_str());
 }

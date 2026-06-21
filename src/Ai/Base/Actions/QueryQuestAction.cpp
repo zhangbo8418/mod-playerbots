@@ -54,7 +54,8 @@ bool QueryQuestAction::Execute(Event event)
             continue;
 
         std::ostringstream out;
-        out << "--- " << chat->FormatQuest(sObjectMgr->GetQuestTemplate(questId)) << " ";
+        out << botAI->GetLocalizedBotTextOrDefault("msg_quest_query_header", "--- %quest ",
+            {{"%quest", chat->FormatQuest(sObjectMgr->GetQuestTemplate(questId))}});
 
         if (bot->GetQuestStatus(questId) == QUEST_STATUS_COMPLETE)
         {
@@ -80,24 +81,22 @@ bool QueryQuestAction::Execute(Event event)
                 if (limit > 50)
                     continue;
 
-                std::ostringstream out;
-
                 uint32 tpoints = dest->getPoints(true).size();
                 uint32 apoints = dest->getPoints().size();
 
-                out << round(dest->distanceTo(&botPos));
-                out << " to " << dest->getTitle();
-                out << " " << apoints;
-
+                std::string points = std::to_string(apoints);
                 if (apoints < tpoints)
-                    out << "/" << tpoints;
+                    points += "/" + std::to_string(tpoints);
 
-                out << " points.";
+                std::string line = botAI->GetLocalizedBotTextOrDefault("msg_quest_travel_line",
+                    "%distance to %title %points points.",
+                    {{"%distance", std::to_string(static_cast<uint32>(round(dest->distanceTo(&botPos))))},
+                     {"%title", dest->getTitle()}, {"%points", points}});
 
                 if (!dest->isActive(bot))
-                    out << botAI->GetLocalizedBotTextOrDefault("msg_quest_query_not_active", " not active");
+                    line += botAI->GetLocalizedBotTextOrDefault("msg_quest_query_not_active", " not active");
 
-                botAI->TellMaster(out);
+                botAI->TellMaster(line);
 
                 limit++;
             }

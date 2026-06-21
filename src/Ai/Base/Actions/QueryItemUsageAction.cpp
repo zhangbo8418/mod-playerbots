@@ -66,7 +66,8 @@ std::string const QueryItemUsageAction::QueryItem(ItemTemplate const* item, uint
     std::string const quest = QueryQuestItem(item->ItemId);
     std::string const price = QueryItemPrice(item);
     if (usage.empty())
-        usage = (quest.empty() ? "Useless" : "Quest");
+        usage = quest.empty() ? botAI->GetLocalizedBotTextOrDefault("msg_item_usage_useless", "Useless")
+                              : botAI->GetLocalizedBotTextOrDefault("msg_item_usage_quest", "Quest");
 
     out << chat->FormatItem(item, count, total) << ": " << usage;
     if (!quest.empty())
@@ -86,29 +87,29 @@ std::string const QueryItemUsageAction::QueryItemUsage(ItemTemplate const* item)
     switch (usage)
     {
         case ITEM_USAGE_EQUIP:
-            return "Equip";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_equip", "Equip");
         case ITEM_USAGE_REPLACE:
-            return "Equip (replace)";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_equip_replace", "Equip (replace)");
         case ITEM_USAGE_BAD_EQUIP:
-            return "Equip (temporary)";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_equip_temp", "Equip (temporary)");
         case ITEM_USAGE_BROKEN_EQUIP:
-            return "Broken Equip";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_broken_equip", "Broken Equip");
         case ITEM_USAGE_QUEST:
-            return "Quest (other)";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_quest_other", "Quest (other)");
         case ITEM_USAGE_SKILL:
-            return "Tradeskill";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_tradeskill", "Tradeskill");
         case ITEM_USAGE_USE:
-            return "Use";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_use", "Use");
         case ITEM_USAGE_GUILD_TASK:
-            return "Guild task";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_guild_task", "Guild task");
         case ITEM_USAGE_DISENCHANT:
-            return "Disenchant";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_disenchant", "Disenchant");
         case ITEM_USAGE_VENDOR:
-            return "Vendor";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_vendor", "Vendor");
         case ITEM_USAGE_AH:
-            return "Auctionhouse";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_auctionhouse", "Auctionhouse");
         case ITEM_USAGE_AMMO:
-            return "Ammunition";
+            return botAI->GetLocalizedBotTextOrDefault("msg_item_usage_ammunition", "Ammunition");
         default:
             break;
     }
@@ -139,7 +140,8 @@ std::string const QueryItemUsageAction::QueryItemPrice(ItemTemplate const* item)
         }
     }
     if (sellPrice)
-        msg << "Sell: " << chat->formatMoney(sellPrice);
+        msg << botAI->GetLocalizedBotTextOrDefault("msg_item_price_sell", "Sell: %money",
+            {{"%money", chat->formatMoney(sellPrice)}});
 
     std::ostringstream out;
     out << item->ItemId;
@@ -153,7 +155,8 @@ std::string const QueryItemUsageAction::QueryItemPrice(ItemTemplate const* item)
         if (sellPrice)
             msg << " ";
 
-        msg << "Buy: " << chat->formatMoney(buyPrice);
+        msg << botAI->GetLocalizedBotTextOrDefault("msg_item_price_buy", "Buy: %money",
+            {{"%money", chat->formatMoney(buyPrice)}});
     }
 
     return msg.str();

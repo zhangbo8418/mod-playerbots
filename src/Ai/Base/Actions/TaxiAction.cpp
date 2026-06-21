@@ -98,9 +98,17 @@ botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("taxi_ready_next_flight", 
                 if (!dest)
                     continue;
 
-                std::ostringstream out;
-                out << index++ << ": " << dest->name[0];
-                botAI->TellMasterNoFacing(out.str());
+                uint32 locale = LOCALE_enUS;
+                if (Player* master = botAI->GetMaster())
+                    if (master->GetSession())
+                        locale = master->GetSession()->GetSessionDbcLocale();
+
+                char const* destName = dest->name[locale];
+                if (!destName || !*destName)
+                    destName = dest->name[0];
+
+                botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_taxi_route", "%index: %dest",
+                    {{"%index", std::to_string(index++)}, {"%dest", destName ? destName : ""}}));
             }
 
             return true;

@@ -18,7 +18,10 @@ bool PassLeadershipToMasterAction::Execute(Event /*event*/)
             PlayerbotWorldThreadProcessor::instance().QueueOperation(std::move(setLeaderOp));
 
             if (!message.empty())
-                botAI->TellMasterNoFacing(message);
+            {
+                std::string const key = getName() == "give leader" ? "msg_give_leader" : "msg_pass_leader";
+                botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault(key, message));
+            }
 
             if (sRandomPlayerbotMgr.IsRandomBot(bot))
             {

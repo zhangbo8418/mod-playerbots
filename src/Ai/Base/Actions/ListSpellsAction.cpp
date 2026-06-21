@@ -186,7 +186,7 @@ std::vector<std::pair<uint32, std::string>> ListSpellsAction::GetSpellList(std::
                     if (reagentsInInventory)
                         materials << "|cffffff00(x" << reagentsInInventory << ")|r ";
                     else if (buyable)
-                        materials << "|cffffff00(buy)|r ";
+                        materials << "|cffffff00" << botAI->GetLocalizedBotTextOrDefault("msg_spell_reagent_buy", "(buy)") << "|r ";
                 }
             }
         }
@@ -246,13 +246,13 @@ std::vector<std::pair<uint32, std::string>> ListSpellsAction::GetSpellList(std::
 
             out << " - ";
             if (SkillValue >= GrayLevel)
-                out << " |cff808080gray";
+                out << " |cff808080" << botAI->GetLocalizedBotTextOrDefault("msg_spell_skill_gray", "gray");
             else if (SkillValue >= GreenLevel)
-                out << " |cff80be80green";
+                out << " |cff80be80" << botAI->GetLocalizedBotTextOrDefault("msg_spell_skill_green", "green");
             else if (SkillValue >= YellowLevel)
-                out << " |cffffff00yellow";
+                out << " |cffffff00" << botAI->GetLocalizedBotTextOrDefault("msg_spell_skill_yellow", "yellow");
             else
-                out << " |cffff8040orange";
+                out << " |cffff8040" << botAI->GetLocalizedBotTextOrDefault("msg_spell_skill_orange", "orange");
 
             out << "|r";
         }

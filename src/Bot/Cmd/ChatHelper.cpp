@@ -10,6 +10,7 @@
 #include "ItemTemplate.h"
 #include "ObjectMgr.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 #include "SpellInfo.h"
 
 #include <regex>
@@ -36,6 +37,35 @@ static bool substrContainsInMap(std::string const searchTerm, std::map<std::stri
     }
 
     return false;
+}
+
+char const* GetClassLocalizationKey(uint8 cls)
+{
+    switch (cls)
+    {
+        case CLASS_WARRIOR:
+            return "msg_class_warrior";
+        case CLASS_PALADIN:
+            return "msg_class_paladin";
+        case CLASS_HUNTER:
+            return "msg_class_hunter";
+        case CLASS_ROGUE:
+            return "msg_class_rogue";
+        case CLASS_PRIEST:
+            return "msg_class_priest";
+        case CLASS_DEATH_KNIGHT:
+            return "msg_class_death_knight";
+        case CLASS_SHAMAN:
+            return "msg_class_shaman";
+        case CLASS_MAGE:
+            return "msg_class_mage";
+        case CLASS_WARLOCK:
+            return "msg_class_warlock";
+        case CLASS_DRUID:
+            return "msg_class_druid";
+        default:
+            return nullptr;
+    }
 }
 
 ChatHelper::ChatHelper(PlayerbotAI* botAI) : PlayerbotAIAware(botAI)
@@ -354,9 +384,7 @@ ItemWithRandomProperty ChatHelper::parseItemWithRandomProperty(std::string const
 std::string const ChatHelper::FormatQuest(Quest const* quest)
 {
     if (!quest)
-    {
-        return "Invalid quest";
-    }
+        return botAI->GetLocalizedBotTextOrDefault("msg_item_invalid_quest", "Invalid quest");
 
     std::ostringstream out;
     QuestLocale const* locale = sObjectMgr->GetQuestLocale(quest->GetQuestId());
@@ -410,7 +438,7 @@ std::string const ChatHelper::FormatWorldEntry(int32 entry)
     else if (entry > 0 && cInfo)
         out << cInfo->Name;
     else
-        out << "unknown";
+        out << PlayerbotTextMgr::instance().GetBotTextOrDefault("msg_unknown_entry", "unknown");
 
     out << "]|h|r";
     return out.str();
@@ -623,11 +651,22 @@ std::string const ChatHelper::FormatClass(Player* player, int8 spec)
     out << (c1 ? "|h|cff00ff00" : "") << c1 << "|h|cffffffff/";
     out << (c2 ? "|h|cff00ff00" : "") << c2 << "|h|cffffffff";
 
-    out << ")|r " << classes[cls];
+    out << ")|r ";
+    std::string className = classes[cls];
+    if (PlayerbotAI* playerBotAI = GET_PLAYERBOT_AI(player))
+        if (char const* key = GetClassLocalizationKey(cls))
+            className = playerBotAI->GetLocalizedBotTextOrDefault(key, classes[cls]);
+    out << className;
     return out.str();
 }
 
-std::string const ChatHelper::FormatClass(uint8 cls) { return classes[cls]; }
+std::string const ChatHelper::FormatClass(uint8 cls)
+{
+    if (botAI && GetClassLocalizationKey(cls))
+        return botAI->GetLocalizedBotTextOrDefault(GetClassLocalizationKey(cls), classes[cls]);
+
+    return classes[cls];
+}
 
 std::string const ChatHelper::FormatRace(uint8 race) { return races[race]; }
 

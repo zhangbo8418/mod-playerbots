@@ -56,7 +56,7 @@ public:
     static std::string const FormatChat(ChatMsg chat);
 
     static std::string const FormatClass(Player* player, int8 spec);
-    static std::string const FormatClass(uint8 cls);
+    std::string const FormatClass(uint8 cls);
     static std::string const FormatRace(uint8 race);
     static std::string const FormatSkill(uint32 skill);
     static std::string const FormatBoolean(bool flag);

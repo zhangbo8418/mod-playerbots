@@ -61,7 +61,18 @@ private:
     void CleanupAdverts();
     void RemoveDuplicatedAdverts();
     void DeleteMail(std::vector<uint32_t> buffer);
-    void SendCompletionMessage(Player* player, std::string const verb);
+
+    enum GuildTaskCompletionType : uint8
+    {
+        GUILD_TASK_COMPLETION_COMPLETED,
+        GUILD_TASK_COMPLETION_REWARDED,
+        GUILD_TASK_COMPLETION_PAYED,
+        GUILD_TASK_COMPLETION_MISTAKE,
+        GUILD_TASK_COMPLETION_PROGRESS,
+        GUILD_TASK_COMPLETION_TRANSFERED
+    };
+
+    void SendCompletionMessage(Player* player, GuildTaskCompletionType type);
 };
 
 #endif

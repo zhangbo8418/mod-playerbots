@@ -22,14 +22,12 @@ bool RtiAction::Execute(Event event)
     if (text.empty() || text == "?")
     {
         std::ostringstream outRti;
-        outRti << "rti"
-               << ": ";
+        outRti << botAI->GetLocalizedBotTextOrDefault("msg_rti_label", "rti") << ": ";
         AppendRti(outRti, "rti");
         botAI->TellMaster(outRti);
 
         std::ostringstream outRtiCc;
-        outRtiCc << "rti cc"
-                 << ": ";
+        outRtiCc << botAI->GetLocalizedBotTextOrDefault("msg_rti_cc_label", "rti cc") << ": ";
         AppendRti(outRtiCc, "rti cc");
         botAI->TellMaster(outRtiCc);
         return true;
@@ -37,8 +35,12 @@ bool RtiAction::Execute(Event event)
 
     context->GetValue<std::string>(type)->Set(text);
 
+    std::string const typeLabel = type == "rti cc"
+        ? botAI->GetLocalizedBotTextOrDefault("msg_rti_cc_label", "rti cc")
+        : botAI->GetLocalizedBotTextOrDefault("msg_rti_label", "rti");
+
     std::ostringstream out;
-    out << botAI->GetLocalizedBotTextOrDefault("msg_rti_set_to", "%type set to: ", {{"%type", type}});
+    out << botAI->GetLocalizedBotTextOrDefault("msg_rti_set_to", "%type set to: ", {{"%type", typeLabel}});
     AppendRti(out, type);
     botAI->TellMaster(out);
     return true;

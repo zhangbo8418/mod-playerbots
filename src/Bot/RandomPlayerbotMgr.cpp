@@ -3277,7 +3277,8 @@ std::string const RandomPlayerbotMgr::HandleRemoteCommand(std::string const requ
     if (pos == request.end())
     {
         std::ostringstream out;
-        out << "invalid request: " << request;
+        out << PlayerbotTextMgr::instance().GetBotTextOrDefault("msg_bot_invalid_request", "invalid request: %request",
+            {{"%request", request}});
         return out.str();
     }
 
@@ -3285,11 +3286,11 @@ std::string const RandomPlayerbotMgr::HandleRemoteCommand(std::string const requ
     ObjectGuid guid = ObjectGuid::Create<HighGuid::Player>(atoi(std::string(pos + 1, request.end()).c_str()));
     Player* bot = GetPlayerBot(guid);
     if (!bot)
-        return "invalid guid";
+        return PlayerbotTextMgr::instance().GetBotTextOrDefault("msg_bot_invalid_guid", "invalid guid");
 
     PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot);
     if (!botAI)
-        return "invalid guid";
+        return PlayerbotTextMgr::instance().GetBotTextOrDefault("msg_bot_invalid_guid", "invalid guid");
 
     return botAI->HandleRemoteCommand(command);
 }

@@ -9,6 +9,8 @@
 #include "GuildTaskMgr.h"
 #include "PlayerbotAIConfig.h"
 #include "PlayerbotAI.h"
+#include "PlayerbotMailSubjects.h"
+#include "Playerbots.h"
 
 bool CheckMailAction::Execute(Event /*event*/)
 {
@@ -72,7 +74,7 @@ void CheckMailAction::ProcessMail(Mail* mail, Player* owner, CharacterDatabaseTr
         return;
     }
 
-    if (mail->subject.find("Item(s) you asked for") != std::string::npos)
+    if (mail->subject.find(PlayerbotMailSubjects::ItemsAsked) != std::string::npos)
         return;
 
     for (MailItemInfoVec::iterator i = mail->items.begin(); i != mail->items.end(); ++i)
@@ -84,14 +86,15 @@ void CheckMailAction::ProcessMail(Mail* mail, Player* owner, CharacterDatabaseTr
         if (!GuildTaskMgr::instance().CheckItemTask(i->item_template, item->GetCount(), owner, bot, true))
         {
             std::ostringstream body;
-            body << "Hello, " << owner->GetName() << ",\n";
-            body << "\n";
-            body << "Here are the item(s) you've sent me by mistake";
-            body << "\n";
-            body << "Thanks,\n";
-            body << bot->GetName() << "\n";
+            body << botAI->GetLocalizedBotTextOrDefault("mail_body_greeting", "Hello, %name,\n\n",
+                {{"%name", owner->GetName()}}, owner);
+            body << botAI->GetLocalizedBotTextOrDefault("mail_body_items_mistake",
+                "Here are the item(s) you've sent me by mistake", {}, owner);
+            body << "\n\n";
+            body << botAI->GetLocalizedBotTextOrDefault("mail_body_signoff", "Thanks,\n%botname\n",
+                {{"%botname", bot->GetName()}}, owner);
 
-            MailDraft draft("Item(s) you've sent me", body.str());
+            MailDraft draft(PlayerbotMailSubjects::ItemsSentByMistake, body.str());
             draft.AddItem(item);
             bot->RemoveMItem(i->item_guid);
             draft.SendMailTo(trans, MailReceiver(owner), MailSender(bot));

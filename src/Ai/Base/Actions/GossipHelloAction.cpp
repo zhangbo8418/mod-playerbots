@@ -71,9 +71,8 @@ void GossipHelloAction::TellGossipMenus()
     for (auto iter = items.begin(); iter != items.end(); iter++)
     {
         GossipMenuItem const* item = &(iter->second);
-        std::ostringstream out;
-        out << "[" << iter->first << "] " << item->Message;
-        botAI->TellMasterNoFacing(out.str());
+        botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_gossip_menu_item", "[%index] %message",
+            {{"%index", std::to_string(iter->first)}, {"%message", item->Message}}));
     }
 }
 
@@ -129,9 +128,8 @@ bool GossipHelloAction::Execute(ObjectGuid guid, int32 menuToSelect, bool silent
 
         if (!silent)
         {
-            std::ostringstream out;
-            out << "--- " << pCreature->GetName() << " ---";
-            botAI->TellMasterNoFacing(out.str());
+            botAI->TellMasterNoFacing(botAI->GetLocalizedBotTextOrDefault("msg_gossip_creature_header", "--- %name ---",
+                {{"%name", pCreature->GetName()}}));
             TellGossipMenus();
         }
     }

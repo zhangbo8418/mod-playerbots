@@ -11,9 +11,53 @@
 #include "Mail.h"
 #include "MapMgr.h"
 #include "PlayerbotFactory.h"
+#include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 #include "RandomItemMgr.h"
 #include "ServerFacade.h"
+
+namespace
+{
+struct GuildTaskCompletionText
+{
+    char const* selfKey;
+    char const* selfDefault;
+    char const* groupKey;
+    char const* groupDefault;
+};
+
+GuildTaskCompletionText const completionTexts[] = {
+    {"msg_guild_task_self_completed", "You have completed a guild task",
+     "msg_guild_task_group_completed", "%name has completed a guild task"},
+    {"msg_guild_task_self_rewarded", "You have been rewarded for a guild task",
+     "msg_guild_task_group_rewarded", "%name has been rewarded for a guild task"},
+    {"msg_guild_task_self_payed", "You have paid for a guild task",
+     "msg_guild_task_group_payed", "%name has paid for a guild task"},
+    {"msg_guild_task_self_mistake", "You made a mistake with a guild task",
+     "msg_guild_task_group_mistake", "%name made a mistake with a guild task"},
+    {"msg_guild_task_self_progress", "You made progress on a guild task",
+     "msg_guild_task_group_progress", "%name made progress on a guild task"},
+    {"msg_guild_task_self_transfered", "You transferred a guild task",
+     "msg_guild_task_group_transfered", "%name transferred a guild task"},
+};
+
+std::string GetPlayerLocalizedText(Player* player, std::string const key, std::string const defaultText,
+                                   std::map<std::string, std::string> placeholders = {})
+{
+    uint32 locale = LOCALE_enUS;
+    if (player && player->GetSession())
+        locale = static_cast<uint32>(player->GetSession()->GetSessionDbcLocale());
+
+    std::string localized = PlayerbotTextMgr::instance().GetBotTextForLocale(key, locale, placeholders);
+    if (!localized.empty())
+        return localized;
+
+    std::string result = defaultText;
+    for (auto const& placeholder : placeholders)
+        PlayerbotTextMgr::replaceAll(result, placeholder.first, placeholder.second);
+    return result;
+}
+}
 
 char* strstri(char const* str1, char const* str2);
 
@@ -473,7 +517,7 @@ bool GuildTaskMgr::SendThanks(CharacterDatabaseTransaction& trans, uint32 owner,
 
         Player* player = ObjectAccessor::FindPlayer(ObjectGuid::Create<HighGuid::Player>(owner));
         if (player)
-            SendCompletionMessage(player, "payed for");
+            SendCompletionMessage(player, GUILD_TASK_COMPLETION_PAYED);
 
         return true;
     }
@@ -880,7 +924,7 @@ bool GuildTaskMgr::CheckItemTask(uint32 itemId, uint32 obtained, Player* ownerPl
                   ownerPlayer->GetName().c_str(), itemId, itemTask);
 
         if (byMail)
-            SendCompletionMessage(ownerPlayer, "made a mistake with");
+            SendCompletionMessage(ownerPlayer, GUILD_TASK_COMPLETION_MISTAKE);
 
         return false;
     }
@@ -909,7 +953,7 @@ bool GuildTaskMgr::CheckItemTask(uint32 itemId, uint32 obtained, Player* ownerPl
         SetTaskValue(owner, guildId, "reward", 1, rewardTime - 15);
         SetTaskValue(owner, guildId, "itemCount", 0, 0);
         SetTaskValue(owner, guildId, "thanks", 0, 0);
-        SendCompletionMessage(ownerPlayer, "completed");
+        SendCompletionMessage(ownerPlayer, GUILD_TASK_COMPLETION_COMPLETED);
     }
     else
     {
@@ -917,7 +961,7 @@ bool GuildTaskMgr::CheckItemTask(uint32 itemId, uint32 obtained, Player* ownerPl
                   ownerPlayer->GetName().c_str(), obtained, count);
         SetTaskValue(owner, guildId, "itemCount", count - obtained, sPlayerbotAIConfig.maxGuildTaskChangeTime);
         SetTaskValue(owner, guildId, "thanks", 1, rewardTime - 30);
-        SendCompletionMessage(ownerPlayer, "made a progress with");
+        SendCompletionMessage(ownerPlayer, GUILD_TASK_COMPLETION_PROGRESS);
     }
     return true;
 }
@@ -1012,7 +1056,7 @@ bool GuildTaskMgr::Reward(CharacterDatabaseTransaction& trans, uint32 owner, uin
 
     player = ObjectAccessor::FindPlayer(ObjectGuid::Create<HighGuid::Player>(owner));
     if (player)
-        SendCompletionMessage(player, "rewarded for");
+        SendCompletionMessage(player, GUILD_TASK_COMPLETION_REWARDED);
 
     SetTaskValue(owner, guildId, "activeTask", 0, 0);
     SetTaskValue(owner, guildId, "payment", 0, 0);
@@ -1038,30 +1082,36 @@ void GuildTaskMgr::CheckKillTask(Player* player, Unit* victim)
     }
 }
 
-void GuildTaskMgr::SendCompletionMessage(Player* player, std::string const verb)
+void GuildTaskMgr::SendCompletionMessage(Player* player, GuildTaskCompletionType type)
 {
-    std::ostringstream out;
-    out << player->GetName() << " has " << verb << " a guild task";
+    if (!player || !player->GetSession())
+        return;
+
+    GuildTaskCompletionText const& texts = completionTexts[static_cast<uint8>(type)];
+    std::map<std::string, std::string> namePlaceholder = {{"%name", player->GetName()}};
 
     if (Group* group = player->GetGroup())
     {
         for (GroupReference* gr = group->GetFirstMember(); gr; gr = gr->next())
         {
             Player* member = gr->GetSource();
-            if (member != player)
-                ChatHandler(member->GetSession()).PSendSysMessage(out.str().c_str());
+            if (!member || member == player || !member->GetSession())
+                continue;
+
+            ChatHandler(member->GetSession()).PSendSysMessage(
+                GetPlayerLocalizedText(member, texts.groupKey, texts.groupDefault, namePlaceholder).c_str());
         }
     }
-    else
+    else if (PlayerbotAI* botAI = GET_PLAYERBOT_AI(player))
     {
-        if (PlayerbotAI* botAI = GET_PLAYERBOT_AI(player))
-            if (Player* master = botAI->GetMaster())
-                ChatHandler(master->GetSession()).PSendSysMessage(out.str().c_str());
+        if (Player* master = botAI->GetMaster())
+            if (master->GetSession())
+                ChatHandler(master->GetSession()).PSendSysMessage(
+                    GetPlayerLocalizedText(master, texts.groupKey, texts.groupDefault, namePlaceholder).c_str());
     }
 
-    std::ostringstream self;
-    self << "You have " << verb << " a guild task";
-    ChatHandler(player->GetSession()).PSendSysMessage(self.str().c_str());
+    ChatHandler(player->GetSession()).PSendSysMessage(
+        GetPlayerLocalizedText(player, texts.selfKey, texts.selfDefault).c_str());
 }
 
 void GuildTaskMgr::CheckKillTaskInternal(Player* player, Unit* victim)
@@ -1088,7 +1138,7 @@ void GuildTaskMgr::CheckKillTaskInternal(Player* player, Unit* victim)
         SetTaskValue(owner, guildId, "reward", 1,
                      urand(sPlayerbotAIConfig.minGuildTaskRewardTime, sPlayerbotAIConfig.maxGuildTaskRewardTime));
 
-        SendCompletionMessage(player, "completed");
+        SendCompletionMessage(player, GUILD_TASK_COMPLETION_COMPLETED);
     }
 }
 
@@ -1248,7 +1298,7 @@ bool GuildTaskMgr::CheckTaskTransfer(std::string const text, Player* ownerPlayer
                     SetTaskValue(owner, guildId, "activeTask", 0, 0);
                     SetTaskValue(owner, guildId, "payment", 0, 0);
 
-                    SendCompletionMessage(ownerPlayer, "transfered");
+                    SendCompletionMessage(ownerPlayer, GUILD_TASK_COMPLETION_TRANSFERED);
                 }
             }
         } while (results->NextRow());

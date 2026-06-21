@@ -69,7 +69,8 @@ void StatsAction::ListBagSlots(std::ostringstream& out)
     if (totalfree < total / 4)
         color = "ffff0000";
 
-    out << "|h|c" << color << totalfree << "/" << total << "|h|cffffffff Bag";
+    out << "|h|c" << color << totalfree << "/" << total << "|h|cffffffff "
+        << botAI->GetLocalizedBotTextOrDefault("msg_stats_bag", "Bag");
 }
 
 void StatsAction::ListXP(std::ostringstream& out)
@@ -86,7 +87,8 @@ void StatsAction::ListXP(std::ostringstream& out)
     if (restXP && nextLevelXP)
         restPercent = 2 * (100 * restXP / nextLevelXP);
 
-    out << "|cff00ff00" << xpPercent << "|cffffd333/|cff00ff00" << restPercent << "%|cffffffff XP";
+    out << "|cff00ff00" << xpPercent << "|cffffd333/|cff00ff00" << restPercent << "%|cffffffff "
+        << botAI->GetLocalizedBotTextOrDefault("msg_stats_xp", "XP");
 }
 
 void StatsAction::ListRepairCost(std::ostringstream& out)
@@ -116,7 +118,8 @@ void StatsAction::ListRepairCost(std::ostringstream& out)
     if (repairPercent < 25)
         color = "ffff0000";
 
-    out << "|c" << color << (uint32)ceil(repairPercent) << "% (" << chat->formatMoney(totalCost) << ")|cffffffff Dur";
+    out << "|c" << color << (uint32)ceil(repairPercent) << "% (" << chat->formatMoney(totalCost) << ")|cffffffff "
+        << botAI->GetLocalizedBotTextOrDefault("msg_stats_dur", "Dur");
 }
 
 uint32 StatsAction::EstRepair(uint16 pos)
