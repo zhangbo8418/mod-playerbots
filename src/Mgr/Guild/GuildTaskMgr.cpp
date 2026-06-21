@@ -11,7 +11,7 @@
 #include "Mail.h"
 #include "MapMgr.h"
 #include "PlayerbotFactory.h"
-#include "PlayerbotTextMgr.h"
+#include "PlayerbotTextHelper.h"
 #include "Playerbots.h"
 #include "RandomItemMgr.h"
 #include "ServerFacade.h"
@@ -40,23 +40,6 @@ GuildTaskCompletionText const completionTexts[] = {
     {"msg_guild_task_self_transfered", "You transferred a guild task",
      "msg_guild_task_group_transfered", "%name transferred a guild task"},
 };
-
-std::string GetPlayerLocalizedText(Player* player, std::string const key, std::string const defaultText,
-                                   std::map<std::string, std::string> placeholders = {})
-{
-    uint32 locale = LOCALE_enUS;
-    if (player && player->GetSession())
-        locale = static_cast<uint32>(player->GetSession()->GetSessionDbcLocale());
-
-    std::string localized = PlayerbotTextMgr::instance().GetBotTextForLocale(key, locale, placeholders);
-    if (!localized.empty())
-        return localized;
-
-    std::string result = defaultText;
-    for (auto const& placeholder : placeholders)
-        PlayerbotTextMgr::replaceAll(result, placeholder.first, placeholder.second);
-    return result;
-}
 }
 
 char* strstri(char const* str1, char const* str2);

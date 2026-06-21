@@ -18,31 +18,11 @@
 #include "GuildTaskMgr.h"
 #include "PerfMonitor.h"
 #include "PlayerbotMgr.h"
-#include "PlayerbotTextMgr.h"
+#include "PlayerbotTextHelper.h"
 #include "RandomPlayerbotMgr.h"
 #include "ScriptMgr.h"
 
 using namespace Acore::ChatCommands;
-
-namespace
-{
-std::string GetPlayerLocalizedText(Player* player, std::string const key, std::string const defaultText,
-                                   std::map<std::string, std::string> placeholders = {})
-{
-    uint32 locale = LOCALE_enUS;
-    if (player && player->GetSession())
-        locale = static_cast<uint32>(player->GetSession()->GetSessionDbcLocale());
-
-    std::string localized = PlayerbotTextMgr::instance().GetBotTextForLocale(key, locale, placeholders);
-    if (!localized.empty())
-        return localized;
-
-    std::string result = defaultText;
-    for (auto const& placeholder : placeholders)
-        PlayerbotTextMgr::replaceAll(result, placeholder.first, placeholder.second);
-    return result;
-}
-}
 
 class playerbots_commandscript : public CommandScript
 {

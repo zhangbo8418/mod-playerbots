@@ -50,3 +50,8 @@ local.properties
 .cproject
 .vscode
 .idea
+
+#
+# Local SQL generation scripts (not published)
+#
+/scripts/

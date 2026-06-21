@@ -28,6 +28,7 @@
 #include "PlayerbotFactory.h"
 #include "PlayerbotOperations.h"
 #include "PlayerbotSecurity.h"
+#include "PlayerbotTextHelper.h"
 #include "PlayerbotTextMgr.h"
 #include "PlayerbotWorldThreadProcessor.h"
 #include "Playerbots.h"
@@ -66,33 +67,6 @@ private:
 };
 
 std::unordered_set<ObjectGuid> BotInitGuard::botsBeingInitialized;
-
-namespace
-{
-std::string GetMasterLocalizedText(ObjectGuid masterGuid, std::string const key, std::string const defaultText,
-                                   std::map<std::string, std::string> placeholders = {})
-{
-    Player* master = ObjectAccessor::FindConnectedPlayer(masterGuid);
-    uint32 locale = LOCALE_enUS;
-    if (master && master->GetSession())
-        locale = static_cast<uint32>(master->GetSession()->GetSessionDbcLocale());
-
-    std::string localized = PlayerbotTextMgr::instance().GetBotTextForLocale(key, locale, placeholders);
-    if (!localized.empty())
-        return localized;
-
-    std::string result = defaultText;
-    for (auto const& placeholder : placeholders)
-        PlayerbotTextMgr::replaceAll(result, placeholder.first, placeholder.second);
-    return result;
-}
-
-std::string GetMasterLocalizedText(Player* master, std::string const key, std::string const defaultText,
-                                   std::map<std::string, std::string> placeholders = {})
-{
-    return GetMasterLocalizedText(master ? master->GetGUID() : ObjectGuid::Empty, key, defaultText, placeholders);
-}
-}
 
 std::unordered_map<ObjectGuid, uint32> PlayerbotHolder::botLoading;
 
