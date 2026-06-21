@@ -384,7 +384,7 @@ ItemWithRandomProperty ChatHelper::parseItemWithRandomProperty(std::string const
 std::string const ChatHelper::FormatQuest(Quest const* quest)
 {
     if (!quest)
-        return botAI->GetLocalizedBotTextOrDefault("msg_item_invalid_quest", "Invalid quest");
+        return PlayerbotTextMgr::instance().GetBotTextOrDefault("msg_item_invalid_quest", "Invalid quest");
 
     std::ostringstream out;
     QuestLocale const* locale = sObjectMgr->GetQuestLocale(quest->GetQuestId());
