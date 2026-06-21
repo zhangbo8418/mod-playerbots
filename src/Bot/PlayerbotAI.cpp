@@ -39,7 +39,6 @@
 #include "PerfMonitor.h"
 #include "Player.h"
 #include "PlayerbotTextHelper.h"
-#include "PlayerbotTextMgr.h"
 #include "PlayerbotAIConfig.h"
 #include "PlayerbotMgr.h"
 #include "PlayerbotGuildMgr.h"
@@ -3081,7 +3080,7 @@ std::string PlayerbotAI::GetLocalizedBotText(std::string const name,
 std::string PlayerbotAI::GetLocalizedBotText(std::string const name,
                                              std::map<std::string, std::string> placeholders, Player* forLocale)
 {
-    return PlayerbotTextMgr::instance().GetBotTextForLocale(name, GetPlayerSessionLocale(forLocale), placeholders);
+    return GetPlayerLocalizedText(forLocale, name, std::string(), placeholders);
 }
 
 std::string PlayerbotAI::GetLocalizedBotTextOrDefault(std::string const name, std::string const defaultText,
@@ -3093,13 +3092,7 @@ std::string PlayerbotAI::GetLocalizedBotTextOrDefault(std::string const name, st
 std::string PlayerbotAI::GetLocalizedBotTextOrDefault(std::string const name, std::string const defaultText,
                                                       std::map<std::string, std::string> placeholders, Player* forLocale)
 {
-    std::string text = GetLocalizedBotText(name, placeholders, forLocale);
-    if (!text.empty())
-        return text;
-    std::string result = defaultText;
-    for (auto const& p : placeholders)
-        PlayerbotTextMgr::replaceAll(result, p.first, p.second);
-    return result;
+    return GetPlayerLocalizedText(forLocale, name, defaultText, placeholders);
 }
 
 bool PlayerbotAI::IsTellAllowed(PlayerbotSecurityLevel securityLevel)

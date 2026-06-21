@@ -7,7 +7,7 @@
 
 #include "Event.h"
 #include "LastMovementValue.h"
-#include "PlayerbotTextMgr.h"
+#include "PlayerbotTextHelper.h"
 #include "Playerbots.h"
 #include "PlayerbotAIConfig.h"
 #include "Config.h"
@@ -98,10 +98,7 @@ botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("taxi_ready_next_flight", 
                 if (!dest)
                     continue;
 
-                uint32 locale = LOCALE_enUS;
-                if (Player* master = botAI->GetMaster())
-                    if (master->GetSession())
-                        locale = master->GetSession()->GetSessionDbcLocale();
+                uint32 locale = GetPlayerSessionLocale(botAI->GetMaster());
 
                 char const* destName = dest->name[locale];
                 if (!destName || !*destName)
