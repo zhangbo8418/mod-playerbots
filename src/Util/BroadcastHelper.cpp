@@ -28,29 +28,29 @@ bool BroadcastHelper::BroadcastTest(PlayerbotAI* ai, Player* /* bot */)
 
     int32 rand = urand(0, 1);
 
-    if (rand == 1 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("Posted to trade, %rand1, %rand2, %rand3", placeholders), ChatChannelId::TRADE))
+    if (rand == 1 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("broadcast_posted_trade", placeholders), ChatChannelId::TRADE))
         return true;
-    else if (ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("Posted to GuildRecruitment, %rand1, %rand2, %rand3", placeholders), ChatChannelId::GUILD_RECRUITMENT))
+    else if (ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("broadcast_posted_guild_recruitment", placeholders), ChatChannelId::GUILD_RECRUITMENT))
         return true;
 
-    return ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("Posted to trade, %rand1, %rand2, %rand3", placeholders), ChatChannelId::TRADE);
+    return ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("broadcast_posted_trade", placeholders), ChatChannelId::TRADE);
 
     //int32 rand = urand(1, 8);
-    if (rand == 1 && ai->SayToGuild(PlayerbotTextMgr::instance().GetBotText("Posted to guild, %rand1, %rand2, %rand3", placeholders)))
+    if (rand == 1 && ai->SayToGuild(PlayerbotTextMgr::instance().GetBotText("broadcast_posted_guild", placeholders)))
         return true;
-    else if (rand == 2 && ai->SayToWorld(PlayerbotTextMgr::instance().GetBotText("Posted to world, %rand1, %rand2, %rand3", placeholders)))
+    else if (rand == 2 && ai->SayToWorld(PlayerbotTextMgr::instance().GetBotText("broadcast_posted_world", placeholders)))
         return true;
-    else if (rand == 3 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("Posted to general, %rand1, %rand2, %rand3", placeholders), ChatChannelId::GENERAL))
+    else if (rand == 3 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("broadcast_posted_general", placeholders), ChatChannelId::GENERAL))
         return true;
-    else if (rand == 4 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("Posted to trade, %rand1, %rand2, %rand3", placeholders), ChatChannelId::TRADE))
+    else if (rand == 4 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("broadcast_posted_trade", placeholders), ChatChannelId::TRADE))
         return true;
-    else if (rand == 5 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("Posted to LFG, %rand1, %rand2, %rand3", placeholders), ChatChannelId::LOOKING_FOR_GROUP))
+    else if (rand == 5 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("broadcast_posted_lfg", placeholders), ChatChannelId::LOOKING_FOR_GROUP))
         return true;
-    else if (rand == 6 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("Posted to LocalDefense, %rand1, %rand2, %rand3", placeholders), ChatChannelId::LOCAL_DEFENSE))
+    else if (rand == 6 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("broadcast_posted_local_defense", placeholders), ChatChannelId::LOCAL_DEFENSE))
         return true;
-    else if (rand == 7 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("Posted to WorldDefense, %rand1, %rand2, %rand3", placeholders), ChatChannelId::WORLD_DEFENSE))
+    else if (rand == 7 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("broadcast_posted_world_defense", placeholders), ChatChannelId::WORLD_DEFENSE))
         return true;
-    else if (rand == 8 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("Posted to GuildRecruitment, %rand1, %rand2, %rand3", placeholders), ChatChannelId::GUILD_RECRUITMENT))
+    else if (rand == 8 && ai->SayToChannel(PlayerbotTextMgr::instance().GetBotText("broadcast_posted_guild_recruitment", placeholders), ChatChannelId::GUILD_RECRUITMENT))
         return true;
 
     return false;
@@ -653,16 +653,15 @@ bool BroadcastHelper::BroadcastGuildGroupOrRaidInvite(PlayerbotAI* ai, Player* /
     placeholders["%area_name"] = current_area ? ai->GetLocalizedAreaName(current_area) : PlayerbotTextMgr::instance().GetBotText("string_unknown_area");
     placeholders["%zone_name"] = current_zone ? ai->GetLocalizedAreaName(current_zone) : PlayerbotTextMgr::instance().GetBotText("string_unknown_area");
 
-    //TODO move texts to sql!
     if (group && group->isRaidGroup())
     {
         if (urand(0, 3))
         {
-            return ai->SayToGuild(PlayerbotTextMgr::instance().GetBotText("Hey anyone want to raid in %zone_name", placeholders));
+            return ai->SayToGuild(PlayerbotTextMgr::instance().GetBotText("broadcast_guild_raid_anyone", placeholders));
         }
         else
         {
-            return ai->SayToGuild(PlayerbotTextMgr::instance().GetBotText("Hey %name I'm raiding in %zone_name do you wan to join me?", placeholders));
+            return ai->SayToGuild(PlayerbotTextMgr::instance().GetBotText("broadcast_guild_raid_invite_name", placeholders));
         }
     }
     else
@@ -670,11 +669,11 @@ bool BroadcastHelper::BroadcastGuildGroupOrRaidInvite(PlayerbotAI* ai, Player* /
         //(bot->GetTeam() == ALLIANCE ? LANG_COMMON : LANG_ORCISH)
         if (urand(0, 3))
         {
-            return ai->SayToGuild(PlayerbotTextMgr::instance().GetBotText("Hey anyone wanna group up in %zone_name?", placeholders));
+            return ai->SayToGuild(PlayerbotTextMgr::instance().GetBotText("broadcast_guild_group_anyone", placeholders));
         }
         else
         {
-            return ai->SayToGuild(PlayerbotTextMgr::instance().GetBotText("Hey %name do you want join my group? I'm heading for %zone_name", placeholders));
+            return ai->SayToGuild(PlayerbotTextMgr::instance().GetBotText("broadcast_guild_group_invite_name", placeholders));
         }
     }
 

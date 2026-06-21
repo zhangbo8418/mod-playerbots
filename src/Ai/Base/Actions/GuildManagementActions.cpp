@@ -203,64 +203,67 @@ bool GuildManageNearbyAction::Execute(Event /*event*/)
 
         if (sPlayerbotAIConfig.inviteChat && (sRandomPlayerbotMgr.IsRandomBot(bot) || !botAI->HasActivePlayerMaster()))
         {
-            /* std::map<std::string, std::string> placeholders;
+            std::map<std::string, std::string> placeholders;
             placeholders["%name"] = player->GetName();
             placeholders["%members"] = std::to_string(guild->GetMemberSize());
             placeholders["%guildname"] = guild->GetName();
             AreaTableEntry const* current_area = botAI->GetCurrentArea();
             AreaTableEntry const* current_zone = botAI->GetCurrentZone();
-            placeholders["%area_name"] = current_area ? current_area->area_name[BroadcastHelper::GetLocale()] : PlayerbotTextMgr::instance().GetBotText("string_unknown_area");
-            placeholders["%zone_name"] = current_zone ? current_zone->area_name[BroadcastHelper::GetLocale()] : PlayerbotTextMgr::instance().GetBotText("string_unknown_area");
+            placeholders["%area_name"] = current_area ? botAI->GetLocalizedAreaName(current_area) : PlayerbotTextMgr::instance().GetBotText("string_unknown_area");
+            placeholders["%zone_name"] = current_zone ? botAI->GetLocalizedAreaName(current_zone) : PlayerbotTextMgr::instance().GetBotText("string_unknown_area");
 
             std::vector<std::string> lines;
 
-            //TODO - Move these hardcoded texts to sql!
             switch ((urand(0, 10) * urand(0, 10)) / 10)
             {
             case 0:
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("Hey %name do you want to join my guild?", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_hey_want_join", placeholders));
                 break;
             case 1:
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("Hey man you wanna join my guild %name?", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_hey_man", placeholders));
                 break;
             case 2:
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("I think you would be a good contribution to %guildname. Would you like to join %name?", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_good_contribution", placeholders));
                 break;
             case 3:
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("My guild %guildname has %members quality members. Would you like to make it 1 more %name?", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_quality_members", placeholders));
                 break;
             case 4:
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("Hey %name do you want to join %guildname? We have %members members and looking to become number 1 of the server.", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_number_one", placeholders));
                 break;
             case 5:
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("I'm not really good at smalltalk. Do you wanna join my guild %name/r?", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_no_smalltalk", placeholders));
                 break;
             case 6:
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("Welcome to %zone_name.... do you want to join my guild %name?", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_welcome_zone", placeholders));
                 break;
             case 7:
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("%name, you should join my guild!", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_should_join", placeholders));
                 break;
             case 8:
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("%name, I got this guild....", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_got_guild", placeholders));
                 break;
             case 9:
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("You are actually going to join my guild %name?", placeholders));
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("Haha.. you are the man! We are going to raid Molten...", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_going_to_join", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_raid_molten", placeholders));
                 break;
             case 10:
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("Hey Hey! do you guys wanna join my gild????", placeholders));
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("We've got a bunch of high levels and we are really super friendly..", placeholders));
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("..and watch your dog and do your homework...", placeholders));
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("..and we raid once a week and are working on MC raids...", placeholders));
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("..and we have more members than just me...", placeholders));
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("..and please stop I'm lonenly and we can get a ride the whole time...", placeholders));
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("..and it's really beautifull and I feel like crying...", placeholders));
-                lines.push_back(PlayerbotTextMgr::instance().GetBotText("So what do you guys say are you going to join are you going to join?", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_hey_gild", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_friendly_high_levels", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_homework", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_mc_raids", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_more_members", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_lonely", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_crying", placeholders));
+                lines.push_back(PlayerbotTextMgr::instance().GetBotText("guild_invite_so_join", placeholders));
                 break;
             }
 
-            for (auto line : lines)
+            for (auto const& line : lines)
+            {
+                if (line.empty())
+                    continue;
+
                 if (sameGroup)
                 {
                     WorldPacket data;
@@ -268,7 +271,8 @@ bool GuildManageNearbyAction::Execute(Event /*event*/)
                     bot->GetGroup()->BroadcastPacket(&data, true);
                 }
                 else
-                    bot->Say(line, (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));*/
+                    bot->Say(line, (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));
+            }
         }
 
         if (botAI->DoSpecificAction("guild invite", Event("guild management", guid), true))
