@@ -563,15 +563,8 @@ botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("hello", "Hello!"), PLAYER
         Group* mgroup = master->GetGroup();
         if (mgroup->GetMembersCount() >= 5)
         {
-            if (!mgroup->isRaidGroup() && !mgroup->isLFGGroup() && !mgroup->isBGGroup() && !mgroup->isBFGroup())
+            if (mgroup->isRaidGroup() || (!mgroup->isLFGGroup() && !mgroup->isBGGroup() && !mgroup->isBFGroup()))
             {
-                // Queue ConvertToRaid operation
-                auto convertOp = std::make_unique<GroupConvertToRaidOperation>(master->GetGUID());
-                PlayerbotWorldThreadProcessor::instance().QueueOperation(std::move(convertOp));
-            }
-            if (mgroup->isRaidGroup())
-            {
-                // Queue AddMember operation
                 auto addOp = std::make_unique<GroupInviteOperation>(master->GetGUID(), bot->GetGUID());
                 PlayerbotWorldThreadProcessor::instance().QueueOperation(std::move(addOp));
             }
