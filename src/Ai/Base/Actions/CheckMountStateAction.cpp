@@ -15,6 +15,7 @@
 #include "Playerbots.h"
 #include "ServerFacade.h"
 #include "SpellAuraEffects.h"
+#include "TransportFollowHelper.h"
 
 static constexpr uint32 SPELL_COLD_WEATHER_FLYING = 54197;
 static constexpr float PARACHUTE_LAND_THRESHOLD = 15.0f;
@@ -76,6 +77,16 @@ bool CheckMountStateAction::Execute(Event /*event*/)
             bot->RemoveAurasByType(SPELL_AURA_FEATHER_FALL);
     }
     ClearStaleFlightFlags();
+
+    master = GetMaster();
+
+    if (TransportFollowHelper::ShouldSuppressMount(bot, master))
+    {
+        if (bot->IsMounted())
+            Dismount();
+
+        return false;
+    }
 
     // Determine if there are no attackers
     bool noAttackers = !AI_VALUE2(bool, "combat", "self target") || !AI_VALUE(uint8, "attacker count");
@@ -154,6 +165,9 @@ bool CheckMountStateAction::isUseful()
         return false;
 
     master = GetMaster();
+
+    if (TransportFollowHelper::ShouldSuppressMount(bot, master))
+        return bot->IsMounted();
 
     // Get shapeshift states, only applicable when there's a master
     if (master)

@@ -53,7 +53,7 @@
 #include "SocialMgr.h"
 #include "SpellAuraEffects.h"
 #include "SpellInfo.h"
-#include "Transport.h"
+#include "TransportFollowHelper.h"
 #include "Unit.h"
 #include "UpdateTime.h"
 #include "Vehicle.h"
@@ -418,7 +418,6 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
         spellInterruptRequested = false;
     }
 
-    // Handle transport check delay
     if (nextTransportCheck > elapsed)
         nextTransportCheck -= elapsed;
     else
@@ -426,22 +425,8 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
 
     if (!nextTransportCheck)
     {
-        nextTransportCheck = 1000;
-        Transport* newTransport = bot->GetMap()->GetTransportForPos(bot->GetPhaseMask(), bot->GetPositionX(),
-                                                                    bot->GetPositionY(), bot->GetPositionZ(), bot);
-
-        if (newTransport != bot->GetTransport())
-        {
-            LOG_DEBUG("playerbots", "Bot {} is on a transport", bot->GetName());
-
-            if (bot->GetTransport())
-                bot->GetTransport()->RemovePassenger(bot, true);
-
-            if (newTransport)
-                newTransport->AddPassenger(bot, true);
-
-            bot->StopMovingOnCurrentPos();
-        }
+        nextTransportCheck = 500;
+        TransportFollowHelper::TickTransport(bot, this);
     }
 
     // Update the bot's group status (moved to helper function)

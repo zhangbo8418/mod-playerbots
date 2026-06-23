@@ -22,10 +22,17 @@ class Position;
 #define ANGLE_90_DEG M_PI_2
 #define ANGLE_120_DEG (2.f * static_cast<float>(M_PI) / 3.f)
 
+class TransportFollowHelper;
+
 class MovementAction : public Action
 {
+    friend class TransportFollowHelper;
+
 public:
     MovementAction(PlayerbotAI* botAI, std::string const name);
+
+    bool MoveToForTransportFollow(uint32 mapId, float x, float y, float z, MovementPriority priority);
+    void SetTransportFollowDelay(float delayMillis);
 
 protected:
     bool JumpTo(uint32 mapId, float x, float y, float z, MovementPriority priority = MovementPriority::MOVEMENT_NORMAL);
