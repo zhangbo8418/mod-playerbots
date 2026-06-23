@@ -283,7 +283,10 @@ PlayerbotAI::~PlayerbotAI()
         delete aiObjectContext;
 
     if (bot)
+    {
+        TransportFollowHelper::ClearBoardingState(bot);
         PlayerbotsMgr::instance().RemovePlayerBotData(bot->GetGUID(), true);
+    }
 }
 
 void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
@@ -313,7 +316,7 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
             bot->SetPower(bot->getPowerType(), bot->GetMaxPower(bot->getPowerType()));
     }
 
-    AllowActivity();
+    bool const activityAllowed = AllowActivity();
 
     if (!CanUpdateAI())
         return;
@@ -418,15 +421,15 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
         spellInterruptRequested = false;
     }
 
-    if (nextTransportCheck > elapsed)
-        nextTransportCheck -= elapsed;
-    else
-        nextTransportCheck = 0;
-
-    if (!nextTransportCheck)
+    if (TransportFollowHelper::ShouldRunPeriodicTransportTick(bot, activityAllowed))
     {
-        nextTransportCheck = 500;
-        TransportFollowHelper::TickTransport(bot, this);
+        if (nextTransportCheck > elapsed)
+            nextTransportCheck -= elapsed;
+        else
+        {
+            nextTransportCheck = 500;
+            TransportFollowHelper::TickTransport(bot, this);
+        }
     }
 
     // Update the bot's group status (moved to helper function)

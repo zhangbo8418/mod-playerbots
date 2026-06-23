@@ -89,10 +89,28 @@ namespace
         return state;
     }
 
-    void ClearBoardingState(Player* bot)
+    void ClearBoardingStateInternal(Player* bot)
     {
         if (bot)
             s_boardingStates.erase(bot->GetGUID().GetCounter());
+    }
+
+    bool ShouldProbeStaticTransportAt(Map* map, Player* leader, float x, float y, float leaderZ)
+    {
+        if (!map || !leader)
+            return false;
+
+        if (leader->HasUnitMovementFlag(MOVEMENTFLAG_ONTRANSPORT))
+            return true;
+
+        if (map->Instanceable())
+            return true;
+
+        float const groundZ = map->GetHeight(leader->GetPhaseMask(), x, y, leaderZ + 2.0f, true, 25.0f);
+        if (groundZ <= -200000.0f)
+            return true;
+
+        return std::fabs(leaderZ - groundZ) > 2.5f;
     }
 
     void NoteBoardingProgress(BoardingState& state, float dist2d)
@@ -509,7 +527,7 @@ namespace
         if (bot->GetMotionMaster())
             bot->GetMotionMaster()->Clear();
 
-        ClearBoardingState(bot);
+        ClearBoardingStateInternal(bot);
     }
 
     void PrepareBotForBoardingWalk(Player* bot, PlayerbotAI* botAI)
@@ -582,7 +600,7 @@ namespace
         Transport* leaderTransport = TransportFollowHelper::GetLeaderTransport(leader, map);
         if (!leaderTransport)
         {
-            ClearBoardingState(bot);
+            ClearBoardingStateInternal(bot);
             return BoardingAttemptResult::NotApplicable;
         }
 
@@ -598,7 +616,7 @@ namespace
                 bot->GetMotionMaster()->Clear();
 
             TransportFollowHelper::AdjustFollowOnSharedTransport(bot, leader, sPlayerbotAIConfig.followDistance);
-            ClearBoardingState(bot);
+            ClearBoardingStateInternal(bot);
             return BoardingAttemptResult::OnTransport;
         }
 
@@ -613,7 +631,7 @@ namespace
             PrepareBotForBoardingWalk(bot, botAI);
             leaderTransport->AddPassenger(bot, true);
             bot->StopMovingOnCurrentPos();
-            ClearBoardingState(bot);
+            ClearBoardingStateInternal(bot);
             return BoardingAttemptResult::OnTransport;
         }
 
@@ -670,6 +688,18 @@ namespace
         uint32 const phaseMask = bot->GetPhaseMask();
         float const x = bot->GetPositionX();
         float const y = bot->GetPositionY();
+
+        if (!bot->GetTransport())
+        {
+            Transport* newTransport = map->GetTransportForPos(phaseMask, x, y, probeZ, bot);
+            if (!newTransport)
+                return;
+
+            newTransport->AddPassenger(bot, true);
+            bot->StopMovingOnCurrentPos();
+            return;
+        }
+
         Transport* newTransport = ProbeTransportAt(map, bot, phaseMask, x, y, probeZ,
             TransportFollowHelper::TransportProbeProfile::Normal);
         if (!newTransport)
@@ -679,18 +709,12 @@ namespace
         if (newTransport == bot->GetTransport())
             return;
 
-        if (bot->GetTransport())
-        {
-            // Z probes can miss on moving decks / elevator cars — never eject on a null reading.
-            if (!newTransport)
-                return;
+        // Z probes can miss on moving decks / elevator cars — never eject on a null reading.
+        if (!newTransport)
+            return;
 
-            bot->GetTransport()->RemovePassenger(bot, true);
-        }
-
-        if (newTransport)
-            newTransport->AddPassenger(bot, true);
-
+        bot->GetTransport()->RemovePassenger(bot, true);
+        newTransport->AddPassenger(bot, true);
         bot->StopMovingOnCurrentPos();
     }
 
@@ -707,7 +731,7 @@ namespace
 
         bot->GetTransport()->RemovePassenger(bot, true);
         bot->StopMovingOnCurrentPos();
-        ClearBoardingState(bot);
+        ClearBoardingStateInternal(bot);
     }
 
     bool GetUnitTransportLocalPos(Unit* unit, Transport* transport, float& x, float& y, float& z, float& o)
@@ -888,7 +912,26 @@ Transport* TransportFollowHelper::GetLeaderTransport(Player* leader, Map* map)
             TransportProbeProfile::Normal))
         return transport;
 
+    if (!ShouldProbeStaticTransportAt(map, leader, x, y, leaderZ))
+        return nullptr;
+
     return ProbeTransportAt(map, leader, phaseMask, x, y, leaderZ, TransportProbeProfile::StaticVertical);
+}
+
+void TransportFollowHelper::ClearBoardingState(Player* bot)
+{
+    ClearBoardingStateInternal(bot);
+}
+
+bool TransportFollowHelper::ShouldRunPeriodicTransportTick(Player* bot, bool activityAllowed)
+{
+    if (!bot || !bot->IsInWorld())
+        return false;
+
+    if (activityAllowed)
+        return true;
+
+    return bot->GetTransport() || bot->HasUnitMovementFlag(MOVEMENTFLAG_ONTRANSPORT);
 }
 
 Player* TransportFollowHelper::GetFollowLeader(Player* bot, PlayerbotAI* botAI)
@@ -918,22 +961,22 @@ bool TransportFollowHelper::ShouldSuppressMount(Player* bot, Player* leader)
     if (!map)
         return false;
 
+    float const dist = bot->GetDistance(leader);
+    if (dist > BOARDING_WALK_DISTANCE)
+        return false;
+
     if (Transport* transport = GetLeaderTransport(leader, map))
     {
-        float const dist = bot->GetDistance(leader);
-        if (dist <= BOARDING_WALK_DISTANCE)
-        {
-            TransportProbeProfile const profile = transport->IsStaticTransport() ? TransportProbeProfile::StaticVertical
-                                                                                 : TransportProbeProfile::Normal;
-            float const probeZ = transport->IsStaticTransport() ? leader->GetPositionZ()
-                : std::max(leader->GetPositionZ(), transport->GetPositionZ());
-            if (TransportFollowHelper::GetTransportForPosTolerant(map, leader, leader->GetPhaseMask(), leader->GetPositionX(),
-                    leader->GetPositionY(), probeZ, profile) == transport)
-                return true;
+        TransportProbeProfile const profile = transport->IsStaticTransport() ? TransportProbeProfile::StaticVertical
+                                                                             : TransportProbeProfile::Normal;
+        float const probeZ = transport->IsStaticTransport() ? leader->GetPositionZ()
+            : std::max(leader->GetPositionZ(), transport->GetPositionZ());
+        if (TransportFollowHelper::GetTransportForPosTolerant(map, leader, leader->GetPhaseMask(), leader->GetPositionX(),
+                leader->GetPositionY(), probeZ, profile) == transport)
+            return true;
 
-            if (!IsMotionTransportMoving(transport) && leader->GetDistance(transport) <= BOARDING_WALK_DISTANCE)
-                return true;
-        }
+        if (!IsMotionTransportMoving(transport) && leader->GetDistance(transport) <= BOARDING_WALK_DISTANCE)
+            return true;
     }
 
     return false;

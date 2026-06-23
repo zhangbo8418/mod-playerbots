@@ -39,6 +39,12 @@ public:
     static bool ShouldSuppressMount(Player* bot, Player* leader);
     static void DismountForTransport(Player* bot);
 
+    // Drop cached boarding state when the bot logs out.
+    static void ClearBoardingState(Player* bot);
+
+    // Respect activity rotation when off transport; always tick while a passenger.
+    static bool ShouldRunPeriodicTransportTick(Player* bot, bool activityAllowed);
+
     // Periodic tick from PlayerbotAI (mirror fallback when walk stalls).
     static void TickTransport(Player* bot, PlayerbotAI* botAI);
 
