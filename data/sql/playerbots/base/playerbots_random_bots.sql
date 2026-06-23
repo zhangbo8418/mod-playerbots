@@ -12,4 +12,4 @@ CREATE TABLE `playerbots_random_bots` (
   KEY `owner` (`owner`),
   KEY `bot` (`bot`),
   KEY `event` (`event`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS `playerbots_weightscales` (
   `name` varchar(32) NOT NULL,
   `class` tinyint(3) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPACT;
 
 INSERT INTO `playerbots_weightscales` (`id`, `name`, `class`) VALUES
     (1, 'arms', 1),

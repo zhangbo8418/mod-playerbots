@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS `playerbots_travelnode` (
 `z` float NOT NULL,
 `linked` tinyint(2) DEFAULT NULL,
 PRIMARY KEY (`id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='PlayerbotAI Travel Node';
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=FIXED COMMENT='PlayerbotAI Travel Node';
 
 INSERT INTO `playerbots_travelnode` (`id`, `name`, `map_id`, `x`, `y`, `z`, `linked`) VALUES
 (0, 'Human start', 0, -8949.95, -132.493, 83.5312, 1),

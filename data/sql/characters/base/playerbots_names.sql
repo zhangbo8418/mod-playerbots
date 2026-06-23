@@ -4,8 +4,12 @@ CREATE TABLE `playerbots_names` (
   `name` varchar(255) NOT NULL,
   `gender` tinyint(3) unsigned NOT NULL,
 PRIMARY KEY (`name_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Playerbot RandomBot names';
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=FIXED COMMENT='Playerbot RandomBot names';
 
+
+-- Split into multiple INSERT batches to stay under MySQL max_allowed_packet (default 1MB).
+
+-- >>> playerbots_names batch 1/50 (2000 rows)
 INSERT INTO `playerbots_names` VALUES
 (0,'Abennon',0),
 (1,'Abeo',0),
@@ -2006,7 +2010,10 @@ INSERT INTO `playerbots_names` VALUES
 (1996,'Caleran',0),
 (1997,'Calerico',0),
 (1998,'Calero',0),
-(1999,'Calfon',0),
+(1999,'Calfon',0);
+
+-- >>> playerbots_names batch 2/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (2000,'Caliano',0),
 (2001,'Calin',0),
 (2002,'Calio',0),
@@ -4006,7 +4013,10 @@ INSERT INTO `playerbots_names` VALUES
 (3996,'Evalt',0),
 (3997,'Evan',0),
 (3998,'Evanco',0),
-(3999,'Evand',0),
+(3999,'Evand',0);
+
+-- >>> playerbots_names batch 3/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (4000,'Evandel',0),
 (4001,'Evanden',0),
 (4002,'Evander',0),
@@ -6006,7 +6016,10 @@ INSERT INTO `playerbots_names` VALUES
 (5996,'Keiron',0),
 (5997,'Kelandel',0),
 (5998,'Kelando',0),
-(5999,'Kelario',0),
+(5999,'Kelario',0);
+
+-- >>> playerbots_names batch 4/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (6000,'Keliam',0),
 (6001,'Kelias',0),
 (6002,'Kelion',0),
@@ -8006,7 +8019,10 @@ INSERT INTO `playerbots_names` VALUES
 (7996,'Prestor',0),
 (7997,'Prestus',0),
 (7998,'Prodo',0),
-(7999,'Prollio',0),
+(7999,'Prollio',0);
+
+-- >>> playerbots_names batch 5/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (8000,'Prosus',0),
 (8001,'Prothan',0),
 (8002,'Proto',0),
@@ -10006,7 +10022,10 @@ INSERT INTO `playerbots_names` VALUES
 (9996,'Zorrest',0),
 (9997,'Zortimon',0),
 (9998,'Zortino',0),
-(9999,'Zortos',0),
+(9999,'Zortos',0);
+
+-- >>> playerbots_names batch 6/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (10000,'Acey',1),
 (10001,'Achanta',1),
 (10002,'Achilia',1),
@@ -12006,7 +12025,10 @@ INSERT INTO `playerbots_names` VALUES
 (11996,'Celessa',1),
 (11997,'Celessie',1),
 (11998,'Celesta',1),
-(11999,'Celestani',1),
+(11999,'Celestani',1);
+
+-- >>> playerbots_names batch 7/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (12000,'Celestera',1),
 (12001,'Celesterie',1),
 (12002,'Celestia',1),
@@ -14006,7 +14028,10 @@ INSERT INTO `playerbots_names` VALUES
 (13996,'Evandra',1),
 (13997,'Evandy',1),
 (13998,'Evane',1),
-(13999,'Evaneia',1),
+(13999,'Evaneia',1);
+
+-- >>> playerbots_names batch 8/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (14000,'Evaneira',1),
 (14001,'Evanessa',1),
 (14002,'Evanesta',1),
@@ -16006,7 +16031,10 @@ INSERT INTO `playerbots_names` VALUES
 (15996,'Kueneve',1),
 (15997,'Kueney',1),
 (15998,'Kueneya',1),
-(15999,'Kuenia',1),
+(15999,'Kuenia',1);
+
+-- >>> playerbots_names batch 9/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (16000,'Kuenna',1),
 (16001,'Kuennah',1),
 (16002,'Ladonna',1),
@@ -18006,7 +18034,10 @@ INSERT INTO `playerbots_names` VALUES
 (17996,'Raveni',1),
 (17997,'Ravenia',1),
 (17998,'Ravenna',1),
-(17999,'Ravennah',1),
+(17999,'Ravennah',1);
+
+-- >>> playerbots_names batch 10/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (18000,'Ravenne',1),
 (18001,'Ravenny',1),
 (18002,'Raveny',1),
@@ -20006,7 +20037,10 @@ INSERT INTO `playerbots_names` VALUES
 (19996,'Zolona',1),
 (19997,'Zolora',1),
 (19998,'Zoly',1),
-(19999,'Zolyn',1),
+(19999,'Zolyn',1);
+
+-- >>> playerbots_names batch 11/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (20000,'Abaklick',2),
 (20001,'Aben',2),
 (20002,'Abic',2),
@@ -22006,7 +22040,10 @@ INSERT INTO `playerbots_names` VALUES
 (21996,'Gnisicik',2),
 (21997,'Gnisumkok',2),
 (21998,'Gnitani',2),
-(21999,'Gnitash',2),
+(21999,'Gnitash',2);
+
+-- >>> playerbots_names batch 12/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (22000,'Gnitasi',2),
 (22001,'Gnitec',2),
 (22002,'Gniten',2),
@@ -24006,7 +24043,10 @@ INSERT INTO `playerbots_names` VALUES
 (23996,'Ockern',2),
 (23997,'Ocki',2),
 (23998,'Ocleek',2),
-(23999,'Ocleetish',2),
+(23999,'Ocleetish',2);
+
+-- >>> playerbots_names batch 13/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (24000,'Oclun',2),
 (24001,'Odenic',2),
 (24002,'Odildic',2),
@@ -26006,7 +26046,10 @@ INSERT INTO `playerbots_names` VALUES
 (25996,'Gendee',3),
 (25997,'Gendes',3),
 (25998,'Gendeyn',3),
-(25999,'Gendybu',3),
+(25999,'Gendybu',3);
+
+-- >>> playerbots_names batch 14/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (26000,'Geneblink',3),
 (26001,'Genenki',3),
 (26002,'Genil',3),
@@ -28006,7 +28049,10 @@ INSERT INTO `playerbots_names` VALUES
 (27996,'Kullo',3),
 (27997,'Kullobis',3),
 (27998,'Kumke',3),
-(27999,'Kumok',3),
+(27999,'Kumok',3);
+
+-- >>> playerbots_names batch 15/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (28000,'Kundenk',3),
 (28001,'Kundill',3),
 (28002,'Kunklik',3),
@@ -30006,7 +30052,10 @@ INSERT INTO `playerbots_names` VALUES
 (29996,'Yttlee',3),
 (29997,'Yttli',3),
 (29998,'Yttlick',3),
-(29999,'Yxe',3),
+(29999,'Yxe',3);
+
+-- >>> playerbots_names batch 16/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (30000,'Adann',4),
 (30001,'Adihrdags',4),
 (30002,'Adothar',4),
@@ -32006,7 +32055,10 @@ INSERT INTO `playerbots_names` VALUES
 (31996,'Hjanudind',4),
 (31997,'Hjanumund',4),
 (31998,'Hjarags',4),
-(31999,'Hjardrukam',4),
+(31999,'Hjardrukam',4);
+
+-- >>> playerbots_names batch 17/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (32000,'Hjardurn',4),
 (32001,'Hjargihr',4),
 (32002,'Hjargundos',4),
@@ -34006,7 +34058,10 @@ INSERT INTO `playerbots_names` VALUES
 (33996,'Sardohr',4),
 (33997,'Sardon',4),
 (33998,'Sarduth',4),
-(33999,'Sarelen',4),
+(33999,'Sarelen',4);
+
+-- >>> playerbots_names batch 18/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (34000,'Sargarn',4),
 (34001,'Sargirarm',4),
 (34002,'Sargorn',4),
@@ -36006,7 +36061,10 @@ INSERT INTO `playerbots_names` VALUES
 (35996,'Dohge',5),
 (35997,'Dohgou',5),
 (35998,'Dolenvun',5),
-(35999,'Dolli',5),
+(35999,'Dolli',5);
+
+-- >>> playerbots_names batch 19/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (36000,'Doma',5),
 (36001,'Domdengli',5),
 (36002,'Domdi',5),
@@ -38006,7 +38064,10 @@ INSERT INTO `playerbots_names` VALUES
 (37996,'Monlion',5),
 (37997,'Monlo',5),
 (37998,'Monnu',5),
-(37999,'Monthynla',5),
+(37999,'Monthynla',5);
+
+-- >>> playerbots_names batch 20/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (38000,'Monvahgu',5),
 (38001,'Mori',5),
 (38002,'Mosahnio',5),
@@ -40006,7 +40067,10 @@ INSERT INTO `playerbots_names` VALUES
 (39996,'Yzeymmi',5),
 (39997,'Yzo',5),
 (39998,'Yzou',5),
-(39999,'Yzua',5),
+(39999,'Yzua',5);
+
+-- >>> playerbots_names batch 21/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (40000,'Adel',6),
 (40001,'Adent',6),
 (40002,'Adiir',6),
@@ -42006,7 +42070,10 @@ INSERT INTO `playerbots_names` VALUES
 (41996,'Hydris',6),
 (41997,'Hygorn',6),
 (41998,'Hygyal',6),
-(41999,'Hygyl',6),
+(41999,'Hygyl',6);
+
+-- >>> playerbots_names batch 22/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (42000,'Hylaen',6),
 (42001,'Hylaess',6),
 (42002,'Hylaeth',6),
@@ -44006,7 +44073,10 @@ INSERT INTO `playerbots_names` VALUES
 (43996,'Shanra',6),
 (43997,'Shanrus',6),
 (43998,'Shanul',6),
-(43999,'Sharendil',6),
+(43999,'Sharendil',6);
+
+-- >>> playerbots_names batch 23/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (44000,'Sharessian',6),
 (44001,'Shariel',6),
 (44002,'Sharieth',6),
@@ -46006,7 +46076,10 @@ INSERT INTO `playerbots_names` VALUES
 (45996,'Denma',7),
 (45997,'Denna',7),
 (45998,'Dennysil',7),
-(45999,'Denralyn',7),
+(45999,'Denralyn',7);
+
+-- >>> playerbots_names batch 24/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (46000,'Denria',7),
 (46001,'Denriala',7),
 (46002,'Denrias',7),
@@ -48006,7 +48079,10 @@ INSERT INTO `playerbots_names` VALUES
 (47996,'Meredira',7),
 (47997,'Merela',7),
 (47998,'Merelara',7),
-(47999,'Merelene',7),
+(47999,'Merelene',7);
+
+-- >>> playerbots_names batch 25/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (48000,'Merelin',7),
 (48001,'Mereliynn',7),
 (48002,'Merellais',7),
@@ -50006,7 +50082,10 @@ INSERT INTO `playerbots_names` VALUES
 (49996,'Yysea',7),
 (49997,'Yyssa',7),
 (49998,'Yythis',7),
-(49999,'Yyura',7),
+(49999,'Yyura',7);
+
+-- >>> playerbots_names batch 26/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (50000,'Abidal',8),
 (50001,'Abidiir',8),
 (50002,'Abidon',8),
@@ -52006,7 +52085,10 @@ INSERT INTO `playerbots_names` VALUES
 (51996,'Funuun',8),
 (51997,'Gaaam',8),
 (51998,'Gaag',8),
-(51999,'Gaallius',8),
+(51999,'Gaallius',8);
+
+-- >>> playerbots_names batch 27/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (52000,'Gaallus',8),
 (52001,'Gaalus',8),
 (52002,'Gaan',8),
@@ -54006,7 +54088,10 @@ INSERT INTO `playerbots_names` VALUES
 (53996,'Orrok',8),
 (53997,'Osaam',8),
 (53998,'Osag',8),
-(53999,'Osaid',8),
+(53999,'Osaid',8);
+
+-- >>> playerbots_names batch 28/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (54000,'Osallius',8),
 (54001,'Osalus',8),
 (54002,'Osan',8),
@@ -56006,7 +56091,10 @@ INSERT INTO `playerbots_names` VALUES
 (55996,'Duruna',9),
 (55997,'Dusaana',9),
 (55998,'Dusera',9),
-(55999,'Dutaa',9),
+(55999,'Dutaa',9);
+
+-- >>> playerbots_names batch 29/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (56000,'Dutaan',9),
 (56001,'Duteema',9),
 (56002,'Duti',9),
@@ -58006,7 +58094,10 @@ INSERT INTO `playerbots_names` VALUES
 (57996,'Lunrii',9),
 (57997,'Lunrua',9),
 (57998,'Lunstra',9),
-(57999,'Luntia',9),
+(57999,'Luntia',9);
+
+-- >>> playerbots_names batch 30/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (58000,'Lunun',9),
 (58001,'Luny',9),
 (58002,'Luraani',9),
@@ -60006,7 +60097,10 @@ INSERT INTO `playerbots_names` VALUES
 (59996,'Zhasia',9),
 (59997,'Zhataa',9),
 (59998,'Zhataan',9),
-(59999,'Zhathaa',9),
+(59999,'Zhathaa',9);
+
+-- >>> playerbots_names batch 31/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (60000,'Abuklin',10),
 (60001,'Adas',10),
 (60002,'Adifeth',10),
@@ -62006,7 +62100,10 @@ INSERT INTO `playerbots_names` VALUES
 (61996,'Grirzumm',10),
 (61997,'Grisgold',10),
 (61998,'Grisilkosh',10),
-(61999,'Grisirg',10),
+(61999,'Grisirg',10);
+
+-- >>> playerbots_names batch 32/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (62000,'Grittaruz',10),
 (62001,'Griverm',10),
 (62002,'Grizu',10),
@@ -64006,7 +64103,10 @@ INSERT INTO `playerbots_names` VALUES
 (63996,'Thokudemm',10),
 (63997,'Thokuras',10),
 (63998,'Thokzemm',10),
-(63999,'Thokzorn',10),
+(63999,'Thokzorn',10);
+
+-- >>> playerbots_names batch 33/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (64000,'Tholdegtugg',10),
 (64001,'Tholeld',10),
 (64002,'Tholnaz',10),
@@ -66006,7 +66106,10 @@ INSERT INTO `playerbots_names` VALUES
 (65996,'Gegewze',11),
 (65997,'Gegvewza',11),
 (65998,'Gehda',11),
-(65999,'Gehdi',11),
+(65999,'Gehdi',11);
+
+-- >>> playerbots_names batch 34/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (66000,'Gehgom',11),
 (66001,'Gehi',11),
 (66002,'Gehka',11),
@@ -68006,7 +68109,10 @@ INSERT INTO `playerbots_names` VALUES
 (67996,'Rehta',11),
 (67997,'Rekole',11),
 (67998,'Rekutis',11),
-(67999,'Relda',11),
+(67999,'Relda',11);
+
+-- >>> playerbots_names batch 35/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (68000,'Reldem',11),
 (68001,'Reldrotgi',11),
 (68002,'Relewa',11),
@@ -70006,7 +70112,10 @@ INSERT INTO `playerbots_names` VALUES
 (69996,'Zuwzugkat',11),
 (69997,'Zuzamzy',11),
 (69998,'Zuzrohke',11),
-(69999,'Zuztahta',11),
+(69999,'Zuztahta',11);
+
+-- >>> playerbots_names batch 36/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (70000,'Aagchiren',12),
 (70001,'Aagema',12),
 (70002,'Aaghian',12),
@@ -72006,7 +72115,10 @@ INSERT INTO `playerbots_names` VALUES
 (71996,'Paigmakei',12),
 (71997,'Paigtal',12),
 (71998,'Paihde',12),
-(71999,'Pailju',12),
+(71999,'Pailju',12);
+
+-- >>> playerbots_names batch 37/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (72000,'Pailkan',12),
 (72001,'Pailun',12),
 (72002,'Painghia',12),
@@ -74006,7 +74118,10 @@ INSERT INTO `playerbots_names` VALUES
 (73996,'Uptaiy',12),
 (73997,'Uptogohn',12),
 (73998,'Uptu',12),
-(73999,'Urdu',12),
+(73999,'Urdu',12);
+
+-- >>> playerbots_names batch 38/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (74000,'Urdun',12),
 (74001,'Urmor',12),
 (74002,'Urnun',12),
@@ -76006,7 +76121,10 @@ INSERT INTO `playerbots_names` VALUES
 (75996,'Gehker',13),
 (75997,'Gehlico',13),
 (75998,'Gehzieh',13),
-(75999,'Geiduznir',13),
+(75999,'Geiduznir',13);
+
+-- >>> playerbots_names batch 39/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (76000,'Geilko',13),
 (76001,'Geiloca',13),
 (76002,'Geimoyur',13),
@@ -78006,7 +78124,10 @@ INSERT INTO `playerbots_names` VALUES
 (77996,'Pooko',13),
 (77997,'Pookunn',13),
 (77998,'Poowime',13),
-(77999,'Poshamji',13),
+(77999,'Poshamji',13);
+
+-- >>> playerbots_names batch 40/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (78000,'Poshihmi',13),
 (78001,'Poshulmo',13),
 (78002,'Potann',13),
@@ -80006,7 +80127,10 @@ INSERT INTO `playerbots_names` VALUES
 (79996,'Zuyinn',13),
 (79997,'Zuyuh',13),
 (79998,'Zuzlea',13),
-(79999,'Zuzmih',13),
+(79999,'Zuzmih',13);
+
+-- >>> playerbots_names batch 41/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (80000,'Aachmo',14),
 (80001,'Aadralin',14),
 (80002,'Aagwup',14),
@@ -82006,7 +82130,10 @@ INSERT INTO `playerbots_names` VALUES
 (81996,'Kichme',14),
 (81997,'Kidzil',14),
 (81998,'Kidzo',14),
-(81999,'Kidzocassa',14),
+(81999,'Kidzocassa',14);
+
+-- >>> playerbots_names batch 42/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (82000,'Kigethe',14),
 (82001,'Kigia',14),
 (82002,'Kihmen',14),
@@ -84006,7 +84133,10 @@ INSERT INTO `playerbots_names` VALUES
 (83996,'Soviduk',14),
 (83997,'Sowhadzocen',14),
 (83998,'Sozhni',14),
-(83999,'Sozomoaluh',14),
+(83999,'Sozomoaluh',14);
+
+-- >>> playerbots_names batch 43/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (84000,'Suadrat',14),
 (84001,'Sualsuto',14),
 (84002,'Suaschu',14),
@@ -86006,7 +86136,10 @@ INSERT INTO `playerbots_names` VALUES
 (85996,'Eepi',15),
 (85997,'Eeshi',15),
 (85998,'Eesu',15),
-(85999,'Eettuluw',15),
+(85999,'Eettuluw',15);
+
+-- >>> playerbots_names batch 44/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (86000,'Eewa',15),
 (86001,'Eewukki',15),
 (86002,'Ega',15),
@@ -88006,7 +88139,10 @@ INSERT INTO `playerbots_names` VALUES
 (87996,'Nikigoa',15),
 (87997,'Nikwo',15),
 (87998,'Nillamka',15),
-(87999,'Nilli',15),
+(87999,'Nilli',15);
+
+-- >>> playerbots_names batch 45/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (88000,'Nillookwu',15),
 (88001,'Niltseno',15),
 (88002,'Niltso',15),
@@ -90006,7 +90142,10 @@ INSERT INTO `playerbots_names` VALUES
 (89996,'Zutsi',15),
 (89997,'Zutto',15),
 (89998,'Zuvie',15),
-(89999,'Zuyo',15),
+(89999,'Zuyo',15);
+
+-- >>> playerbots_names batch 46/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (90000,'Aden',16),
 (90001,'Adon',16),
 (90002,'Aeldan',16),
@@ -92006,7 +92145,10 @@ INSERT INTO `playerbots_names` VALUES
 (91996,'Ithniar',16),
 (91997,'Ithnien',16),
 (91998,'Ithnis',16),
-(91999,'Ithnus',16),
+(91999,'Ithnus',16);
+
+-- >>> playerbots_names batch 47/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (92000,'Ithran',16),
 (92001,'Ithranis',16),
 (92002,'Ithrel',16),
@@ -94006,7 +94148,10 @@ INSERT INTO `playerbots_names` VALUES
 (93996,'Solvalin',16),
 (93997,'Soniar',16),
 (93998,'Sonin',16),
-(93999,'Sonir',16),
+(93999,'Sonir',16);
+
+-- >>> playerbots_names batch 48/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (94000,'Sonis',16),
 (94001,'Sonomir',16),
 (94002,'Sorian',16),
@@ -96006,7 +96151,10 @@ INSERT INTO `playerbots_names` VALUES
 (95996,'Celra',17),
 (95997,'Celre',17),
 (95998,'Celrea',17),
-(95999,'Celri',17),
+(95999,'Celri',17);
+
+-- >>> playerbots_names batch 49/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (96000,'Celria',17),
 (96001,'Celriah',17),
 (96002,'Celrianna',17),
@@ -98006,7 +98154,10 @@ INSERT INTO `playerbots_names` VALUES
 (97996,'Loralthel',17),
 (97997,'Loralvia',17),
 (97998,'Loralzia',17),
-(97999,'Lorama',17),
+(97999,'Lorama',17);
+
+-- >>> playerbots_names batch 50/50 (2000 rows)
+INSERT INTO `playerbots_names` VALUES
 (98000,'Lorane',17),
 (98001,'Loraneda',17),
 (98002,'Lorania',17),
@@ -100007,7 +100158,3 @@ INSERT INTO `playerbots_names` VALUES
 (99997,'Zyvea',17),
 (99998,'Zyvie',17),
 (99999,'Zywae',17);
-
-DELETE FROM `playerbots_names` WHERE LENGTH(`name`) > 12;
-ALTER TABLE `playerbots_names` MODIFY `name` varchar(12);
-ALTER TABLE `playerbots_names` ADD UNIQUE INDEX name(name, gender);

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `playerbots_travelnode_link` (
 `max_creature_1` tinyint(2) NOT NULL,
 `max_creature_2` tinyint(2) NOT NULL,
 PRIMARY KEY (`node_id`,`to_node_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='PlayerbotAI Travel Node link';
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=FIXED COMMENT='PlayerbotAI Travel Node link';
 
 INSERT INTO `playerbots_travelnode_link` (`node_id`, `to_node_id`, `type`, `object`, `distance`, `swim_distance`, `extra_cost`, `calculated`, `max_creature_0`, `max_creature_1`, `max_creature_2`) VALUES
 (0, 2776, 1, 0, 627.97, 0, 0, 1, 65, 75, 0),

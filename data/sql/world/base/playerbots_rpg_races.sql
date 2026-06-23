@@ -8,7 +8,7 @@ CREATE TABLE `playerbots_rpg_races`
   `maxl` int(11),
   PRIMARY KEY (`id`),
   KEY `entry` (`entry`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DELETE FROM `playerbots_rpg_races`;
 

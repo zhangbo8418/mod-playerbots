@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `version_db_playerbots` (
   PRIMARY KEY (`sql_rev`),
   KEY `required` (`required_rev`),
   CONSTRAINT `required` FOREIGN KEY (`required_rev`) REFERENCES `version_db_playerbots` (`sql_rev`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ROW_FORMAT=DYNAMIC COMMENT='Last applied sql update to DB';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='Last applied sql update to DB';
 
 /*!40000 ALTER TABLE `version_db_playerbots` ENABLE KEYS */;
 

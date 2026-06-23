@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS `playerbots_weightscale_data` (
   `field` varchar(18) NOT NULL,
   `val` smallint(6) unsigned NOT NULL,
   KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `playerbots_weightscale_data` (`id`, `field`, `val`) VALUES
     (1, 'exprtng', 100),

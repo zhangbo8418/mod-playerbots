@@ -5,4 +5,4 @@ CREATE TABLE `playerbots_rnditem_cache` (
   `type` INT(11) NOT NULL,
   `item` INT(11) NOT NULL,
 PRIMARY KEY (`id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Playerbots Random Item Cache';
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=FIXED COMMENT='Playerbots Random Item Cache';

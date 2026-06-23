@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS `ai_playerbot_texts_chance` (
   `name` varchar(255) NOT NULL,
   `probability` bigint(20) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=UTF8;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*!40000 ALTER TABLE `ai_playerbot_texts_chance` DISABLE KEYS */;
 INSERT INTO `ai_playerbot_texts_chance` (`id`, `name`, `probability`) VALUES

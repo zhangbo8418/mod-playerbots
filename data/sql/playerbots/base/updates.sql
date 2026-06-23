@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `updates` (
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() COMMENT 'timestamp when the query was applied.',
   `speed` INT unsigned NOT NULL DEFAULT 0 COMMENT 'time the query takes to apply in ms.',
   PRIMARY KEY (`name`) USING BTREE
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 ROW_FORMAT=DYNAMIC COMMENT='List of all applied updates in this database.';
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='List of all applied updates in this database.';
 
 /*!40000 ALTER TABLE `updates` ENABLE KEYS */;
 

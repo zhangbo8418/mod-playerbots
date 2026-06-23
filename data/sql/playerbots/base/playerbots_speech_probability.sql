@@ -4,7 +4,7 @@ CREATE TABLE `playerbots_speech_probability` (
   `name` varchar(255) NOT NULL,
   `probability` INT(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `playerbots_speech_probability` VALUES
 (NULL, 'taunt', 30),

@@ -5,7 +5,7 @@ CREATE TABLE `playerbots_speech` (
   `text` varchar(1024) NOT NULL,
   `type` varchar(10) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
 INSERT INTO `playerbots_speech` VALUES

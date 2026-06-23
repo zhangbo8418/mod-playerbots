@@ -12,4 +12,4 @@ CREATE TABLE `playerbots_guild_tasks` (
   KEY `owner` (`owner`),
   KEY `guildid` (`guildid`),
   KEY `type` (`type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
