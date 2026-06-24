@@ -12,6 +12,8 @@
 #include <vector>
 
 #include "Group.h"
+#include "DBCEnums.h"
+#include "DBCStores.h"
 #include "Map.h"
 #include "MotionMaster.h"
 #include "MovementActions.h"
@@ -95,22 +97,65 @@ namespace
             s_boardingStates.erase(bot->GetGUID().GetCounter());
     }
 
-    bool ShouldProbeStaticTransportAt(Map* map, Player* leader, float x, float y, float leaderZ)
+    bool IsOverworldMap(uint32 mapId)
+    {
+        return mapId == 0 || mapId == 1 || mapId == 530 || mapId == 571;
+    }
+
+    bool IsUrbanOrIndoorArea(Player* player)
+    {
+        if (!player)
+            return false;
+
+        auto isUrbanFlags = [](AreaTableEntry const* entry) -> bool
+        {
+            if (!entry)
+                return false;
+
+            uint32 const flags = entry->flags;
+            constexpr uint32 urbanMask = AREA_FLAG_CAPITAL | AREA_FLAG_CITY | AREA_FLAG_SLAVE_CAPITAL |
+                AREA_FLAG_SLAVE_CAPITAL2 | AREA_FLAG_TOWN | AREA_FLAG_SANCTUARY | AREA_FLAG_INSIDE;
+            return (flags & urbanMask) != 0;
+        };
+
+        if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(player->GetAreaId()))
+        {
+            if (isUrbanFlags(area))
+                return true;
+        }
+
+        if (AreaTableEntry const* zone = sAreaTableStore.LookupEntry(player->GetZoneId()))
+        {
+            if (isUrbanFlags(zone))
+                return true;
+        }
+
+        return false;
+    }
+
+    // Skip expensive StaticVertical probes only in open-world wilderness on flat ground.
+    bool ShouldSkipStaticTransportProbe(Map* map, Player* leader, float x, float y, float leaderZ)
     {
         if (!map || !leader)
             return false;
 
         if (leader->HasUnitMovementFlag(MOVEMENTFLAG_ONTRANSPORT))
-            return true;
+            return false;
 
         if (map->Instanceable())
-            return true;
+            return false;
+
+        if (!IsOverworldMap(map->GetId()))
+            return false;
+
+        if (IsUrbanOrIndoorArea(leader))
+            return false;
 
         float const groundZ = map->GetHeight(leader->GetPhaseMask(), x, y, leaderZ + 2.0f, true, 25.0f);
         if (groundZ <= -200000.0f)
-            return true;
+            return false;
 
-        return std::fabs(leaderZ - groundZ) > 2.5f;
+        return std::fabs(leaderZ - groundZ) <= 2.5f;
     }
 
     void NoteBoardingProgress(BoardingState& state, float dist2d)
@@ -912,10 +957,10 @@ Transport* TransportFollowHelper::GetLeaderTransport(Player* leader, Map* map)
             TransportProbeProfile::Normal))
         return transport;
 
-    if (!ShouldProbeStaticTransportAt(map, leader, x, y, leaderZ))
-        return nullptr;
+    if (!ShouldSkipStaticTransportProbe(map, leader, x, y, leaderZ))
+        return ProbeTransportAt(map, leader, phaseMask, x, y, leaderZ, TransportProbeProfile::StaticVertical);
 
-    return ProbeTransportAt(map, leader, phaseMask, x, y, leaderZ, TransportProbeProfile::StaticVertical);
+    return nullptr;
 }
 
 void TransportFollowHelper::ClearBoardingState(Player* bot)
