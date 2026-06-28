@@ -54,6 +54,7 @@
 #include "SpellAuraEffects.h"
 #include "SpellInfo.h"
 #include "TransportFollowHelper.h"
+#include "TravelNode.h"
 #include "Unit.h"
 #include "UpdateTime.h"
 #include "Vehicle.h"
@@ -285,6 +286,7 @@ PlayerbotAI::~PlayerbotAI()
     if (bot)
     {
         TransportFollowHelper::ClearBoardingState(bot);
+        TravelNodeMap::instance().ClearTeleportNodes(bot->GetGUID());
         PlayerbotsMgr::instance().RemovePlayerBotData(bot->GetGUID(), true);
     }
 }

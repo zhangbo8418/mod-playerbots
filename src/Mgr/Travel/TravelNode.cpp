@@ -1203,20 +1203,18 @@ TravelNodeRoute TravelNodeMap::getRoute(TravelNode* start, TravelNode* goal, Pla
         else
             startStub->currentGold = bot->GetMoney();
 
-        if (!bot->HasSpellCooldown(8690) && bot->IsAlive())
+        if (!bot->HasSpellCooldown(8690) && bot->IsAlive() && botAI)
         {
-            AiObjectContext* context = botAI->GetAiObjectContext();
-
-            TravelNode* homeNode = TravelNodeMap::instance().getNode(AI_VALUE(WorldPosition, "home bind"), nullptr, 10.0f);
+            TravelNode* homeNode =
+                TravelNodeMap::instance().getNode(AI_VALUE(WorldPosition, "home bind"), nullptr, 10.0f);
             if (homeNode)
             {
-                PortalNode* portNode = (PortalNode*)TravelNodeMap::instance().teleportNodes[bot->GetGUID()][8690];
-                {
-                    portNode = new PortalNode(start);
+                auto& botTeleportNodes = TravelNodeMap::instance().teleportNodes[bot->GetGUID()];
+                TravelNode*& nodeRef = botTeleportNodes[8690];
+                if (!nodeRef)
+                    nodeRef = new PortalNode(start);
 
-                    TravelNodeMap::instance().teleportNodes[bot->GetGUID()][8690] = portNode;
-                }
-
+                PortalNode* portNode = static_cast<PortalNode*>(nodeRef);
                 portNode->SetPortal(start, homeNode, 8690);
 
                 childNode = &m_stubs.insert(std::make_pair(portNode, TravelNodeStub(portNode))).first->second;
@@ -1377,12 +1375,12 @@ TravelNodeRoute TravelNodeMap::getRoute(WorldPosition startPos, WorldPosition en
     if (bot && !bot->HasSpellCooldown(8690))
     {
         startPath.clear();
-        TravelNode* botNode = TravelNodeMap::instance().teleportNodes[bot->GetGUID()][0];
-        {
-            botNode = new TravelNode(startPos, "Bot Pos", false);
-            TravelNodeMap::instance().teleportNodes[bot->GetGUID()][0] = botNode;
-        }
+        auto& botTeleportNodes = TravelNodeMap::instance().teleportNodes[bot->GetGUID()];
+        TravelNode*& nodeRef = botTeleportNodes[0];
+        if (!nodeRef)
+            nodeRef = new TravelNode(startPos, "Bot Pos", false);
 
+        TravelNode* botNode = nodeRef;
         botNode->setPoint(startPos);
 
         endI = 0;
@@ -2392,6 +2390,18 @@ void TravelNodeMap::loadNodeStore()
             LOG_ERROR("playerbots", ">> Error loading travelNode paths.");
         }
     }
+}
+
+void TravelNodeMap::ClearTeleportNodes(ObjectGuid const& guid)
+{
+    auto itr = teleportNodes.find(guid);
+    if (itr == teleportNodes.end())
+        return;
+
+    for (auto& nodePair : itr->second)
+        delete nodePair.second;
+
+    teleportNodes.erase(itr);
 }
 
 void TravelNodeMap::calcMapOffset()

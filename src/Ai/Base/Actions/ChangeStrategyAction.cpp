@@ -53,7 +53,7 @@ bool ChangeNonCombatStrategyAction::Execute(Event event)
     {
         if (text.find("loot") != std::string::npos)
         {
-            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_strategy_except", "You can change any strategy except loot and gather"));
+            botAI->TellError(botAI->GetLocalizedBotTextOrDefault("error_strategy_except", "You can change any strategy except loot"));
             return false;
         }
     }

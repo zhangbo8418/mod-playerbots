@@ -572,6 +572,7 @@ public:
     void printNodeStore();
     void saveNodeStore();
     void loadNodeStore();
+    void ClearTeleportNodes(ObjectGuid const& guid);
 
     bool cropUselessNode(TravelNode* startNode);
     TravelNode* addZoneLinkNode(TravelNode* startNode);
