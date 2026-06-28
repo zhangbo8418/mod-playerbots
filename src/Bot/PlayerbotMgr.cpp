@@ -133,7 +133,7 @@ void PlayerbotHolder::AddPlayerBot(ObjectGuid playerGuid, uint32 masterAccountId
                 ++loadingForMaster;
         }
         uint32 count = mgr->GetPlayerbotsCount() + loadingForMaster;
-        if (count >= PlayerbotAIConfig::instance().maxAddedBots)
+        if (count >= uint32(PlayerbotAIConfig::instance().maxAddedBots))
         {
             allowed = false;
             out << GetMasterLocalizedText(masterPlayer, "msg_bot_add_too_many",
@@ -375,10 +375,14 @@ void PlayerbotHolder::LogoutPlayerBotInternal(ObjectGuid guid)
         PlayerbotWorldThreadProcessor::instance().QueueOperation(std::move(cleanupOp));
 
         LOG_DEBUG("playerbots", "Bot {} logging out", bot->GetName().c_str());
+        // Remove taxi cheat flag on alts.
+        if (!sRandomPlayerbotMgr.IsRandomBot(bot) && bot->isTaxiCheater())
+            bot->SetTaxiCheater(false);
+
         RandomPlayerbotMgr::SavePlayerToDB(bot, false, false);
 
         WorldSession* botWorldSessionPtr = bot->GetSession();
-        WorldSession* masterWorldSessionPtr = nullptr;
+        [[maybe_unused]] WorldSession* masterWorldSessionPtr = nullptr;     // Remove [[maybe_unused]] tag if timed logout implemented.
 
         if (botWorldSessionPtr->isLogingOut())
             return;
