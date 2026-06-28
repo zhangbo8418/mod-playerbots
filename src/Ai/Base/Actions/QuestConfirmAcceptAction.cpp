@@ -13,7 +13,9 @@ bool QuestConfirmAcceptAction::Execute(Event event)
     {
         return false;
     }
-    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_confirm_accept", "Quest: %quest confirm accept", {{"%quest", chat->FormatQuest(quest)}}));
+
+    botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("msg_quest_confirm_accept", "Quest: %quest confirm accept",
+        {{"%quest", chat->FormatQuest(quest)}}));
 
     WorldPacket sendPacket(CMSG_QUEST_CONFIRM_ACCEPT);
     sendPacket << questId;
