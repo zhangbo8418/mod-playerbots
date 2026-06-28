@@ -2302,15 +2302,22 @@ void TravelNodeMap::loadNodeStore()
         if (PreparedQueryResult result =
                 PlayerbotsDatabase.Query(PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_SEL_TRAVELNODE_LINK)))
         {
+            uint32 skippedMissingNodeLinks = 0;
+
             do
             {
                 Field* fields = result->Fetch();
 
-                TravelNode* startNode = saveNodes.find(fields[0].Get<uint32>())->second;
-                TravelNode* endNode = saveNodes.find(fields[1].Get<uint32>())->second;
-
-                if (!startNode || !endNode)
+                auto const startIt = saveNodes.find(fields[0].Get<uint32>());
+                auto const endIt = saveNodes.find(fields[1].Get<uint32>());
+                if (startIt == saveNodes.end() || endIt == saveNodes.end())
+                {
+                    ++skippedMissingNodeLinks;
                     continue;
+                }
+
+                TravelNode* startNode = startIt->second;
+                TravelNode* endNode = endIt->second;
 
                 startNode->setPathTo(
                     endNode,
@@ -2326,6 +2333,10 @@ void TravelNodeMap::loadNodeStore()
             } while (result->NextRow());
 
             LOG_INFO("playerbots", ">> Loaded {} travelNode paths.", result->GetRowCount());
+
+            if (skippedMissingNodeLinks)
+                LOG_WARN("playerbots", ">> Skipped {} travelNode links referencing missing nodes.",
+                         skippedMissingNodeLinks);
         }
         else
         {
@@ -2337,14 +2348,24 @@ void TravelNodeMap::loadNodeStore()
         if (PreparedQueryResult result =
                 PlayerbotsDatabase.Query(PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_SEL_TRAVELNODE_PATH)))
         {
+            uint32 skippedMissingNodePathPoints = 0;
+
             do
             {
                 Field* fields = result->Fetch();
 
-                TravelNode* startNode = saveNodes.find(fields[0].Get<uint32>())->second;
-                TravelNode* endNode = saveNodes.find(fields[1].Get<uint32>())->second;
+                auto const startIt = saveNodes.find(fields[0].Get<uint32>());
+                auto const endIt = saveNodes.find(fields[1].Get<uint32>());
+                if (startIt == saveNodes.end() || endIt == saveNodes.end())
+                {
+                    ++skippedMissingNodePathPoints;
+                    continue;
+                }
 
-                if (!startNode || !endNode || !startNode->hasPathTo(endNode))
+                TravelNode* startNode = startIt->second;
+                TravelNode* endNode = endIt->second;
+
+                if (!startNode->hasPathTo(endNode))
                     continue;
 
                 TravelNodePath* path = startNode->getPathTo(endNode);
@@ -2361,6 +2382,10 @@ void TravelNodeMap::loadNodeStore()
             } while (result->NextRow());
 
             LOG_INFO("playerbots", ">> Loaded {} travelNode paths points.", result->GetRowCount());
+
+            if (skippedMissingNodePathPoints)
+                LOG_WARN("playerbots", ">> Skipped {} travelNode path points referencing missing nodes.",
+                         skippedMissingNodePathPoints);
         }
         else
         {
