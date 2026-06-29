@@ -1190,20 +1190,19 @@ TravelNodeRoute TravelNodeMap::getRoute(TravelNode* start, TravelNode* goal, Pla
     if (bot)
     {
         PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot);
-        if (botAI)
+        AiObjectContext* context = botAI ? botAI->GetAiObjectContext() : nullptr;
+
+        if (botAI && context)
         {
             if (botAI->HasCheat(BotCheatMask::gold))
                 startStub->currentGold = 10000000;
             else
-            {
-                AiObjectContext* context = botAI->GetAiObjectContext();
                 startStub->currentGold = AI_VALUE2(uint32, "free money for", (uint32)NeedMoneyFor::travel);
-            }
         }
         else
             startStub->currentGold = bot->GetMoney();
 
-        if (!bot->HasSpellCooldown(8690) && bot->IsAlive() && botAI)
+        if (!bot->HasSpellCooldown(8690) && bot->IsAlive() && botAI && context)
         {
             TravelNode* homeNode =
                 TravelNodeMap::instance().getNode(AI_VALUE(WorldPosition, "home bind"), nullptr, 10.0f);
