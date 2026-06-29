@@ -525,11 +525,21 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
 // and assigns accounts as AddClass accounts (type 2) based AddClassAccountPoolSize. Type 1 and 2 assignments are
 // permenant, unless MaxRandomBots or AddClassAccountPoolSize are set to 0. If so, their associated accounts will
 // be unassigned (type 0)
-void RandomPlayerbotMgr::AssignAccountTypes()
+void RandomPlayerbotMgr::AssignAccountTypes(bool allowAutoExpand)
 {
-    static bool retryAfterAutoExpand = false;
-
     LOG_INFO("playerbots", "Assigning account types for random bot accounts...");
+
+    auto tryExpandAndRetry = [&](uint32 deficit) -> bool
+    {
+        if (!allowAutoExpand || sPlayerbotAIConfig.randomBotAccountCount != 0)
+            return false;
+
+        if (!RandomPlayerbotFactory::EnsureRandomBotCapacity(deficit))
+            return false;
+
+        AssignAccountTypes(false);
+        return true;
+    };
 
     // Clear existing filtered lists
     rndBotTypeAccounts.clear();
@@ -624,14 +634,8 @@ void RandomPlayerbotMgr::AssignAccountTypes()
 
         if (assigned < toAssign)
         {
-            if (!retryAfterAutoExpand && sPlayerbotAIConfig.randomBotAccountCount == 0 &&
-                RandomPlayerbotFactory::EnsureRandomBotCapacity(toAssign - assigned))
-            {
-                retryAfterAutoExpand = true;
-                AssignAccountTypes();
-                retryAfterAutoExpand = false;
+            if (tryExpandAndRetry(toAssign - assigned))
                 return;
-            }
 
             LOG_ERROR("playerbots", "Not enough unassigned accounts to fulfill RNDbot requirements. Need {} more accounts.", toAssign - assigned);
         }
@@ -658,14 +662,8 @@ void RandomPlayerbotMgr::AssignAccountTypes()
 
         if (assigned < toAssign)
         {
-            if (!retryAfterAutoExpand && sPlayerbotAIConfig.randomBotAccountCount == 0 &&
-                RandomPlayerbotFactory::EnsureRandomBotCapacity(toAssign - assigned))
-            {
-                retryAfterAutoExpand = true;
-                AssignAccountTypes();
-                retryAfterAutoExpand = false;
+            if (tryExpandAndRetry(toAssign - assigned))
                 return;
-            }
 
             LOG_ERROR("playerbots", "Not enough unassigned accounts to fulfill AddClass requirements. Need {} more accounts.", toAssign - assigned);
         }
@@ -693,10 +691,13 @@ bool RandomPlayerbotMgr::IsAccountType(uint32 accountId, uint8 accountType)
 // and Phase 2 logs-in the remainder Horde bots to reach the total maxAllowedBotCount. If maxAllowedBotCount is not
 // reached after Phase 2, the function goes back to log-in Alliance bots and reach maxAllowedBotCount. This is done
 // because not every account is guaranteed 5A/5H bots, so the true ratio might be skewed by few percentages. Finally,
-// Phase 4 is reached when the pool still cannot reach maxAllowedBotCount (cooldown, capacity, or logic).
+// Phase 4 runs when phased login (1–3) still could not fill this tick's pool quota.
 uint32 RandomPlayerbotMgr::AddRandomBots()
 {
     uint32 maxAllowedBotCount = GetEventValue(0, "bot_count");
+    if (!maxAllowedBotCount)
+        maxAllowedBotCount = sPlayerbotAIConfig.maxRandomBots;
+
     static time_t missingBotsTimer = 0;
 
     if (currentBots.size() < maxAllowedBotCount)
@@ -705,11 +706,16 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
         maxAllowedBotCount -= currentBots.size();
         maxAllowedBotCount = std::min(sPlayerbotAIConfig.randomBotsPerInterval, maxAllowedBotCount);
 
+        uint32 const botsNeededThisTick = maxAllowedBotCount;
+
         // Single RNG instance for all shuffling
         std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 
         // Only need to track the Alliance count, as it's in Phase 1
         uint32 totalRatio = sPlayerbotAIConfig.randomBotAllianceRatio + sPlayerbotAIConfig.randomBotHordeRatio;
+        if (!totalRatio)
+            totalRatio = 1;
+
         uint32 allowedAllianceCount = maxAllowedBotCount * (sPlayerbotAIConfig.randomBotAllianceRatio) / totalRatio;
 
         uint32 remainder = maxAllowedBotCount * (sPlayerbotAIConfig.randomBotAllianceRatio) % totalRatio;
@@ -719,6 +725,8 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
         {
             allowedAllianceCount++;
         }
+
+        allowedAllianceCount = std::min(allowedAllianceCount, maxAllowedBotCount);
 
         // Determine which accounts to use based on EnablePeriodicOnlineOffline
         std::vector<uint32> accountsToUse;
@@ -819,7 +827,7 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
         // PHASE 1: Log-in Alliance bots up to allowedAllianceCount
         for (auto const& charInfo : allianceChars)
         {
-            if (!allowedAllianceCount)
+            if (!allowedAllianceCount || !maxAllowedBotCount)
                 break;
 
             if (tryLoginBot(charInfo))
@@ -849,7 +857,11 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 maxAllowedBotCount--;
         }
 
-        // PHASE 4: An error is given if maxAllowedBotCount is still not reached
+        // Guard against uint32 underflow if alliance quota exceeded the tick budget
+        if (maxAllowedBotCount > botsNeededThisTick)
+            maxAllowedBotCount = 0;
+
+        // PHASE 4: Log/diagnostics if maxAllowedBotCount is still not reached
         if (maxAllowedBotCount)
         {
             if (missingBotsTimer == 0)
@@ -887,10 +899,10 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
 
                 if (eligibleChars > 0)
                 {
-                    LOG_ERROR("playerbots",
-                              "Can't add {} more random bots (pool {}/{}): {} eligible RND chars remain but were not "
-                              "selected this tick (likely a logic bug).",
-                              maxAllowedBotCount, currentBots.size(), targetCount, eligibleChars);
+                    LOG_WARN("playerbots",
+                             "Can't add {} more random bots (pool {}/{}): {} eligible RND chars remain after phased "
+                             "login and fallback. Will retry next tick.",
+                             maxAllowedBotCount, currentBots.size(), targetCount, eligibleChars);
                 }
                 else if (blockedByLogout > 0)
                 {
@@ -900,16 +912,35 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                              maxAllowedBotCount, currentBots.size(), targetCount, blockedByLogout,
                              sPlayerbotAIConfig.minRandomBotInWorldTime, sPlayerbotAIConfig.maxRandomBotInWorldTime);
                 }
+                else if (sPlayerbotAIConfig.enablePeriodicOnlineOffline &&
+                         accountsToUse.size() < rndBotTypeAccounts.size() &&
+                         blockedByAdd == allCharacters.size() && allCharacters.size() > 0)
+                {
+                    LOG_INFO("playerbots",
+                             "Periodic online/offline: active RND account slice ({}/{}) fully in use, need {} more "
+                             "in pool ({}/{}). Waiting for rotation, not missing accounts.",
+                             accountsToUse.size(), rndBotTypeAccounts.size(), maxAllowedBotCount, currentBots.size(),
+                             targetCount);
+                }
                 else
                 {
                     if (sPlayerbotAIConfig.randomBotAccountCount == 0 &&
                         RandomPlayerbotFactory::EnsureRandomBotCapacity(maxAllowedBotCount))
                     {
-                        AssignAccountTypes();
+                        AssignAccountTypes(false);
                         LOG_INFO("playerbots",
                                  "Auto-expanded random bot capacity for pool {}/{} (RandomBotAccountCount=0). "
                                  "Retrying login on next tick.",
                                  currentBots.size(), targetCount);
+                    }
+                    else if (sPlayerbotAIConfig.randomBotAccountCount == 0)
+                    {
+                        LOG_ERROR("playerbots",
+                                  "Can't add {} more random bots (pool {}/{}). RND chars in active slice: {}, "
+                                  "in-use: {}. Auto-expand found nothing to create (at calculated capacity, name pool "
+                                  "empty, or retry cooldown).",
+                                  maxAllowedBotCount, currentBots.size(), targetCount, allCharacters.size(),
+                                  blockedByAdd);
                     }
                     else
                     {

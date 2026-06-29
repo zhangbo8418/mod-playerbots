@@ -177,7 +177,7 @@ public:
     std::map<uint8, std::unordered_set<ObjectGuid>> addclassCache;
 
     // Account type management
-    void AssignAccountTypes();
+    void AssignAccountTypes(bool allowAutoExpand = true);
     bool IsAccountType(uint32 accountId, uint8 accountType);
 
     void ScheduleGroupDelayedLeave(Group* group);
