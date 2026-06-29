@@ -51,6 +51,7 @@ public:
 
     Player* CreateRandomBot(WorldSession* session, uint8 cls, std::unordered_map<NameRaceAndGender, std::vector<std::string>>& names);
     static void CreateRandomBots();
+    static bool EnsureRandomBotCapacity(uint32 botsNeededHint = 0);
     static void CreateRandomArenaTeams(ArenaType slot, uint32 count);
     static std::string const CreateRandomGuildName();
     static uint32 CalculateTotalAccountCount();

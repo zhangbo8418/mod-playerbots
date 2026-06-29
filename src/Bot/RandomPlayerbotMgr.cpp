@@ -527,6 +527,8 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
 // be unassigned (type 0)
 void RandomPlayerbotMgr::AssignAccountTypes()
 {
+    static bool retryAfterAutoExpand = false;
+
     LOG_INFO("playerbots", "Assigning account types for random bot accounts...");
 
     // Clear existing filtered lists
@@ -622,6 +624,15 @@ void RandomPlayerbotMgr::AssignAccountTypes()
 
         if (assigned < toAssign)
         {
+            if (!retryAfterAutoExpand && sPlayerbotAIConfig.randomBotAccountCount == 0 &&
+                RandomPlayerbotFactory::EnsureRandomBotCapacity(toAssign - assigned))
+            {
+                retryAfterAutoExpand = true;
+                AssignAccountTypes();
+                retryAfterAutoExpand = false;
+                return;
+            }
+
             LOG_ERROR("playerbots", "Not enough unassigned accounts to fulfill RNDbot requirements. Need {} more accounts.", toAssign - assigned);
         }
     }
@@ -647,6 +658,15 @@ void RandomPlayerbotMgr::AssignAccountTypes()
 
         if (assigned < toAssign)
         {
+            if (!retryAfterAutoExpand && sPlayerbotAIConfig.randomBotAccountCount == 0 &&
+                RandomPlayerbotFactory::EnsureRandomBotCapacity(toAssign - assigned))
+            {
+                retryAfterAutoExpand = true;
+                AssignAccountTypes();
+                retryAfterAutoExpand = false;
+                return;
+            }
+
             LOG_ERROR("playerbots", "Not enough unassigned accounts to fulfill AddClass requirements. Need {} more accounts.", toAssign - assigned);
         }
     }
@@ -673,7 +693,7 @@ bool RandomPlayerbotMgr::IsAccountType(uint32 accountId, uint8 accountType)
 // and Phase 2 logs-in the remainder Horde bots to reach the total maxAllowedBotCount. If maxAllowedBotCount is not
 // reached after Phase 2, the function goes back to log-in Alliance bots and reach maxAllowedBotCount. This is done
 // because not every account is guaranteed 5A/5H bots, so the true ratio might be skewed by few percentages. Finally,
-// Phase 4 is reached if and only if the value of RandomBotAccountCount is lower than it should.
+// Phase 4 is reached when the pool still cannot reach maxAllowedBotCount (cooldown, capacity, or logic).
 uint32 RandomPlayerbotMgr::AddRandomBots()
 {
     uint32 maxAllowedBotCount = GetEventValue(0, "bot_count");
@@ -837,11 +857,70 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
 
             if (time(nullptr) - missingBotsTimer >= 10)
             {
+                uint32 blockedByLogout = 0;
+                uint32 blockedByAdd = 0;
+                uint32 eligibleChars = 0;
+
+                for (CharacterInfo const& charInfo : allCharacters)
+                {
+                    if (GetEventValue(charInfo.guid, "logout"))
+                    {
+                        ++blockedByLogout;
+                        continue;
+                    }
+
+                    if (GetEventValue(charInfo.guid, "add") ||
+                        GetPlayerBot(charInfo.guid) ||
+                        std::find(currentBots.begin(), currentBots.end(), charInfo.guid) != currentBots.end() ||
+                        (sPlayerbotAIConfig.disableDeathKnightLogin && charInfo.rClass == CLASS_DEATH_KNIGHT))
+                    {
+                        ++blockedByAdd;
+                        continue;
+                    }
+
+                    ++eligibleChars;
+                }
+
                 int divisor = RandomPlayerbotFactory::CalculateAvailableCharsPerAccount();
-                uint32 moreAccountsNeeded = (maxAllowedBotCount + divisor - 1) / divisor;
-                LOG_ERROR("playerbots",
-                          "Can't log-in all the requested bots. Try increasing RandomBotAccountCount in your conf file.\n"
-                          "{} more accounts needed.", moreAccountsNeeded);
+                uint32 const targetCount =
+                    GetEventValue(0, "bot_count") ? GetEventValue(0, "bot_count") : sPlayerbotAIConfig.maxRandomBots;
+
+                if (eligibleChars > 0)
+                {
+                    LOG_ERROR("playerbots",
+                              "Can't add {} more random bots (pool {}/{}): {} eligible RND chars remain but were not "
+                              "selected this tick (likely a logic bug).",
+                              maxAllowedBotCount, currentBots.size(), targetCount, eligibleChars);
+                }
+                else if (blockedByLogout > 0)
+                {
+                    LOG_INFO("playerbots",
+                             "Waiting for random bot logout cooldown: need {} more in pool ({}/{}), {} RND chars "
+                             "offline ({}–{}s). No new accounts required.",
+                             maxAllowedBotCount, currentBots.size(), targetCount, blockedByLogout,
+                             sPlayerbotAIConfig.minRandomBotInWorldTime, sPlayerbotAIConfig.maxRandomBotInWorldTime);
+                }
+                else
+                {
+                    if (sPlayerbotAIConfig.randomBotAccountCount == 0 &&
+                        RandomPlayerbotFactory::EnsureRandomBotCapacity(maxAllowedBotCount))
+                    {
+                        AssignAccountTypes();
+                        LOG_INFO("playerbots",
+                                 "Auto-expanded random bot capacity for pool {}/{} (RandomBotAccountCount=0). "
+                                 "Retrying login on next tick.",
+                                 currentBots.size(), targetCount);
+                    }
+                    else
+                    {
+                        uint32 moreAccountsNeeded = (maxAllowedBotCount + divisor - 1) / divisor;
+                        LOG_ERROR("playerbots",
+                                  "Can't add {} more random bots (pool {}/{}). RND chars: {}, in-use: {}, none eligible. "
+                                  "Increase RandomBotAccountCount or run rndbot init (approx. {} more accounts).",
+                                  maxAllowedBotCount, currentBots.size(), targetCount, allCharacters.size(), blockedByAdd,
+                                  moreAccountsNeeded);
+                    }
+                }
                 missingBotsTimer = 0;    // Reset timer so error is not spammed every tick
             }
         }
@@ -2311,7 +2390,7 @@ bool RandomPlayerbotMgr::CanDeactivateRandomBot(Player* player)
     return true;
 }
 
-void RandomPlayerbotMgr::DeactivateRandomBot(uint32 bot)
+void RandomPlayerbotMgr::DeactivateRandomBot(uint32 bot, bool applyOfflineCooldown)
 {
     ObjectGuid botGUID = ObjectGuid::Create<HighGuid::Player>(bot);
     Player* player = GetPlayerBot(botGUID);
@@ -2322,8 +2401,15 @@ void RandomPlayerbotMgr::DeactivateRandomBot(uint32 bot)
     if (player)
         LogoutPlayerBot(botGUID);
 
-    SetEventValue(bot, "logout", 1,
-                  urand(sPlayerbotAIConfig.minRandomBotInWorldTime, sPlayerbotAIConfig.maxRandomBotInWorldTime));
+    // Natural offline rotation uses logout cooldown (Min/MaxRandomBotInWorldTime).
+    // Pool-size trim only clears add so the character can re-enter the pool immediately.
+    if (applyOfflineCooldown)
+    {
+        SetEventValue(bot, "logout", 1,
+                      urand(sPlayerbotAIConfig.minRandomBotInWorldTime, sPlayerbotAIConfig.maxRandomBotInWorldTime));
+    }
+    else
+        SetEventValue(bot, "logout", 0, 0);
 }
 
 void RandomPlayerbotMgr::AdjustBotCountToTarget(uint32 targetCount)
@@ -2359,7 +2445,7 @@ void RandomPlayerbotMgr::AdjustBotCountToTarget(uint32 targetCount)
             if (!CanDeactivateRandomBot(player))
                 continue;
 
-            DeactivateRandomBot(bot);
+            DeactivateRandomBot(bot, false);
             --trimBudget;
         }
     }
@@ -2381,7 +2467,7 @@ void RandomPlayerbotMgr::AdjustBotCountToTarget(uint32 targetCount)
             if (!CanDeactivateRandomBot(player))
                 continue;
 
-            DeactivateRandomBot(bot);
+            DeactivateRandomBot(bot, false);
             --trimBudget;
             trimmed = true;
             break;
@@ -2432,7 +2518,11 @@ void RandomPlayerbotMgr::GetBots()
             continue;
 
         if (std::find(currentBots.begin(), currentBots.end(), bot) == currentBots.end())
+        {
             currentBots.push_back(bot);
+            if (currentBots.size() >= maxAllowedBotCount)
+                break;
+        }
     }
 }
 
