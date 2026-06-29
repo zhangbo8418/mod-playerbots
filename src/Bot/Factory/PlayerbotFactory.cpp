@@ -589,14 +589,27 @@ void PlayerbotFactory::Prepare()
     {
         bot->SetUInt32Value(PLAYER_XP, 0);
     }
-    if (!sPlayerbotAIConfig.randomBotShowHelmet || !urand(0, 4))
+    if (sRandomPlayerbotMgr.IsRandomBot(bot))
     {
-        bot->SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_HELM);
-    }
+        if (sPlayerbotAIConfig.randomBotShowHelmet)
+        {
+            if (urand(0, 99) < sRandomPlayerbotMgr.GetCosmeticShowPercent("helm_show_pct"))
+                bot->RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_HELM);
+            else
+                bot->SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_HELM);
+        }
+        else
+            bot->SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_HELM);
 
-    if (!sPlayerbotAIConfig.randomBotShowCloak || !urand(0, 4))
-    {
-        bot->SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_CLOAK);
+        if (sPlayerbotAIConfig.randomBotShowCloak)
+        {
+            if (urand(0, 99) < sRandomPlayerbotMgr.GetCosmeticShowPercent("cloak_show_pct"))
+                bot->RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_CLOAK);
+            else
+                bot->SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_CLOAK);
+        }
+        else
+            bot->SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_CLOAK);
     }
 }
 

@@ -137,6 +137,7 @@ public:
     void RandomTeleportGrindForLevel(Player* bot);
     void RandomTeleportForRpg(Player* bot);
     uint32 GetMaxAllowedBotCount();
+    uint32 GetCosmeticShowPercent(std::string const& event);
     bool ProcessBot(Player* player);
     void Revive(Player* player);
     void ChangeStrategy(Player* player);
@@ -234,6 +235,9 @@ private:
     std::string GetEventData(uint32 bot, std::string const& event);
     uint32 SetEventValue(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
                          std::string const& data = "");
+    bool CanDeactivateRandomBot(Player* player);
+    void DeactivateRandomBot(uint32 bot);
+    void AdjustBotCountToTarget(uint32 targetCount);
     void GetBots();
     std::vector<uint32> GetBgBots(uint32 bracket);
     time_t BgCheckTimer;
@@ -257,6 +261,7 @@ private:
     std::map<TeamId, std::map<BattlegroundTypeId, std::vector<uint32>>> BattleMastersCache;
     std::unordered_map<uint32, BotEventCache> eventCache;
     std::list<uint32> currentBots;
+    uint32 cachedBotCountTarget = 0;
     uint32 bgBotsCount;
     uint32 playersLevel;
 
