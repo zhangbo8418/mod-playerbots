@@ -1387,6 +1387,13 @@ AiPlayerbot.MaxRandomBotRandomizeTime = 1209600
 # 默认：60
 AiPlayerbot.RandomBotsPerInterval = 60
 
+# 启动/扩容完成后，在此秒数内降低每周期登录/入池速率，缓解登录风暴
+# 0 = 禁用。默认：120
+AiPlayerbot.RandomBotProvisioningLoginThrottleSeconds = 120
+
+# 节流期间 RandomBotsPerInterval 的百分比（1-100）。默认：50
+AiPlayerbot.RandomBotProvisioningLoginThrottlePercent = 50
+
 # 机器人死亡后复活前的最短和最长秒数
 # 默认值：60（最小值）、30​​0（最大值）
 AiPlayerbot.MinRandomBotReviveTime = 60

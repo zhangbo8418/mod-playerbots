@@ -152,6 +152,8 @@ public:
     uint32 permanentlyInWorldTime;
     uint32 minRandomBotPvpTime, maxRandomBotPvpTime;
     uint32 randomBotsPerInterval;
+    uint32 randomBotProvisioningLoginThrottleSeconds;
+    uint32 randomBotProvisioningLoginThrottlePercent;
     uint32 minRandomBotsPriceChangeInterval, maxRandomBotsPriceChangeInterval;
     uint32 disabledWithoutRealPlayerLoginDelay, disabledWithoutRealPlayerLogoutDelay;
     // Delay (seconds) before bots leave group when no real player remains (avoids disband on accidental disconnect)

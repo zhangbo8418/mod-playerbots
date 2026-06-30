@@ -318,7 +318,26 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
 
     totalPmo = sPerfMonitor.start(PERF_MON_TOTAL, "RandomPlayerbotMgr::FullTick");
 
-    if (!sPlayerbotAIConfig.randomBotAutologin || !sPlayerbotAIConfig.enabled)
+    if (!sPlayerbotAIConfig.enabled)
+        return;
+
+    if (!RandomPlayerbotFactory::IsRandomBotStartupComplete())
+    {
+        bool createdWork = false;
+        if (RandomPlayerbotFactory::TickDeferredStartup(&createdWork))
+        {
+            AssignAccountTypes(false);
+            if (createdWork)
+                NotifyRandomBotProvisioningComplete();
+        }
+
+        SetNextCheckDelay(500);
+        if (totalPmo)
+            totalPmo->finish();
+        return;
+    }
+
+    if (!sPlayerbotAIConfig.randomBotAutologin)
         return;
 
     ProcessScheduledGroupLeaves();
@@ -348,6 +367,16 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
     GetBots();
     AdjustBotCountToTarget(maxAllowedBotCount);
 
+    if (sPlayerbotAIConfig.randomBotAccountCount == 0 &&
+        RandomPlayerbotFactory::IsRandomBotCapacityExpansionInProgress())
+    {
+        if (RandomPlayerbotFactory::EnsureRandomBotCapacity(0))
+        {
+            AssignAccountTypes(false);
+            NotifyRandomBotProvisioningComplete();
+        }
+    }
+
     std::list<uint32> availableBots = currentBots;
     uint32 availableBotCount = availableBots.size();
     uint32 onlineBotCount = playerBots.size();
@@ -360,7 +389,8 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
     // which prevents unneeded expensive GameTime calls.
     if (_isBotInitializing)
     {
-        _isBotInitializing = GameTime::GetUptime().count() < sPlayerbotAIConfig.maxRandomBots * (0.11 + 0.4);
+        if (RandomPlayerbotFactory::IsRandomBotStartupComplete())
+            _isBotInitializing = GameTime::GetUptime().count() < sPlayerbotAIConfig.maxRandomBots * (0.11 + 0.4);
     }
 
     uint32 updateIntervalTurboBoost = _isBotInitializing ? 1 : sPlayerbotAIConfig.randomBotUpdateInterval;
@@ -440,14 +470,15 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
             // activatePrintStatsThread();
         }
     }
-    uint32 updateBots = sPlayerbotAIConfig.randomBotsPerInterval * onlineBotFocus / 100;
+    uint32 const botsPerInterval = GetEffectiveRandomBotsPerInterval();
+    uint32 updateBots = botsPerInterval * onlineBotFocus / 100;
     uint32 maxNewBots =
         onlineBotCount < maxAllowedBotCount &&
                 (sPlayerbotAIConfig.disabledWithoutRealPlayer == false ||
                  (realPlayerIsLogged && DelayLoginBotsTimer != 0 && time(nullptr) >= DelayLoginBotsTimer))
             ? maxAllowedBotCount - onlineBotCount
             : 0;
-    uint32 loginBots = std::min(sPlayerbotAIConfig.randomBotsPerInterval - updateBots, maxNewBots);
+    uint32 loginBots = std::min(botsPerInterval - updateBots, maxNewBots);
 
     if (!availableBots.empty())
     {
@@ -704,7 +735,7 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
     {
         // Calculate how many bots to add
         maxAllowedBotCount -= currentBots.size();
-        maxAllowedBotCount = std::min(sPlayerbotAIConfig.randomBotsPerInterval, maxAllowedBotCount);
+        maxAllowedBotCount = std::min(GetEffectiveRandomBotsPerInterval(), maxAllowedBotCount);
 
         uint32 const botsNeededThisTick = maxAllowedBotCount;
 
@@ -925,9 +956,17 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 else
                 {
                     if (sPlayerbotAIConfig.randomBotAccountCount == 0 &&
+                        RandomPlayerbotFactory::IsRandomBotCapacityExpansionInProgress())
+                    {
+                        LOG_INFO("playerbots",
+                                 "Auto-expanding random bot capacity for pool {}/{} (in progress)...",
+                                 currentBots.size(), targetCount);
+                    }
+                    else if (sPlayerbotAIConfig.randomBotAccountCount == 0 &&
                         RandomPlayerbotFactory::EnsureRandomBotCapacity(maxAllowedBotCount))
                     {
                         AssignAccountTypes(false);
+                        NotifyRandomBotProvisioningComplete();
                         LOG_INFO("playerbots",
                                  "Auto-expanded random bot capacity for pool {}/{} (RandomBotAccountCount=0). "
                                  "Retrying login on next tick.",
@@ -1934,6 +1973,34 @@ void RandomPlayerbotMgr::Init()
     PlayerbotsDatabase.Execute("DELETE FROM playerbots_random_bots WHERE event = 'add'");
 }
 
+uint32 RandomPlayerbotMgr::GetEffectiveRandomBotsPerInterval() const
+{
+    uint32 perInterval = sPlayerbotAIConfig.randomBotsPerInterval;
+
+    if (_provisioningLoginThrottleUntil && time(nullptr) < _provisioningLoginThrottleUntil &&
+        sPlayerbotAIConfig.randomBotProvisioningLoginThrottleSeconds > 0 &&
+        sPlayerbotAIConfig.randomBotProvisioningLoginThrottlePercent < 100)
+    {
+        perInterval = std::max(1u, perInterval * sPlayerbotAIConfig.randomBotProvisioningLoginThrottlePercent / 100);
+    }
+
+    return perInterval;
+}
+
+void RandomPlayerbotMgr::NotifyRandomBotProvisioningComplete()
+{
+    if (!sPlayerbotAIConfig.randomBotProvisioningLoginThrottleSeconds)
+        return;
+
+    _provisioningLoginThrottleUntil =
+        time(nullptr) + sPlayerbotAIConfig.randomBotProvisioningLoginThrottleSeconds;
+
+    LOG_INFO("playerbots",
+             "Random bot login throttled to {}% for {}s after provisioning",
+             sPlayerbotAIConfig.randomBotProvisioningLoginThrottlePercent,
+             sPlayerbotAIConfig.randomBotProvisioningLoginThrottleSeconds);
+}
+
 void RandomPlayerbotMgr::RandomTeleportForLevel(Player* bot)
 {
     if (bot->InBattleground())
@@ -2303,7 +2370,7 @@ private:
 
 size_t GetRandomBotSaveConcurrency()
 {
-    uint32 const perInterval = sPlayerbotAIConfig.randomBotsPerInterval;
+    uint32 const perInterval = sRandomPlayerbotMgr.GetEffectiveRandomBotsPerInterval();
     if (sRandomPlayerbotMgr.IsBotInitializing())
         return std::clamp<uint32>(perInterval / 15, 2, 4);
 
@@ -2448,7 +2515,7 @@ void RandomPlayerbotMgr::AdjustBotCountToTarget(uint32 targetCount)
     if (!targetCount)
         return;
 
-    uint32 trimBudget = sPlayerbotAIConfig.randomBotsPerInterval / 2;
+    uint32 trimBudget = GetEffectiveRandomBotsPerInterval() / 2;
     if (!trimBudget)
         trimBudget = 1;
 

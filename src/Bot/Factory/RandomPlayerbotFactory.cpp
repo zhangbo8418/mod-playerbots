@@ -6,6 +6,7 @@
 #include "RandomPlayerbotFactory.h"
 
 #include <algorithm>
+#include <chrono>
 #include <sstream>
 
 #include "AccountMgr.h"
@@ -450,12 +451,28 @@ uint32 RandomPlayerbotFactory::CalculateAvailableCharsPerAccount()
 
 namespace
 {
-int CreateMissingRandomBotAccounts(uint32 totalAccountCount)
+constexpr uint32 RANDOM_BOT_EXPAND_ACCOUNTS_PER_TICK = 4;
+constexpr uint32 RANDOM_BOT_EXPAND_CHARACTERS_PER_TICK = 8;
+constexpr uint32 RANDOM_BOT_EXPAND_FAILURE_COOLDOWN_SEC = 60;
+constexpr auto RANDOM_BOT_EXPAND_DB_POLL_INTERVAL = std::chrono::milliseconds(50);
+
+template<typename Connection>
+void WaitForDatabaseQueueSync(DatabaseWorkerPool<Connection>& pool)
+{
+    while (pool.QueueSize())
+        std::this_thread::sleep_for(RANDOM_BOT_EXPAND_DB_POLL_INTERVAL);
+}
+
+int CreateMissingRandomBotAccounts(uint32 totalAccountCount, uint32 startIndex, uint32 maxCreate,
+    uint32& nextIndex)
 {
     int accountCreation = 0;
+    nextIndex = startIndex;
 
-    for (uint32 accountNumber = 0; accountNumber < totalAccountCount; ++accountNumber)
+    for (uint32 accountNumber = startIndex; accountNumber < totalAccountCount; ++accountNumber)
     {
+        nextIndex = accountNumber + 1;
+
         std::ostringstream out;
         out << sPlayerbotAIConfig.randomBotAccountPrefix << accountNumber;
         std::string const accountName = out.str();
@@ -466,7 +483,6 @@ int CreateMissingRandomBotAccounts(uint32 totalAccountCount)
         if (result)
             continue;
 
-        accountCreation++;
         std::string password;
         if (sPlayerbotAIConfig.randomBotRandomPassword)
         {
@@ -478,12 +494,10 @@ int CreateMissingRandomBotAccounts(uint32 totalAccountCount)
 
         sAccountMgr->CreateAccount(accountName, password);
         LOG_DEBUG("playerbots", "Account {} created for random bots", accountName.c_str());
-    }
+        ++accountCreation;
 
-    if (accountCreation)
-    {
-        while (LoginDatabase.QueueSize())
-            std::this_thread::sleep_for(1s);
+        if (accountCreation >= static_cast<int>(maxCreate))
+            break;
     }
 
     return accountCreation;
@@ -493,17 +507,63 @@ struct RandomBotCharacterCreationResult
 {
     int botCreation = 0;
     bool nameCacheFailed = false;
+    bool hasMoreWork = false;
 };
 
-RandomBotCharacterCreationResult CreateMissingRandomBotCharacters(uint32 totalAccountCount)
+bool LoadRandomBotNameCache(
+    std::unordered_map<RandomPlayerbotFactory::NameRaceAndGender, std::vector<std::string>>& nameCache)
+{
+    QueryResult nameResult = CharacterDatabase.Query("SELECT name, gender FROM playerbots_names");
+    if (!nameResult)
+        return false;
+
+    do
+    {
+        Field* nameFields = nameResult->Fetch();
+        std::string name = nameFields[0].Get<std::string>();
+        RandomPlayerbotFactory::NameRaceAndGender raceAndGender =
+            static_cast<RandomPlayerbotFactory::NameRaceAndGender>(nameFields[1].Get<uint8>());
+        if (sObjectMgr->CheckPlayerName(name) == CHAR_NAME_SUCCESS)
+        {
+            CharacterDatabasePreparedStatement* checkStmt =
+                CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHECK_NAME);
+            checkStmt->SetData(0, name);
+
+            if (PreparedQueryResult checkResult = CharacterDatabase.Query(checkStmt))
+                continue;
+
+            nameCache[raceAndGender].push_back(name);
+        }
+    } while (nameResult->NextRow());
+
+    return true;
+}
+
+RandomBotCharacterCreationResult CreateMissingRandomBotCharacters(uint32 totalAccountCount, uint32 startAccountIndex,
+    uint32 maxCharacters,
+    std::unordered_map<RandomPlayerbotFactory::NameRaceAndGender, std::vector<std::string>>& nameCache,
+    bool& nameCacheLoaded, uint32& nextAccountIndex)
 {
     RandomBotCharacterCreationResult result;
-    std::unordered_map<RandomPlayerbotFactory::NameRaceAndGender, std::vector<std::string>> nameCache;
-    std::vector<WorldSession*> sessionBots;
-    bool nameCached = false;
+    nextAccountIndex = startAccountIndex;
 
-    for (uint32 accountNumber = 0; accountNumber < totalAccountCount; ++accountNumber)
+    if (!nameCacheLoaded)
     {
+        if (!LoadRandomBotNameCache(nameCache))
+        {
+            result.nameCacheFailed = true;
+            return result;
+        }
+
+        nameCacheLoaded = true;
+    }
+
+    RandomPlayerbotFactory factory;
+
+    for (uint32 accountNumber = startAccountIndex; accountNumber < totalAccountCount; ++accountNumber)
+    {
+        nextAccountIndex = accountNumber + 1;
+
         std::ostringstream out;
         out << sPlayerbotAIConfig.randomBotAccountPrefix << accountNumber;
         std::string const accountName = out.str();
@@ -525,40 +585,8 @@ RandomBotCharacterCreationResult CreateMissingRandomBotCharacters(uint32 totalAc
         if (count >= 10)
             continue;
 
-        if (!nameCached)
-        {
-            nameCached = true;
-            QueryResult nameResult = CharacterDatabase.Query("SELECT name, gender FROM playerbots_names");
-            if (!nameResult)
-            {
-                result.nameCacheFailed = true;
-                break;
-            }
-
-            do
-            {
-                Field* nameFields = nameResult->Fetch();
-                std::string name = nameFields[0].Get<std::string>();
-                RandomPlayerbotFactory::NameRaceAndGender raceAndGender =
-                    static_cast<RandomPlayerbotFactory::NameRaceAndGender>(nameFields[1].Get<uint8>());
-                if (sObjectMgr->CheckPlayerName(name) == CHAR_NAME_SUCCESS)
-                {
-                    CharacterDatabasePreparedStatement* checkStmt =
-                        CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHECK_NAME);
-                    checkStmt->SetData(0, name);
-
-                    if (PreparedQueryResult checkResult = CharacterDatabase.Query(checkStmt))
-                        continue;
-
-                    nameCache[raceAndGender].push_back(name);
-                }
-            } while (nameResult->NextRow());
-        }
-
-        RandomPlayerbotFactory factory;
         WorldSession* session = new WorldSession(accountId, "", 0x0, nullptr, SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING,
-                                                time_t(0), LOCALE_enUS, 0, false, false, 0, true);
-        sessionBots.push_back(session);
+            time_t(0), LOCALE_enUS, 0, false, false, 0, true);
 
         for (uint8 cls = CLASS_WARRIOR; cls < MAX_CLASSES - count; ++cls)
         {
@@ -577,27 +605,236 @@ RandomBotCharacterCreationResult CreateMissingRandomBotCharacters(uint32 totalAc
 
             RandomPlayerbotMgr::SavePlayerToDB(playerBot, true, false);
             sCharacterCache->AddCharacterCacheEntry(playerBot->GetGUID(), accountId, playerBot->GetName(),
-                                                    playerBot->getGender(), playerBot->getRace(),
-                                                    playerBot->getClass(), playerBot->GetLevel());
+                playerBot->getGender(), playerBot->getRace(), playerBot->getClass(), playerBot->GetLevel());
             playerBot->CleanupsBeforeDelete();
             delete playerBot;
-            result.botCreation++;
-        }
-    }
+            ++result.botCreation;
 
-    for (WorldSession* session : sessionBots)
+            if (result.botCreation >= static_cast<int>(maxCharacters))
+            {
+                nextAccountIndex = accountNumber;
+                result.hasMoreWork = true;
+                delete session;
+                return result;
+            }
+        }
+
         delete session;
+    }
 
     return result;
 }
+
+struct RandomBotProvisioningState
+{
+    enum class Phase : uint8
+    {
+        Idle,
+        Pending,
+        CreatingAccounts,
+        WaitingLoginDb,
+        CreatingCharacters,
+        WaitingCharacterDb,
+        Complete
+    };
+
+    Phase phase = Phase::Idle;
+    uint32 totalAccountCount = 0;
+    uint32 nextAccountIndex = 0;
+    uint32 nextCharAccountIndex = 0;
+    int accountsCreatedThisRun = 0;
+    int charsCreatedThisRun = 0;
+    time_t lastFailureTime = 0;
+    std::unordered_map<RandomPlayerbotFactory::NameRaceAndGender, std::vector<std::string>> nameCache;
+    bool nameCacheLoaded = false;
+
+    bool IsActive() const
+    {
+        return phase != Phase::Idle && phase != Phase::Complete;
+    }
+
+    void ResetRun()
+    {
+        totalAccountCount = 0;
+        nextAccountIndex = 0;
+        nextCharAccountIndex = 0;
+        accountsCreatedThisRun = 0;
+        charsCreatedThisRun = 0;
+        nameCache.clear();
+        nameCacheLoaded = false;
+    }
+};
+
+enum class RandomBotProvisioningTickResult : uint8
+{
+    InProgress,
+    CompletedWithWork,
+    CompletedNoWork,
+    Failed
+};
+
+RandomBotProvisioningState s_startupProvisioning;
+RandomBotProvisioningState s_capacityExpansion;
+
+RandomBotProvisioningTickResult TickRandomBotProvisioningState(RandomBotProvisioningState& state, time_t now)
+{
+    switch (state.phase)
+    {
+        case RandomBotProvisioningState::Phase::CreatingAccounts:
+        {
+            uint32 nextIndex = state.nextAccountIndex;
+            int const created = CreateMissingRandomBotAccounts(state.totalAccountCount, state.nextAccountIndex,
+                RANDOM_BOT_EXPAND_ACCOUNTS_PER_TICK, nextIndex);
+            state.nextAccountIndex = nextIndex;
+            state.accountsCreatedThisRun += created;
+
+            if (created > 0)
+            {
+                LOG_INFO("playerbots", "Provisioning: created {} random bot account(s) ({}/{})...",
+                         created, state.nextAccountIndex, state.totalAccountCount);
+                state.phase = RandomBotProvisioningState::Phase::WaitingLoginDb;
+                return RandomBotProvisioningTickResult::InProgress;
+            }
+
+            if (state.nextAccountIndex >= state.totalAccountCount)
+            {
+                state.phase = RandomBotProvisioningState::Phase::CreatingCharacters;
+                state.nextCharAccountIndex = 0;
+            }
+            break;
+        }
+        case RandomBotProvisioningState::Phase::WaitingLoginDb:
+            if (LoginDatabase.QueueSize())
+                return RandomBotProvisioningTickResult::InProgress;
+
+            if (state.nextAccountIndex < state.totalAccountCount)
+                state.phase = RandomBotProvisioningState::Phase::CreatingAccounts;
+            else
+            {
+                state.phase = RandomBotProvisioningState::Phase::CreatingCharacters;
+                state.nextCharAccountIndex = 0;
+            }
+            break;
+        case RandomBotProvisioningState::Phase::CreatingCharacters:
+        {
+            RandomBotCharacterCreationResult charResult = CreateMissingRandomBotCharacters(
+                state.totalAccountCount, state.nextCharAccountIndex, RANDOM_BOT_EXPAND_CHARACTERS_PER_TICK,
+                state.nameCache, state.nameCacheLoaded, state.nextCharAccountIndex);
+
+            if (charResult.nameCacheFailed)
+                return RandomBotProvisioningTickResult::Failed;
+
+            state.charsCreatedThisRun += charResult.botCreation;
+
+            if (charResult.botCreation > 0)
+            {
+                LOG_INFO("playerbots", "Provisioning: created {} random bot character(s) this tick ({} total)...",
+                         charResult.botCreation, state.charsCreatedThisRun);
+                state.phase = RandomBotProvisioningState::Phase::WaitingCharacterDb;
+                return RandomBotProvisioningTickResult::InProgress;
+            }
+
+            if (!charResult.hasMoreWork && state.nextCharAccountIndex >= state.totalAccountCount)
+            {
+                if (state.accountsCreatedThisRun || state.charsCreatedThisRun)
+                    return RandomBotProvisioningTickResult::CompletedWithWork;
+
+                state.lastFailureTime = now;
+                return RandomBotProvisioningTickResult::CompletedNoWork;
+            }
+            break;
+        }
+        case RandomBotProvisioningState::Phase::WaitingCharacterDb:
+            if (CharacterDatabase.QueueSize())
+                return RandomBotProvisioningTickResult::InProgress;
+
+            if (state.nextCharAccountIndex >= state.totalAccountCount)
+            {
+                if (state.accountsCreatedThisRun || state.charsCreatedThisRun)
+                    return RandomBotProvisioningTickResult::CompletedWithWork;
+
+                state.lastFailureTime = now;
+                return RandomBotProvisioningTickResult::CompletedNoWork;
+            }
+
+            state.phase = RandomBotProvisioningState::Phase::CreatingCharacters;
+            break;
+        default:
+            return RandomBotProvisioningTickResult::InProgress;
+    }
+
+    return RandomBotProvisioningTickResult::InProgress;
+}
+
+void LogRandomBotProvisioningSummary(int accountsCreated, int charsCreated)
+{
+    uint32 totalRandomBotChars = 0;
+    for (uint32 accountId : sPlayerbotAIConfig.randomBotAccounts)
+        totalRandomBotChars += AccountMgr::GetCharactersCount(accountId);
+
+    LOG_INFO("server.loading", ">> {} random bot accounts with {} characters available",
+             sPlayerbotAIConfig.randomBotAccounts.size(), totalRandomBotChars);
+
+    if (accountsCreated || charsCreated)
+    {
+        LOG_INFO("playerbots", "Random bot provisioning finished ({} account(s), {} character(s))",
+                 accountsCreated, charsCreated);
+    }
+}
 } // namespace
 
-void RandomPlayerbotFactory::CreateRandomBots()
+void RandomPlayerbotFactory::ScheduleDeferredStartup()
 {
-    /* multi-thread here is meaningless? since the async db operations */
+    s_startupProvisioning.phase = RandomBotProvisioningState::Phase::Pending;
+}
 
-    if (sPlayerbotAIConfig.deleteRandomBotAccounts)
+bool RandomPlayerbotFactory::IsRandomBotStartupComplete()
+{
+    return s_startupProvisioning.phase == RandomBotProvisioningState::Phase::Complete;
+}
+
+bool RandomPlayerbotFactory::TickDeferredStartup(bool* createdNewResources)
+{
+    auto& state = s_startupProvisioning;
+
+    if (state.phase == RandomBotProvisioningState::Phase::Complete)
+        return false;
+
+    if (state.phase == RandomBotProvisioningState::Phase::Pending)
     {
+        state.ResetRun();
+        state.totalAccountCount = CalculateTotalAccountCount();
+        state.phase = RandomBotProvisioningState::Phase::CreatingAccounts;
+        LOG_INFO("playerbots", "Starting deferred random bot provisioning ({} account slots)...",
+                 state.totalAccountCount);
+    }
+
+    RandomBotProvisioningTickResult const result = TickRandomBotProvisioningState(state, time(nullptr));
+
+    if (result == RandomBotProvisioningTickResult::InProgress)
+        return false;
+
+    int const accountsCreated = state.accountsCreatedThisRun;
+    int const charsCreated = state.charsCreatedThisRun;
+
+    if (result == RandomBotProvisioningTickResult::Failed)
+        LOG_ERROR("playerbots", "Deferred random bot provisioning failed: no unused names left");
+
+    state.phase = RandomBotProvisioningState::Phase::Complete;
+    LogRandomBotProvisioningSummary(accountsCreated, charsCreated);
+
+    if (createdNewResources)
+        *createdNewResources = result == RandomBotProvisioningTickResult::CompletedWithWork;
+
+    return true;
+}
+
+bool RandomPlayerbotFactory::HandleStartupDeleteRequest()
+{
+    if (!sPlayerbotAIConfig.deleteRandomBotAccounts)
+        return false;
+
+    /* multi-thread here is meaningless? since the async db operations */
         std::vector<uint32> botAccounts;
         std::vector<uint32> botFriends;
 
@@ -630,10 +867,7 @@ void RandomPlayerbotFactory::CreateRandomBots()
             sPlayerbotAIConfig.randomBotAccountPrefix.c_str());
 
         // Wait for the characters to be deleted before proceeding to dependent deletes
-        while (CharacterDatabase.QueueSize())
-        {
-            std::this_thread::sleep_for(1s);
-        }
+        WaitForDatabaseQueueSync(CharacterDatabase);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));    // Extra 100ms fixed delay for safety.
 
         // Clean up orphaned entries in playerbots_guild_tasks
@@ -717,10 +951,9 @@ void RandomPlayerbotFactory::CreateRandomBots()
         PlayerbotsDatabase.Execute("COMMIT");
 
         // Wait for all pending database operations to complete
-        while (LoginDatabase.QueueSize() || CharacterDatabase.QueueSize() || PlayerbotsDatabase.QueueSize())
-        {
-            std::this_thread::sleep_for(1s);
-        }
+        WaitForDatabaseQueueSync(LoginDatabase);
+        WaitForDatabaseQueueSync(CharacterDatabase);
+        WaitForDatabaseQueueSync(PlayerbotsDatabase);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));    // Extra 100ms fixed delay for safety.
 
         // Flush tables to ensure all data in memory are written to disk
@@ -731,47 +964,12 @@ void RandomPlayerbotFactory::CreateRandomBots()
         LOG_INFO("playerbots", ">> Random bot accounts and data deleted in {} ms", GetMSTimeDiffToNow(timer));
         LOG_INFO("playerbots", "Please reset the AiPlayerbot.DeleteRandomBotAccounts to 0 and restart the server...");
         World::StopNow(SHUTDOWN_EXIT_CODE);
-        return;
-    }
+        return true;
+}
 
-    LOG_INFO("playerbots", "Creating random bot accounts...");
-    uint32 totalAccountCount = CalculateTotalAccountCount();
-    uint32 timer = getMSTime();
-    int account_creation = CreateMissingRandomBotAccounts(totalAccountCount);
-
-    if (account_creation)
-    {
-        LOG_INFO("playerbots", "Waiting for {} accounts loading into database ({} queries)...", account_creation,
-                 LoginDatabase.QueueSize());
-        LOG_INFO("playerbots", ">> {} Accounts loaded into database in {} ms", account_creation,
-                 GetMSTimeDiffToNow(timer));
-    }
-
-    LOG_INFO("playerbots", "Creating random bot characters...");
-    uint32 totalRandomBotChars = 0;
-    timer = getMSTime();
-    RandomBotCharacterCreationResult charResult = CreateMissingRandomBotCharacters(totalAccountCount);
-    if (charResult.nameCacheFailed)
-    {
-        LOG_ERROR("playerbots", "No more unused names left");
-        return;
-    }
-
-    if (charResult.botCreation)
-    {
-        LOG_INFO("playerbots", "Waiting for {} characters loading into database ({} queries)...", charResult.botCreation,
-                 CharacterDatabase.QueueSize());
-        while (CharacterDatabase.QueueSize())
-            std::this_thread::sleep_for(1s);
-        LOG_INFO("playerbots", ">> {} Characters loaded into database in {} ms", charResult.botCreation,
-                 GetMSTimeDiffToNow(timer));
-    }
-
-    for (uint32 accountId : sPlayerbotAIConfig.randomBotAccounts)
-        totalRandomBotChars += AccountMgr::GetCharactersCount(accountId);
-
-    LOG_INFO("server.loading", ">> {} random bot accounts with {} characters available",
-            sPlayerbotAIConfig.randomBotAccounts.size(), totalRandomBotChars);
+bool RandomPlayerbotFactory::IsRandomBotCapacityExpansionInProgress()
+{
+    return s_capacityExpansion.IsActive();
 }
 
 bool RandomPlayerbotFactory::EnsureRandomBotCapacity(uint32 botsNeededHint)
@@ -779,44 +977,57 @@ bool RandomPlayerbotFactory::EnsureRandomBotCapacity(uint32 botsNeededHint)
     if (sPlayerbotAIConfig.randomBotAccountCount != 0)
         return false;
 
-    static time_t lastEnsureAttempt = 0;
+    auto& state = s_capacityExpansion;
     time_t const now = time(nullptr);
-    if (lastEnsureAttempt && now - lastEnsureAttempt < 60)
-        return false;
 
-    uint32 const totalAccountCount = CalculateTotalAccountCount();
-    uint32 timer = getMSTime();
+    if (!state.IsActive())
+    {
+        if (!botsNeededHint)
+            return false;
 
-    int accountCreation = CreateMissingRandomBotAccounts(totalAccountCount);
-    if (accountCreation)
+        if (state.lastFailureTime && now - state.lastFailureTime < RANDOM_BOT_EXPAND_FAILURE_COOLDOWN_SEC)
+            return false;
+
+        state.phase = RandomBotProvisioningState::Phase::Idle;
+        state.ResetRun();
+        state.totalAccountCount = CalculateTotalAccountCount();
+        state.phase = RandomBotProvisioningState::Phase::CreatingAccounts;
         LOG_INFO("playerbots",
-                 "Auto-creating {} random bot accounts (RandomBotAccountCount=0, need ~{} more bots in pool)...",
-                 accountCreation, botsNeededHint);
-
-    RandomBotCharacterCreationResult charResult = CreateMissingRandomBotCharacters(totalAccountCount);
-    if (charResult.nameCacheFailed)
-    {
-        LOG_ERROR("playerbots", "Auto-expand random bots failed: no unused names left");
-        lastEnsureAttempt = now;
-        return false;
+                 "Starting incremental random bot capacity expansion (need ~{} more bots in pool)...",
+                 botsNeededHint);
     }
 
-    if (charResult.botCreation)
+    RandomBotProvisioningTickResult const result = TickRandomBotProvisioningState(state, now);
+
+    switch (result)
     {
-        LOG_INFO("playerbots", "Waiting for {} auto-created random bot characters ({} queries)...",
-                 charResult.botCreation, CharacterDatabase.QueueSize());
-        while (CharacterDatabase.QueueSize())
-            std::this_thread::sleep_for(1s);
-        LOG_INFO("playerbots", ">> {} random bot characters auto-created in {} ms", charResult.botCreation,
-                 GetMSTimeDiffToNow(timer));
+        case RandomBotProvisioningTickResult::InProgress:
+            return false;
+        case RandomBotProvisioningTickResult::CompletedWithWork:
+        {
+            int const accountsCreated = state.accountsCreatedThisRun;
+            int const charsCreated = state.charsCreatedThisRun;
+            state.phase = RandomBotProvisioningState::Phase::Idle;
+            state.ResetRun();
+            LOG_INFO("playerbots",
+                     "Random bot capacity auto-expanded ({} account(s), {} character(s))",
+                     accountsCreated, charsCreated);
+            return true;
+        }
+        case RandomBotProvisioningTickResult::CompletedNoWork:
+            state.lastFailureTime = now;
+            state.phase = RandomBotProvisioningState::Phase::Idle;
+            state.ResetRun();
+            return false;
+        case RandomBotProvisioningTickResult::Failed:
+            LOG_ERROR("playerbots", "Auto-expand random bots failed: no unused names left");
+            state.lastFailureTime = now;
+            state.phase = RandomBotProvisioningState::Phase::Idle;
+            state.ResetRun();
+            return false;
+        default:
+            return false;
     }
-
-    if (!accountCreation && !charResult.botCreation)
-        return false;
-
-    lastEnsureAttempt = now;
-    LOG_INFO("playerbots", "Random bot capacity auto-expanded (RandomBotAccountCount=0)");
-    return true;
 }
 
 std::string const RandomPlayerbotFactory::CreateRandomGuildName()

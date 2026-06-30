@@ -174,6 +174,8 @@ public:
     void PrepareAddclassCache();
     void Init();
     bool IsBotInitializing() const { return _isBotInitializing; }
+    uint32 GetEffectiveRandomBotsPerInterval() const;
+    void NotifyRandomBotProvisioningComplete();
     std::map<uint8, std::unordered_set<ObjectGuid>> addclassCache;
 
     // Account type management
@@ -246,6 +248,7 @@ private:
     time_t RealPlayerLastTimeSeen = 0;
     time_t DelayLoginBotsTimer;
     time_t printStatsTimer;
+    time_t _provisioningLoginThrottleUntil = 0;
     uint32 AddRandomBots();
     bool ProcessBot(uint32 bot);
     void ScheduleRandomize(uint32 bot, uint32 time);

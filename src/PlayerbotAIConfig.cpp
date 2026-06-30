@@ -246,6 +246,12 @@ bool PlayerbotAIConfig::Initialize()
         sConfigMgr->GetOption<int32>("AiPlayerbot.PermanentlyInWorldTime", 1 * YEAR);
     randomBotTeleportDistance = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotTeleportDistance", 100);
     randomBotsPerInterval = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotsPerInterval", 60);
+    randomBotProvisioningLoginThrottleSeconds =
+        sConfigMgr->GetOption<uint32>("AiPlayerbot.RandomBotProvisioningLoginThrottleSeconds", 120);
+    randomBotProvisioningLoginThrottlePercent =
+        sConfigMgr->GetOption<uint32>("AiPlayerbot.RandomBotProvisioningLoginThrottlePercent", 50);
+    if (randomBotProvisioningLoginThrottlePercent > 100)
+        randomBotProvisioningLoginThrottlePercent = 100;
     minRandomBotsPriceChangeInterval =
         sConfigMgr->GetOption<int32>("AiPlayerbot.MinRandomBotsPriceChangeInterval", 2 * HOUR);
     maxRandomBotsPriceChangeInterval =
@@ -719,14 +725,10 @@ bool PlayerbotAIConfig::Initialize()
         return true;
     }
 
-    RandomPlayerbotFactory::CreateRandomBots();
-    if (World::IsStopped())
-    {
+    if (RandomPlayerbotFactory::HandleStartupDeleteRequest())
         return true;
-    }
 
-    // Assign account types after accounts are created
-    sRandomPlayerbotMgr.AssignAccountTypes();
+    RandomPlayerbotFactory::ScheduleDeferredStartup();
 
     if (sPlayerbotAIConfig.enabled)
     {

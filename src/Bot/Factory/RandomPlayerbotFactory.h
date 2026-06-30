@@ -50,8 +50,12 @@ public:
     virtual ~RandomPlayerbotFactory() {}
 
     Player* CreateRandomBot(WorldSession* session, uint8 cls, std::unordered_map<NameRaceAndGender, std::vector<std::string>>& names);
-    static void CreateRandomBots();
+    static bool HandleStartupDeleteRequest();
+    static void ScheduleDeferredStartup();
+    static bool IsRandomBotStartupComplete();
+    static bool TickDeferredStartup(bool* createdNewResources = nullptr);
     static bool EnsureRandomBotCapacity(uint32 botsNeededHint = 0);
+    static bool IsRandomBotCapacityExpansionInProgress();
     static void CreateRandomArenaTeams(ArenaType slot, uint32 count);
     static std::string const CreateRandomGuildName();
     static uint32 CalculateTotalAccountCount();
