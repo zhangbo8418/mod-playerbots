@@ -4,8 +4,8 @@
  * or (at your option) any later version.
  */
 
-#ifndef _PLAYERBOT_RSSHARED_H
-#define _PLAYERBOT_RSSHARED_H
+#ifndef PLAYERBOTS_RSSHARED_H
+#define PLAYERBOTS_RSSHARED_H
 
 #include <vector>
 

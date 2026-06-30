@@ -4,8 +4,8 @@
  * or (at your option) any later version.
  */
 
-#ifndef _PLAYERBOT_RSA_H
-#define _PLAYERBOT_RSA_H
+#ifndef PLAYERBOTS_RSA_H
+#define PLAYERBOTS_RSA_H
 
 #include <algorithm>
 #include <cmath>

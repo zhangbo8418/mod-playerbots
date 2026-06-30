@@ -4,8 +4,8 @@
  * or (at your option) any later version.
  */
 
-#ifndef _PLAYERBOT_RSSCRIPTS_H
-#define _PLAYERBOT_RSSCRIPTS_H
+#ifndef PLAYERBOTS_RSSCRIPTS_H
+#define PLAYERBOTS_RSSCRIPTS_H
 
 #include <map>
 #include <mutex>
