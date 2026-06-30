@@ -62,6 +62,8 @@ public:
     void Reset();
 
 private:
+    uint32_t GetTotalEntryCount() const;
+    void ClearAllEntries();
     PerfMonitor() = default;
     virtual ~PerfMonitor() = default;
 

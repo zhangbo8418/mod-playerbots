@@ -9,6 +9,7 @@
 #include <atomic>
 #include <mutex>
 #include <stack>
+#include <unordered_map>
 #include <vector>
 
 #include "Chat.h"
@@ -623,6 +624,11 @@ public:
     // Schedules a callback to run once after <delayMs> milliseconds.
     void AddTimedEvent(std::function<void()> callback, uint32 delayMs);
 
+    double GetBuyMultiplier();
+    double GetSellMultiplier();
+    uint32 GetTradeDiscount(Player* master);
+    void SetTradeDiscount(Player* master, uint32 value);
+
 private:
     static void _fillGearScoreData(Player* player, Item* item, std::vector<uint32>* gearScore, uint32& twoHandScore,
                                    bool mixed = false);
@@ -661,6 +667,11 @@ protected:
     PlayerbotSecurity security;
     std::map<std::string, time_t> whispers;
     std::pair<ChatMsg, time_t> currentChat;
+    uint32 _buyMultiplier = 0;
+    uint32 _buyMultiplierExpireAt = 0;
+    uint32 _sellMultiplier = 0;
+    uint32 _sellMultiplierExpireAt = 0;
+    std::unordered_map<uint32, uint32> _tradeDiscountByMaster;
     static std::set<std::string> unsecuredCommands;
     bool allowActive[MAX_ACTIVITY_TYPE];
     time_t allowActiveCheckTimer[MAX_ACTIVITY_TYPE];

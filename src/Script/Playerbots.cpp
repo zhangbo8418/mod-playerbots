@@ -89,7 +89,8 @@ public:
         PLAYERHOOK_CAN_PLAYER_USE_GUILD_CHAT,
         PLAYERHOOK_CAN_PLAYER_USE_CHANNEL_CHAT,
         PLAYERHOOK_ON_GIVE_EXP,
-        PLAYERHOOK_ON_BEFORE_TELEPORT
+        PLAYERHOOK_ON_BEFORE_TELEPORT,
+        PLAYERHOOK_ON_MAP_CHANGED
     }) {}
 
     void OnPlayerLogin(Player* player) override
@@ -164,6 +165,14 @@ public:
         */
 
         return true;
+    }
+
+    void OnPlayerMapChanged(Player* player) override
+    {
+        if (!player || player->GetSession()->IsBot())
+            return;
+
+        sRandomPlayerbotMgr.UpdateRealPlayerMap(player);
     }
 
     void OnPlayerAfterUpdate(Player* player, uint32 diff) override
@@ -341,7 +350,8 @@ class PlayerbotsWorldScript : public WorldScript
 public:
     PlayerbotsWorldScript() : WorldScript("PlayerbotsWorldScript", {
         WORLDHOOK_ON_BEFORE_WORLD_INITIALIZED,
-        WORLDHOOK_ON_UPDATE
+        WORLDHOOK_ON_UPDATE,
+        WORLDHOOK_ON_SHUTDOWN
     }) {}
 
     void OnBeforeWorldInitialized() override
@@ -381,6 +391,12 @@ public:
         PlayerbotWorldThreadProcessor::MarkWorldThread();
         PlayerbotWorldThreadProcessor::instance().Update(diff);
         sRandomPlayerbotMgr.UpdateAI(diff);  // World thread only
+    }
+
+    void OnShutdown() override
+    {
+        sRandomPlayerbotMgr.DrainSpilledEventWrites();
+        sRandomPlayerbotMgr.FlushPendingEventWrites();
     }
 };
 

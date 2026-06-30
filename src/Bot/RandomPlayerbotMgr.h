@@ -7,6 +7,7 @@
 #define PLAYERBOTS_RANDOMPLAYERBOTMGR_H
 
 #include <mutex>
+#include <shared_mutex>
 
 #include "NewRpgInfo.h"
 #include "ObjectGuid.h"
@@ -56,6 +57,7 @@ struct CachedEvent
     uint32 value = 0;
     uint32 lastChangeTime = 0;
     uint32 validIn = 0;
+    uint32 changeSeq = 0;
     std::string data;
 
     bool IsEmpty() const { return !lastChangeTime; }
@@ -65,6 +67,26 @@ struct BotEventCache
 {
     bool loaded = false;
     std::unordered_map<std::string, CachedEvent> events;
+};
+
+struct PendingEventWrite
+{
+    uint32 value = 0;
+    uint32 validIn = 0;
+    uint32 lastChangeTime = 0;
+    uint32 changeSeq = 0;
+    std::string data;
+};
+
+struct SpilledEventWrite
+{
+    uint32 bot = 0;
+    std::string event;
+    uint32 value = 0;
+    uint32 validIn = 0;
+    uint32 lastChangeTime = 0;
+    uint32 changeSeq = 0;
+    std::string data;
 };
 
 // https://gist.github.com/bradley219/5373998
@@ -146,7 +168,9 @@ public:
     uint32 GetValue(uint32 bot, std::string const& type);
     std::string GetData(uint32 bot, std::string const& type);
     void SetValue(uint32 bot, std::string const& type, uint32 value, std::string const& data = "");
+    void SetValue(uint32 bot, std::string const& type, uint32 value, uint32 validIn, std::string const& data = "");
     void SetValue(Player* bot, std::string const& type, uint32 value, std::string const& data = "");
+    uint32 GetEventRemainingValidIn(uint32 bot, std::string const& event);
     bool IsSpecPvp(uint32 bot, uint8 cls);
     void Remove(Player* bot);
     ObjectGuid GetBattleMasterGUID(Player* bot, BattlegroundTypeId bgTypeId);
@@ -176,6 +200,16 @@ public:
     bool IsBotInitializing() const { return _isBotInitializing; }
     uint32 GetEffectiveRandomBotsPerInterval() const;
     void NotifyRandomBotProvisioningComplete();
+    void FlushPendingEventWrites();
+    void DrainSpilledEventWrites();
+    void ApplySetEventValueDb(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
+                              std::string const& data, uint32 lastChangeTime, uint32 changeSeq);
+    void RegisterRealPlayer(Player* player);
+    void UnregisterRealPlayer(ObjectGuid::LowType playerGuid);
+    void UpdateRealPlayerMap(Player* player);
+    bool ShouldBotForceActiveNearRealPlayers(Player* bot, bool checkMap, bool checkZone, bool checkRadius,
+                                             float sqRange);
+    bool IsBotFriendOfAnyRealPlayer(ObjectGuid const& botGuid);
     std::map<uint8, std::unordered_set<ObjectGuid>> addclassCache;
 
     // Account type management
@@ -232,7 +266,34 @@ private:
     bool _isBotInitializing = true;
     bool _isBotLogging = true;
     NewRpgStatistic rpgStasticTotal;
-    CachedEvent* FindEvent(uint32 bot, std::string const& event);
+
+    static constexpr uint32 EVENT_DATA_SHARD_COUNT = 16;
+
+    struct EventDataShard
+    {
+        mutable std::mutex mutex;
+        uint32 nextChangeSeq = 0;
+        std::unordered_map<uint32, BotEventCache> eventCache;
+        std::map<std::pair<uint32, std::string>, PendingEventWrite> pendingWrites;
+    };
+
+    CachedEvent* FindEventLocked(EventDataShard& shard, uint32 bot, std::string const& event,
+                                 std::unique_lock<std::mutex>& lock);
+    EventDataShard& GetEventShard(uint32 bot);
+    EventDataShard const& GetEventShard(uint32 bot) const;
+    uint32 CommitSetEventValue(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
+                               std::string const& data, uint32 lastChangeTime, uint32 changeSeq, bool updateCache);
+    void EnqueueSpilledEventWrite(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
+                                  std::string const& data, uint32 lastChangeTime, uint32 changeSeq);
+    void PurgeEventCache(uint32 bot);
+    void PruneStaleEventCache();
+    void FlushPendingEventWrites(uint32 bot);
+    void CommitEventWrite(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
+                          std::string const& data, uint32 lastChangeTime);
+    void AppendEventWriteToTransaction(PlayerbotsDatabaseTransaction& trans, uint32 bot,
+                                       std::string const& event, PendingEventWrite const& pending);
+    void ApplyEventCacheWrite(BotEventCache& cache, std::string const& event, uint32 value, uint32 validIn,
+                              std::string const& data, uint32 lastChangeTime, uint32 changeSeq);
     uint32 GetEventValue(uint32 bot, std::string const& event);
     std::string GetEventData(uint32 bot, std::string const& event);
     uint32 SetEventValue(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
@@ -249,6 +310,11 @@ private:
     time_t DelayLoginBotsTimer;
     time_t printStatsTimer;
     time_t _provisioningLoginThrottleUntil = 0;
+    time_t _eventCachePruneTimer = 0;
+    time_t _eventWriteFlushTimer = 0;
+    EventDataShard _eventDataShards[EVENT_DATA_SHARD_COUNT]{};
+    std::mutex _spilledEventWritesMutex;
+    std::vector<SpilledEventWrite> _spilledEventWrites;
     uint32 AddRandomBots();
     bool ProcessBot(uint32 bot);
     void ScheduleRandomize(uint32 bot, uint32 time);
@@ -262,7 +328,6 @@ private:
     // std::map<uint32, std::vector<WorldLocation>> rpgLocsCache;
     std::map<uint32, std::map<uint32, std::vector<WorldLocation>>> rpgLocsCacheLevel;
     std::map<TeamId, std::map<BattlegroundTypeId, std::vector<uint32>>> BattleMastersCache;
-    std::unordered_map<uint32, BotEventCache> eventCache;
     std::list<uint32> currentBots;
     uint32 cachedBotCountTarget = 0;
     uint32 bgBotsCount;
@@ -273,9 +338,18 @@ private:
     std::map<ObjectGuid::LowType, time_t> m_groupsScheduledToLeave;
     void ProcessScheduledGroupLeaves();
 
+    bool HasPendingEventWrites() const;
+    void ClearAllEventCaches();
+    void PruneStaleRealPlayerGuids(std::vector<ObjectGuid::LowType> const& guids);
+    void ReindexRealPlayerMap(Player* player);
+
     // Account lists
     std::vector<uint32> rndBotTypeAccounts;             // Accounts marked as RNDbot (type 1)
     std::vector<uint32> addClassTypeAccounts;           // Accounts marked as AddClass (type 2)
+
+    mutable std::shared_mutex _realPlayersMutex;
+    std::unordered_map<ObjectGuid::LowType, uint32> _realPlayerMapIndex;
+    std::unordered_map<uint32, std::vector<ObjectGuid::LowType>> _realPlayersByMap;
 
     //void ScaleBotActivity();      // Deprecated function
     static inline uint32 NowSeconds() { return static_cast<uint32>(GameTime::GetGameTime().count()); }

@@ -43,6 +43,7 @@
 #include "PlayerbotMgr.h"
 #include "PlayerbotGuildMgr.h"
 #include "Playerbots.h"
+#include "RandomPlayerbotMgr.h"
 #include "PositionValue.h"
 #include "RBAC.h"
 #include "RandomPlayerbotMgr.h"
@@ -4704,42 +4705,15 @@ bool PlayerbotAI::AllowActive(ActivityType activityType)
     bool checkRadius = sPlayerbotAIConfig.BotActiveAloneForceWhenInRadius > 0;
     if (checkMap || checkZone || checkRadius)
     {
-        uint32 botMapId = bot->GetMapId();
-        uint32 botZoneId = checkZone ? bot->GetZoneId() : 0;
         float sqRange = 0.0f;
-        WorldPosition botPos(bot);
         if (checkRadius)
         {
             float range = static_cast<float>(sPlayerbotAIConfig.BotActiveAloneForceWhenInRadius);
             sqRange = range * range;
         }
 
-        for (auto& player : sRandomPlayerbotMgr.GetPlayers())
-        {
-            if (!player || player->GetMapId() != botMapId)
-                continue;
-
-            bool isGM = player->IsGameMaster();
-
-            // map check
-            if (checkMap && !(isGM && !player->IsVisible()))
-                return true;
-
-            // zone check
-            if (checkZone && !(isGM && !player->IsVisible()) && player->GetZoneId() == botZoneId)
-                return true;
-
-            // radius check
-            if (checkRadius && (!isGM || player->isGMVisible()))
-            {
-                if (botPos.sqDistance(WorldPosition(player)) < sqRange)
-                    return true;
-
-                WorldObject* viewObj = player->GetViewpoint();
-                if (viewObj && viewObj != player && botPos.sqDistance(WorldPosition(viewObj)) < sqRange)
-                    return true;
-            }
-        }
+        if (sRandomPlayerbotMgr.ShouldBotForceActiveNearRealPlayers(bot, checkMap, checkZone, checkRadius, sqRange))
+            return true;
     }
 
     // bot has a real player master (not another bot)
@@ -4794,24 +4768,11 @@ bool PlayerbotAI::AllowActive(ActivityType activityType)
     // a real player has this bot on their friends list
     if (sPlayerbotAIConfig.BotActiveAloneForceWhenIsFriend)
     {
-        // shouldnt be needed analyse in future
         if (!bot->GetGUID())
             return false;
 
-        for (auto& player : sRandomPlayerbotMgr.GetPlayers())
-        {
-            if (!player || !player->GetSession() || !player->IsInWorld() || player->IsDuringRemoveFromWorld() ||
-                player->GetSession()->isLogingOut())
-                continue;
-
-            PlayerbotAI* playerAI = GET_PLAYERBOT_AI(player);
-            if (!playerAI || !playerAI->IsRealPlayer())
-                continue;
-
-            PlayerSocial* social = player->GetSocial();
-            if (social && social->HasFriend(bot->GetGUID()))
-                return true;
-        }
+        if (sRandomPlayerbotMgr.IsBotFriendOfAnyRealPlayer(bot->GetGUID()))
+            return true;
     }
 
     // pathfinding only runs for bots forced active by the rules above —
@@ -6888,6 +6849,91 @@ SpellFamilyNames PlayerbotAI::Class2SpellFamilyName(uint8 cls)
             break;
     }
     return SPELLFAMILY_GENERIC;
+}
+
+double PlayerbotAI::GetBuyMultiplier()
+{
+    uint32 const now = static_cast<uint32>(GameTime::GetGameTime().count());
+    if (_buyMultiplier && _buyMultiplierExpireAt > now)
+        return static_cast<double>(_buyMultiplier) / 100.0;
+
+    uint32 const id = bot->GetGUID().GetCounter();
+    uint32 value = sRandomPlayerbotMgr.GetValue(id, "buymultiplier");
+    uint32 validIn = 0;
+
+    if (!value)
+    {
+        value = urand(50, 120);
+        validIn = urand(sPlayerbotAIConfig.minRandomBotsPriceChangeInterval,
+                        sPlayerbotAIConfig.maxRandomBotsPriceChangeInterval);
+        sRandomPlayerbotMgr.SetValue(id, "buymultiplier", value, validIn);
+        _buyMultiplierExpireAt = now + validIn;
+    }
+    else
+    {
+        validIn = sRandomPlayerbotMgr.GetEventRemainingValidIn(id, "buymultiplier");
+        _buyMultiplierExpireAt =
+            now + (validIn ? validIn : sPlayerbotAIConfig.maxRandomBotsPriceChangeInterval);
+    }
+
+    _buyMultiplier = value;
+    return static_cast<double>(value) / 100.0;
+}
+
+double PlayerbotAI::GetSellMultiplier()
+{
+    uint32 const now = static_cast<uint32>(GameTime::GetGameTime().count());
+    if (_sellMultiplier && _sellMultiplierExpireAt > now)
+        return static_cast<double>(_sellMultiplier) / 100.0;
+
+    uint32 const id = bot->GetGUID().GetCounter();
+    uint32 value = sRandomPlayerbotMgr.GetValue(id, "sellmultiplier");
+    uint32 validIn = 0;
+
+    if (!value)
+    {
+        value = urand(80, 250);
+        validIn = urand(sPlayerbotAIConfig.minRandomBotsPriceChangeInterval,
+                        sPlayerbotAIConfig.maxRandomBotsPriceChangeInterval);
+        sRandomPlayerbotMgr.SetValue(id, "sellmultiplier", value, validIn);
+        _sellMultiplierExpireAt = now + validIn;
+    }
+    else
+    {
+        validIn = sRandomPlayerbotMgr.GetEventRemainingValidIn(id, "sellmultiplier");
+        _sellMultiplierExpireAt =
+            now + (validIn ? validIn : sPlayerbotAIConfig.maxRandomBotsPriceChangeInterval);
+    }
+
+    _sellMultiplier = value;
+    return static_cast<double>(value) / 100.0;
+}
+
+uint32 PlayerbotAI::GetTradeDiscount(Player* master)
+{
+    if (!master)
+        return 0;
+
+    uint32 const masterId = master->GetGUID().GetCounter();
+    auto itr = _tradeDiscountByMaster.find(masterId);
+    if (itr != _tradeDiscountByMaster.end())
+        return itr->second;
+
+    std::ostringstream name;
+    name << "trade_discount_" << masterId;
+    uint32 const discount = sRandomPlayerbotMgr.GetValue(bot->GetGUID().GetCounter(), name.str());
+    if (discount)
+        _tradeDiscountByMaster[masterId] = discount;
+
+    return discount;
+}
+
+void PlayerbotAI::SetTradeDiscount(Player* master, uint32 value)
+{
+    if (!master)
+        return;
+
+    _tradeDiscountByMaster[master->GetGUID().GetCounter()] = value;
 }
 
 void PlayerbotAI::AddTimedEvent(std::function<void()> callback, uint32 delayMs)

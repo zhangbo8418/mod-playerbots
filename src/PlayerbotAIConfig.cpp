@@ -454,6 +454,9 @@ bool PlayerbotAIConfig::Initialize()
 
     commandServerPort = sConfigMgr->GetOption<int32>("AiPlayerbot.CommandServerPort", 8888);
     perfMonEnabled = sConfigMgr->GetOption<bool>("AiPlayerbot.PerfMonEnabled", false);
+    perfMonMaxEntries = sConfigMgr->GetOption<uint32>("AiPlayerbot.PerfMonMaxEntries", 4096);
+    randomBotEventBatchInterval = sConfigMgr->GetOption<uint32>("AiPlayerbot.RandomBotEventBatchInterval", 5);
+    randomBotEventBatchMaxPending = sConfigMgr->GetOption<uint32>("AiPlayerbot.RandomBotEventBatchMaxPending", 64);
 
     useGroundMountAtMinLevel = sConfigMgr->GetOption<int32>("AiPlayerbot.UseGroundMountAtMinLevel", 20);
     useFastGroundMountAtMinLevel = sConfigMgr->GetOption<int32>("AiPlayerbot.UseFastGroundMountAtMinLevel", 40);

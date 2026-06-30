@@ -332,6 +332,9 @@ public:
 
     uint32 commandServerPort;
     bool perfMonEnabled;
+    uint32 perfMonMaxEntries;
+    uint32 randomBotEventBatchInterval;
+    uint32 randomBotEventBatchMaxPending;
     bool summonWhenGroup;
     bool randomBotShowHelmet;
     bool randomBotShowCloak;

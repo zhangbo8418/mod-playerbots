@@ -589,4 +589,37 @@ private:
     uint32 m_masterAccountId = 0;
 };
 
+// Deferred random-bot event DB write (cache is updated on the calling thread)
+class SetEventValueOperation : public PlayerbotOperation
+{
+public:
+    SetEventValueOperation(uint32 bot, std::string event, uint32 value, uint32 validIn, std::string data,
+                           uint32 lastChangeTime, uint32 changeSeq)
+        : m_bot(bot), m_event(std::move(event)), m_value(value), m_validIn(validIn), m_data(std::move(data)),
+          m_lastChangeTime(lastChangeTime), m_changeSeq(changeSeq)
+    {
+    }
+
+    bool Execute() override
+    {
+        sRandomPlayerbotMgr.ApplySetEventValueDb(m_bot, m_event, m_value, m_validIn, m_data, m_lastChangeTime,
+                                                 m_changeSeq);
+        return true;
+    }
+
+    ObjectGuid GetBotGuid() const override { return ObjectGuid::Empty; }
+    uint32 GetPriority() const override { return 40; }
+    std::string GetName() const override { return "SetEventValue"; }
+    bool IsValid() const override { return true; }
+
+private:
+    uint32 m_bot;
+    std::string m_event;
+    uint32 m_value;
+    uint32 m_validIn;
+    std::string m_data;
+    uint32 m_lastChangeTime;
+    uint32 m_changeSeq;
+};
+
 #endif

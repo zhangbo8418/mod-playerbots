@@ -34,18 +34,55 @@ PerfMonitorOperation* PerfMonitor::start(PerformanceMetric metric, std::string c
     }
 
     std::lock_guard<std::mutex> guard(lock);
-    PerformanceData* pd = data[metric][stackName];
-    if (!pd)
+
+    std::map<std::string, PerformanceData*>& metricMap = data[metric];
+    PerformanceData* pd = nullptr;
+
+    auto existing = metricMap.find(stackName);
+    if (existing != metricMap.end())
+        pd = existing->second;
+    else
     {
+        uint32 const maxEntries = sPlayerbotAIConfig.perfMonMaxEntries;
+        if (maxEntries && GetTotalEntryCount() >= maxEntries)
+        {
+            if (stack)
+                stack->pop_back();
+
+            return nullptr;
+        }
+
         pd = new PerformanceData();
         pd->minTime = 0;
         pd->maxTime = 0;
         pd->totalTime = 0;
         pd->count = 0;
-        data[metric][stackName] = pd;
+        metricMap[stackName] = pd;
     }
 
     return new PerfMonitorOperation(pd, name, stack);
+}
+
+uint32_t PerfMonitor::GetTotalEntryCount() const
+{
+    uint32_t total = 0;
+    for (auto const& metricPair : data)
+        total += static_cast<uint32_t>(metricPair.second.size());
+
+    return total;
+}
+
+void PerfMonitor::ClearAllEntries()
+{
+    for (auto& metricPair : data)
+    {
+        for (auto& entry : metricPair.second)
+            delete entry.second;
+
+        metricPair.second.clear();
+    }
+
+    data.clear();
 }
 
 void PerfMonitor::PrintStats(bool perTick, bool fullStack)
@@ -249,20 +286,8 @@ void PerfMonitor::PrintStats(bool perTick, bool fullStack)
 
 void PerfMonitor::Reset()
 {
-    for (std::map<PerformanceMetric, std::map<std::string, PerformanceData*>>::iterator i = data.begin();
-         i != data.end(); ++i)
-    {
-        std::map<std::string, PerformanceData*> pdMap = i->second;
-        for (std::map<std::string, PerformanceData*>::iterator j = pdMap.begin(); j != pdMap.end(); ++j)
-        {
-            PerformanceData* pd = j->second;
-            std::lock_guard<std::mutex> guard(pd->lock);
-            pd->minTime = 0;
-            pd->maxTime = 0;
-            pd->totalTime = 0;
-            pd->count = 0;
-        }
-    }
+    std::lock_guard<std::mutex> guard(lock);
+    ClearAllEntries();
 }
 
 PerfMonitorOperation::PerfMonitorOperation(PerformanceData* data, std::string const name,

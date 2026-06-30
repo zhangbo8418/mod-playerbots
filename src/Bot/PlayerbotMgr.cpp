@@ -1781,6 +1781,7 @@ void PlayerbotsMgr::AddPlayerbotData(Player* player, bool isBotAI)
         std::unordered_map<ObjectGuid, PlayerbotAIBase*>::iterator itr = _playerbotsMgrMap.find(player->GetGUID());
         if (itr != _playerbotsMgrMap.end())
         {
+            delete static_cast<PlayerbotMgr*>(itr->second);
             _playerbotsMgrMap.erase(itr);
         }
         PlayerbotMgr* playerbotMgr = new PlayerbotMgr(player);
@@ -1793,6 +1794,7 @@ void PlayerbotsMgr::AddPlayerbotData(Player* player, bool isBotAI)
         std::unordered_map<ObjectGuid, PlayerbotAIBase*>::iterator itr = _playerbotsAIMap.find(player->GetGUID());
         if (itr != _playerbotsAIMap.end())
         {
+            delete static_cast<PlayerbotAI*>(itr->second);
             _playerbotsAIMap.erase(itr);
         }
         PlayerbotAI* botAI = new PlayerbotAI(player);

@@ -5,6 +5,8 @@
 
 #include "RandomPlayerbotMgr.h"
 
+#include "TravelNode.h"
+
 #include <WorldSessionMgr.h>
 
 #include <algorithm>
@@ -15,6 +17,7 @@
 #include <ctime>
 #include <iomanip>
 #include <random>
+#include <unordered_set>
 
 #include "AiFactory.h"
 #include "Battleground.h"
@@ -37,8 +40,8 @@
 #include "PlayerbotAIConfig.h"
 #include "PlayerbotFactory.h"
 #include "PlayerbotTextMgr.h"
-#include "PlayerbotWorldThreadProcessor.h"
 #include "PlayerbotOperations.h"
+#include "PlayerbotWorldThreadProcessor.h"
 #include "Playerbots.h"
 #include "Position.h"
 #include "RaceMgr.h"
@@ -46,6 +49,7 @@
 #include "RandomPlayerbotFactory.h"
 #include "ServerFacade.h"
 #include "SharedDefines.h"
+#include "SocialMgr.h"
 #include "TravelMgr.h"
 #include "Unit.h"
 #include "World.h"
@@ -341,6 +345,24 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
         return;
 
     ProcessScheduledGroupLeaves();
+    DrainSpilledEventWrites();
+
+    if (!_eventCachePruneTimer)
+        _eventCachePruneTimer = time(nullptr);
+    else if (time(nullptr) >= _eventCachePruneTimer + 600)
+    {
+        FlushPendingEventWrites();
+        PruneStaleEventCache();
+        _eventCachePruneTimer = time(nullptr);
+    }
+    else if (sPlayerbotAIConfig.randomBotEventBatchInterval && HasPendingEventWrites())
+    {
+        if (!_eventWriteFlushTimer)
+            _eventWriteFlushTimer = time(nullptr);
+        else if (time(nullptr) >=
+                 _eventWriteFlushTimer + sPlayerbotAIConfig.randomBotEventBatchInterval)
+            FlushPendingEventWrites();
+    }
 
     /*if (sPlayerbotAIConfig.enablePrototypePerformanceDiff)
     {
@@ -1488,6 +1510,8 @@ void RandomPlayerbotMgr::CheckPlayers()
     for (std::vector<Player*>::iterator i = players.begin(); i != players.end(); ++i)
     {
         Player* player = *i;
+        if (!player || !player->IsInWorld())
+            continue;
 
         if (player->IsGameMaster())
             continue;
@@ -1551,6 +1575,12 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
     uint32 randomTime;
     if (!player)
     {
+        if (GetEventValue(bot, "logout") || GetEventValue(bot, "update"))
+            return false;
+
+        if (PlayerbotHolder::botLoading.find(botGUID) != PlayerbotHolder::botLoading.end())
+            return false;
+
         AddPlayerBot(botGUID, 0);
         randomTime = urand(1, 2);
 
@@ -2493,6 +2523,7 @@ void RandomPlayerbotMgr::DeactivateRandomBot(uint32 bot, bool applyOfflineCooldo
     ObjectGuid botGUID = ObjectGuid::Create<HighGuid::Player>(bot);
     Player* player = GetPlayerBot(botGUID);
 
+    TravelNodeMap::instance().ClearTeleportNodes(botGUID);
     SetEventValue(bot, "add", 0, 0);
     currentBots.remove(bot);
 
@@ -2508,6 +2539,8 @@ void RandomPlayerbotMgr::DeactivateRandomBot(uint32 bot, bool applyOfflineCooldo
     }
     else
         SetEventValue(bot, "logout", 0, 0);
+
+    PurgeEventCache(bot);
 }
 
 void RandomPlayerbotMgr::AdjustBotCountToTarget(uint32 targetCount)
@@ -2622,12 +2655,40 @@ void RandomPlayerbotMgr::GetBots()
                 break;
         }
     }
+
+    // Offline bots may have add=1 only in memory (batch DB / queued map-thread writes).
+    for (uint32 shardIdx = 0; shardIdx < EVENT_DATA_SHARD_COUNT && currentBots.size() < maxAllowedBotCount;
+         ++shardIdx)
+    {
+        EventDataShard& shard = _eventDataShards[shardIdx];
+        std::lock_guard<std::mutex> lock(shard.mutex);
+
+        for (auto const& [botId, botCache] : shard.eventCache)
+        {
+            if (currentBots.size() >= maxAllowedBotCount)
+                break;
+
+            if (!botCache.loaded)
+                continue;
+
+            auto addIt = botCache.events.find("add");
+            if (addIt == botCache.events.end() || !addIt->second.value)
+                continue;
+
+            CachedEvent const& e = addIt->second;
+            if (e.validIn && (NowSeconds() - e.lastChangeTime) >= e.validIn)
+                continue;
+
+            if (std::find(currentBots.begin(), currentBots.end(), botId) != currentBots.end())
+                continue;
+
+            currentBots.push_back(botId);
+        }
+    }
 }
 
 std::vector<uint32> RandomPlayerbotMgr::GetBgBots(uint32 bracket)
 {
-    // if (!currentBgBots.empty()) return currentBgBots;
-
     std::vector<uint32> BgBots;
 
     PlayerbotsDatabasePreparedStatement* stmt =
@@ -2644,18 +2705,262 @@ std::vector<uint32> RandomPlayerbotMgr::GetBgBots(uint32 bracket)
         } while (result->NextRow());
     }
 
+    for (uint32 shardIdx = 0; shardIdx < EVENT_DATA_SHARD_COUNT; ++shardIdx)
+    {
+        EventDataShard& shard = _eventDataShards[shardIdx];
+        std::lock_guard<std::mutex> lock(shard.mutex);
+
+        for (auto const& [botId, botCache] : shard.eventCache)
+        {
+            if (!botCache.loaded)
+                continue;
+
+            auto bgIt = botCache.events.find("bg");
+            if (bgIt == botCache.events.end() || bgIt->second.value != bracket)
+                continue;
+
+            CachedEvent const& e = bgIt->second;
+            if (e.validIn && (NowSeconds() - e.lastChangeTime) >= e.validIn)
+                continue;
+
+            if (std::find(BgBots.begin(), BgBots.end(), botId) != BgBots.end())
+                continue;
+
+            BgBots.push_back(botId);
+        }
+    }
+
     return BgBots;
 }
 
-CachedEvent* RandomPlayerbotMgr::FindEvent(uint32 bot, std::string const& event)
+RandomPlayerbotMgr::EventDataShard& RandomPlayerbotMgr::GetEventShard(uint32 bot)
 {
-    BotEventCache& cache = eventCache[bot];
+    return _eventDataShards[bot % EVENT_DATA_SHARD_COUNT];
+}
 
-    // Load once
+RandomPlayerbotMgr::EventDataShard const& RandomPlayerbotMgr::GetEventShard(uint32 bot) const
+{
+    return _eventDataShards[bot % EVENT_DATA_SHARD_COUNT];
+}
+
+bool RandomPlayerbotMgr::HasPendingEventWrites() const
+{
+    for (uint32 i = 0; i < EVENT_DATA_SHARD_COUNT; ++i)
+    {
+        std::lock_guard<std::mutex> lock(_eventDataShards[i].mutex);
+        if (!_eventDataShards[i].pendingWrites.empty())
+            return true;
+    }
+
+    return false;
+}
+
+void RandomPlayerbotMgr::PurgeEventCache(uint32 bot)
+{
+    FlushPendingEventWrites(bot);
+
+    EventDataShard& shard = GetEventShard(bot);
+    std::lock_guard<std::mutex> lock(shard.mutex);
+    shard.eventCache.erase(bot);
+}
+
+void RandomPlayerbotMgr::AppendEventWriteToTransaction(PlayerbotsDatabaseTransaction& trans, uint32 bot,
+                                                       std::string const& event, PendingEventWrite const& pending)
+{
+    PlayerbotsDatabasePreparedStatement* stmt =
+        PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_DEL_RANDOM_BOTS_BY_OWNER_AND_EVENT);
+    stmt->SetData(0, 0);
+    stmt->SetData(1, bot);
+    stmt->SetData(2, event.c_str());
+    trans->Append(stmt);
+
+    if (!pending.value)
+        return;
+
+    stmt = PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_INS_RANDOM_BOTS);
+    stmt->SetData(0, 0);
+    stmt->SetData(1, bot);
+    stmt->SetData(2, pending.lastChangeTime);
+    stmt->SetData(3, pending.validIn);
+    stmt->SetData(4, event.c_str());
+    stmt->SetData(5, pending.value);
+
+    if (!pending.data.empty())
+        stmt->SetData(6, pending.data.c_str());
+    else
+        stmt->SetData(6);
+
+    trans->Append(stmt);
+}
+
+void RandomPlayerbotMgr::CommitEventWrite(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
+                                          std::string const& data, uint32 lastChangeTime)
+{
+    PendingEventWrite pending;
+    pending.value = value;
+    pending.validIn = validIn;
+    pending.lastChangeTime = lastChangeTime;
+    pending.data = data;
+
+    PlayerbotsDatabaseTransaction trans = PlayerbotsDatabase.BeginTransaction();
+    AppendEventWriteToTransaction(trans, bot, event, pending);
+    PlayerbotsDatabase.CommitTransaction(trans);
+}
+
+void RandomPlayerbotMgr::ApplyEventCacheWrite(BotEventCache& cache, std::string const& event, uint32 value,
+                                              uint32 validIn, std::string const& data, uint32 lastChangeTime,
+                                              uint32 changeSeq)
+{
+    cache.loaded = true;
+
+    if (!value)
+    {
+        cache.events.erase(event);
+        return;
+    }
+
+    CachedEvent& e = cache.events[event];
+    e.value = value;
+    e.lastChangeTime = lastChangeTime;
+    e.validIn = validIn;
+    e.changeSeq = changeSeq;
+    e.data = data;
+}
+
+void RandomPlayerbotMgr::EnqueueSpilledEventWrite(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
+                                                  std::string const& data, uint32 lastChangeTime, uint32 changeSeq)
+{
+    SpilledEventWrite write;
+    write.bot = bot;
+    write.event = event;
+    write.value = value;
+    write.validIn = validIn;
+    write.lastChangeTime = lastChangeTime;
+    write.changeSeq = changeSeq;
+    write.data = data;
+
+    std::lock_guard<std::mutex> lock(_spilledEventWritesMutex);
+    _spilledEventWrites.push_back(std::move(write));
+}
+
+void RandomPlayerbotMgr::DrainSpilledEventWrites()
+{
+    if (!PlayerbotWorldThreadProcessor::IsWorldThread())
+        return;
+
+    std::vector<SpilledEventWrite> spilled;
+    {
+        std::lock_guard<std::mutex> lock(_spilledEventWritesMutex);
+        if (_spilledEventWrites.empty())
+            return;
+
+        spilled.swap(_spilledEventWrites);
+    }
+
+    for (SpilledEventWrite const& write : spilled)
+    {
+        CommitSetEventValue(write.bot, write.event, write.value, write.validIn, write.data, write.lastChangeTime,
+                            write.changeSeq, false);
+    }
+}
+
+void RandomPlayerbotMgr::FlushPendingEventWrites()
+{
+    std::map<std::pair<uint32, std::string>, PendingEventWrite> pending;
+
+    for (uint32 i = 0; i < EVENT_DATA_SHARD_COUNT; ++i)
+    {
+        EventDataShard& shard = _eventDataShards[i];
+        std::lock_guard<std::mutex> lock(shard.mutex);
+
+        for (auto& entry : shard.pendingWrites)
+            pending.emplace(entry.first, entry.second);
+
+        shard.pendingWrites.clear();
+    }
+
+    if (pending.empty())
+        return;
+
+    _eventWriteFlushTimer = time(nullptr);
+
+    PlayerbotsDatabaseTransaction trans = PlayerbotsDatabase.BeginTransaction();
+
+    for (auto const& [key, write] : pending)
+        AppendEventWriteToTransaction(trans, key.first, key.second, write);
+
+    PlayerbotsDatabase.CommitTransaction(trans);
+}
+
+void RandomPlayerbotMgr::FlushPendingEventWrites(uint32 bot)
+{
+    EventDataShard& shard = GetEventShard(bot);
+    std::map<std::pair<uint32, std::string>, PendingEventWrite> pending;
+
+    {
+        std::lock_guard<std::mutex> lock(shard.mutex);
+
+        for (auto itr = shard.pendingWrites.begin(); itr != shard.pendingWrites.end();)
+        {
+            if (itr->first.first != bot)
+            {
+                ++itr;
+                continue;
+            }
+
+            pending.emplace(itr->first, itr->second);
+            itr = shard.pendingWrites.erase(itr);
+        }
+    }
+
+    if (pending.empty())
+        return;
+
+    PlayerbotsDatabaseTransaction trans = PlayerbotsDatabase.BeginTransaction();
+
+    for (auto const& [key, write] : pending)
+        AppendEventWriteToTransaction(trans, key.first, key.second, write);
+
+    PlayerbotsDatabase.CommitTransaction(trans);
+    _eventWriteFlushTimer = time(nullptr);
+}
+
+void RandomPlayerbotMgr::PruneStaleEventCache()
+{
+    std::unordered_set<uint32> activeBots;
+    activeBots.reserve(playerBots.size() + currentBots.size());
+
+    for (PlayerBotMap::const_iterator itr = GetPlayerBotsBegin(); itr != GetPlayerBotsEnd(); ++itr)
+        activeBots.insert(itr->first.GetCounter());
+
+    for (uint32 bot : currentBots)
+        activeBots.insert(bot);
+
+    for (uint32 i = 0; i < EVENT_DATA_SHARD_COUNT; ++i)
+    {
+        EventDataShard& shard = _eventDataShards[i];
+        std::lock_guard<std::mutex> lock(shard.mutex);
+
+        for (auto itr = shard.eventCache.begin(); itr != shard.eventCache.end();)
+        {
+            if (!activeBots.contains(itr->first))
+                itr = shard.eventCache.erase(itr);
+            else
+                ++itr;
+        }
+    }
+}
+
+CachedEvent* RandomPlayerbotMgr::FindEventLocked(EventDataShard& shard, uint32 bot, std::string const& event,
+                                                 std::unique_lock<std::mutex>& lock)
+{
+    BotEventCache& cache = shard.eventCache[bot];
+
     if (!cache.loaded)
     {
-        cache.events.clear();
+        lock.unlock();
 
+        BotEventCache loadedCache;
         PlayerbotsDatabasePreparedStatement* stmt =
             PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_SEL_RANDOM_BOTS_BY_OWNER_AND_BOT);
         stmt->SetData(0, 0);
@@ -2673,11 +2978,26 @@ CachedEvent* RandomPlayerbotMgr::FindEvent(uint32 bot, std::string const& event)
                 e.validIn = fields[3].Get<uint32>();
                 e.data = fields[4].Get<std::string>();
 
-                cache.events.emplace(fields[0].Get<std::string>(), std::move(e));
+                std::string const eventName = fields[0].Get<std::string>();
+                if (e.validIn && (NowSeconds() - e.lastChangeTime) >= e.validIn && eventName != "specNo" &&
+                    eventName != "specLink")
+                {
+                    continue;
+                }
+
+                loadedCache.events.emplace(eventName, std::move(e));
             } while (result->NextRow());
         }
 
-        cache.loaded = true;
+        loadedCache.loaded = true;
+
+        lock.lock();
+
+        BotEventCache& sharedCache = shard.eventCache[bot];
+        if (!sharedCache.loaded)
+            sharedCache = std::move(loadedCache);
+
+        cache = sharedCache;
     }
 
     auto it = cache.events.find(event);
@@ -2686,7 +3006,6 @@ CachedEvent* RandomPlayerbotMgr::FindEvent(uint32 bot, std::string const& event)
 
     CachedEvent& e = it->second;
 
-    // remove expired events
     if (e.validIn && (NowSeconds() - e.lastChangeTime) >= e.validIn && event != "specNo" && event != "specLink")
     {
         cache.events.erase(it);
@@ -2708,7 +3027,10 @@ bool RandomPlayerbotMgr::IsSpecPvp(uint32 bot, uint8 cls)
 
 uint32 RandomPlayerbotMgr::GetEventValue(uint32 bot, std::string const& event)
 {
-    if (CachedEvent* e = FindEvent(bot, event))
+    EventDataShard& shard = GetEventShard(bot);
+    std::unique_lock<std::mutex> lock(shard.mutex);
+
+    if (CachedEvent* e = FindEventLocked(shard, bot, event, lock))
         return e->value;
 
     return 0;
@@ -2716,61 +3038,127 @@ uint32 RandomPlayerbotMgr::GetEventValue(uint32 bot, std::string const& event)
 
 std::string RandomPlayerbotMgr::GetEventData(uint32 bot, std::string const& event)
 {
-    if (CachedEvent* e = FindEvent(bot, event))
+    EventDataShard& shard = GetEventShard(bot);
+    std::unique_lock<std::mutex> lock(shard.mutex);
+
+    if (CachedEvent* e = FindEventLocked(shard, bot, event, lock))
         return e->data;
 
     return "";
 }
 
+uint32 RandomPlayerbotMgr::CommitSetEventValue(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
+                                               std::string const& data, uint32 lastChangeTime, uint32 changeSeq,
+                                               bool updateCache)
+{
+    EventDataShard& shard = GetEventShard(bot);
+    bool commitNow = false;
+    bool flushNow = false;
+
+    {
+        std::lock_guard<std::mutex> lock(shard.mutex);
+
+        if (updateCache)
+            ApplyEventCacheWrite(shard.eventCache[bot], event, value, validIn, data, lastChangeTime, changeSeq);
+        else
+        {
+            BotEventCache& cache = shard.eventCache[bot];
+            auto cit = cache.events.find(event);
+            if (cit != cache.events.end() && cit->second.changeSeq >= changeSeq)
+                return value;
+
+            auto pit = shard.pendingWrites.find(std::make_pair(bot, event));
+            if (pit != shard.pendingWrites.end() && pit->second.changeSeq >= changeSeq)
+                return value;
+        }
+
+        uint32 const batchInterval = sPlayerbotAIConfig.randomBotEventBatchInterval;
+        if (!batchInterval)
+        {
+            commitNow = true;
+        }
+        else
+        {
+            PendingEventWrite pending;
+            pending.value = value;
+            pending.validIn = validIn;
+            pending.lastChangeTime = lastChangeTime;
+            pending.changeSeq = changeSeq;
+            pending.data = data;
+            shard.pendingWrites[std::make_pair(bot, event)] = std::move(pending);
+
+            if (shard.pendingWrites.size() >= sPlayerbotAIConfig.randomBotEventBatchMaxPending)
+                flushNow = true;
+        }
+    }
+
+    if (commitNow)
+        CommitEventWrite(bot, event, value, validIn, data, lastChangeTime);
+    else if (flushNow)
+        FlushPendingEventWrites();
+
+    return value;
+}
+
+void RandomPlayerbotMgr::ApplySetEventValueDb(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
+                                              std::string const& data, uint32 lastChangeTime, uint32 changeSeq)
+{
+    CommitSetEventValue(bot, event, value, validIn, data, lastChangeTime, changeSeq, false);
+}
+
 uint32 RandomPlayerbotMgr::SetEventValue(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
                                          std::string const& data)
 {
-    PlayerbotsDatabaseTransaction trans = PlayerbotsDatabase.BeginTransaction();
+    EventDataShard& shard = GetEventShard(bot);
+    uint32 changeSeq = 0;
+    uint32 const lastChangeTime = NowSeconds();
 
-    PlayerbotsDatabasePreparedStatement* stmt =
-        PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_DEL_RANDOM_BOTS_BY_OWNER_AND_EVENT);
-    stmt->SetData(0, 0);
-    stmt->SetData(1, bot);
-    stmt->SetData(2, event.c_str());
-    trans->Append(stmt);
-
-    if (value)
+    if (!PlayerbotWorldThreadProcessor::IsWorldThread())
     {
-        stmt = PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_INS_RANDOM_BOTS);
-        stmt->SetData(0, 0);
-        stmt->SetData(1, bot);
-        stmt->SetData(2, NowSeconds());
-        stmt->SetData(3, validIn);
-        stmt->SetData(4, event.c_str());
-        stmt->SetData(5, value);
+        {
+            std::lock_guard<std::mutex> lock(shard.mutex);
+            changeSeq = ++shard.nextChangeSeq;
+            ApplyEventCacheWrite(shard.eventCache[bot], event, value, validIn, data, lastChangeTime, changeSeq);
+        }
 
-        if (!data.empty())
-            stmt->SetData(6, data.c_str());
-        else
-            stmt->SetData(6);  // NULL
+        if (!PlayerbotWorldThreadProcessor::instance().QueueOperation(std::make_unique<SetEventValueOperation>(
+                bot, event, value, validIn, data, lastChangeTime, changeSeq)))
+        {
+            LOG_WARN("playerbots",
+                     "SetEventValueOperation queue full, deferring DB write via spill queue for bot {} event {}",
+                     bot, event);
+            EnqueueSpilledEventWrite(bot, event, value, validIn, data, lastChangeTime, changeSeq);
+        }
 
-        trans->Append(stmt);
+        return value;
     }
 
-    PlayerbotsDatabase.CommitTransaction(trans);
-
-    // Update in-memory cache
-    BotEventCache& cache = eventCache[bot];
-    cache.loaded = true;
-
-    if (!value)
     {
-        cache.events.erase(event);
-        return 0;
+        std::lock_guard<std::mutex> lock(shard.mutex);
+        changeSeq = ++shard.nextChangeSeq;
     }
 
-    CachedEvent& e = cache.events[event];  // create-on-write is OK here
-    e.value = value;
-    e.lastChangeTime = NowSeconds();
-    e.validIn = validIn;
-    e.data = data;
+    return CommitSetEventValue(bot, event, value, validIn, data, lastChangeTime, changeSeq, true);
+}
 
-    return value;
+uint32 RandomPlayerbotMgr::GetEventRemainingValidIn(uint32 bot, std::string const& event)
+{
+    EventDataShard& shard = GetEventShard(bot);
+    std::unique_lock<std::mutex> lock(shard.mutex);
+
+    if (CachedEvent* e = FindEventLocked(shard, bot, event, lock))
+    {
+        if (!e->validIn)
+            return 0;
+
+        uint32 const elapsed = NowSeconds() - e->lastChangeTime;
+        if (elapsed >= e->validIn)
+            return 0;
+
+        return e->validIn - elapsed;
+    }
+
+    return 0;
 }
 
 uint32 RandomPlayerbotMgr::GetValue(uint32 bot, std::string const& type) { return GetEventValue(bot, type); }
@@ -2785,6 +3173,12 @@ std::string RandomPlayerbotMgr::GetData(uint32 bot, std::string const& type) { r
 void RandomPlayerbotMgr::SetValue(uint32 bot, std::string const& type, uint32 value, std::string const& data)
 {
     SetEventValue(bot, type, value, sPlayerbotAIConfig.maxRandomBotInWorldTime, data);
+}
+
+void RandomPlayerbotMgr::SetValue(uint32 bot, std::string const& type, uint32 value, uint32 validIn,
+                                  std::string const& data)
+{
+    SetEventValue(bot, type, value, validIn, data);
 }
 
 void RandomPlayerbotMgr::SetValue(Player* bot, std::string const& type, uint32 value, std::string const& data)
@@ -2811,7 +3205,7 @@ bool RandomPlayerbotMgr::HandlePlayerbotConsoleCommand(ChatHandler* /*handler*/,
     if (cmd == "reset")
     {
         PlayerbotsDatabase.Execute(PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_DEL_RANDOM_BOTS));
-        sRandomPlayerbotMgr.eventCache.clear();
+        sRandomPlayerbotMgr.ClearAllEventCaches();
         LOG_INFO("playerbots", "Random bots were reset for all players. Please restart the Server.");
         return true;
     }
@@ -2999,6 +3393,8 @@ void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
             std::make_unique<PlayerLogoutGroupOperation>(playerGuid));
 
     DisablePlayerBot(playerGuid);
+
+    UnregisterRealPlayer(playerGuid.GetCounter());
 
     std::vector<Player*>::iterator i = std::find(players.begin(), players.end(), player);
     if (i != players.end())
@@ -3284,7 +3680,7 @@ botAI->TellMaster(botAI->GetLocalizedBotTextOrDefault("hello", "Hello"));
     }
     else
     {
-        players.push_back(player);
+        RegisterRealPlayer(player);
         LOG_DEBUG("playerbots", "Including non-random bot player {} into random bot update", player->GetName().c_str());
     }
 }
@@ -3293,6 +3689,7 @@ void RandomPlayerbotMgr::OnPlayerLoginError(uint32 bot)
 {
     SetEventValue(bot, "add", 0, 0);
     currentBots.remove(bot);
+    PurgeEventCache(bot);
 }
 
 Player* RandomPlayerbotMgr::GetRandomPlayer()
@@ -3533,53 +3930,56 @@ void RandomPlayerbotMgr::PrintStats()
 
 double RandomPlayerbotMgr::GetBuyMultiplier(Player* bot)
 {
+    if (!bot)
+        return 1.0;
+
+    if (PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot))
+        return botAI->GetBuyMultiplier();
+
     uint32 id = bot->GetGUID().GetCounter();
     uint32 value = GetEventValue(id, "buymultiplier");
     if (!value)
-    {
-        value = urand(50, 120);
-        uint32 validIn = urand(sPlayerbotAIConfig.minRandomBotsPriceChangeInterval,
-                               sPlayerbotAIConfig.maxRandomBotsPriceChangeInterval);
-        SetEventValue(id, "buymultiplier", value, validIn);
-    }
+        value = 100;
 
-    return (double)value / 100.0;
+    return static_cast<double>(value) / 100.0;
 }
 
 double RandomPlayerbotMgr::GetSellMultiplier(Player* bot)
 {
+    if (!bot)
+        return 1.0;
+
+    if (PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot))
+        return botAI->GetSellMultiplier();
+
     uint32 id = bot->GetGUID().GetCounter();
     uint32 value = GetEventValue(id, "sellmultiplier");
     if (!value)
-    {
-        value = urand(80, 250);
-        uint32 validIn = urand(sPlayerbotAIConfig.minRandomBotsPriceChangeInterval,
-                               sPlayerbotAIConfig.maxRandomBotsPriceChangeInterval);
-        SetEventValue(id, "sellmultiplier", value, validIn);
-    }
+        value = 100;
 
-    return (double)value / 100.0;
+    return static_cast<double>(value) / 100.0;
 }
 
 void RandomPlayerbotMgr::AddTradeDiscount(Player* bot, Player* master, int32 value)
 {
-    if (!master)
+    if (!master || !bot)
         return;
 
     uint32 discount = GetTradeDiscount(bot, master);
-    int32 result = (int32)discount + value;
-    discount = (result < 0 ? 0 : result);
-
-    SetTradeDiscount(bot, master, discount);
+    int32 result = static_cast<int32>(discount) + value;
+    SetTradeDiscount(bot, master, result < 0 ? 0 : static_cast<uint32>(result));
 }
 
 void RandomPlayerbotMgr::SetTradeDiscount(Player* bot, Player* master, uint32 value)
 {
-    if (!master)
+    if (!master || !bot)
         return;
 
-    uint32 botId = bot->GetGUID().GetCounter();
-    uint32 masterId = master->GetGUID().GetCounter();
+    uint32 const botId = bot->GetGUID().GetCounter();
+    uint32 const masterId = master->GetGUID().GetCounter();
+
+    if (PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot))
+        botAI->SetTradeDiscount(master, value);
 
     std::ostringstream name;
     name << "trade_discount_" << masterId;
@@ -3588,8 +3988,11 @@ void RandomPlayerbotMgr::SetTradeDiscount(Player* bot, Player* master, uint32 va
 
 uint32 RandomPlayerbotMgr::GetTradeDiscount(Player* bot, Player* master)
 {
-    if (!master)
+    if (!master || !bot)
         return 0;
+
+    if (PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot))
+        return botAI->GetTradeDiscount(master);
 
     uint32 botId = bot->GetGUID().GetCounter();
     uint32 masterId = master->GetGUID().GetCounter();
@@ -3597,6 +4000,252 @@ uint32 RandomPlayerbotMgr::GetTradeDiscount(Player* bot, Player* master)
     std::ostringstream name;
     name << "trade_discount_" << masterId;
     return GetEventValue(botId, name.str());
+}
+
+namespace
+{
+void RemoveGuidFromMapBucket(std::vector<ObjectGuid::LowType>& bucket, ObjectGuid::LowType guid)
+{
+    auto it = std::find(bucket.begin(), bucket.end(), guid);
+    if (it != bucket.end())
+        bucket.erase(it);
+}
+} // namespace
+
+void RandomPlayerbotMgr::RegisterRealPlayer(Player* player)
+{
+    if (!player || player->GetSession()->IsBot())
+        return;
+
+    ObjectGuid::LowType const guid = player->GetGUID().GetCounter();
+    uint32 const mapId = player->GetMapId();
+
+    {
+        std::unique_lock<std::shared_mutex> lock(_realPlayersMutex);
+
+        auto existing = _realPlayerMapIndex.find(guid);
+        if (existing != _realPlayerMapIndex.end())
+            RemoveGuidFromMapBucket(_realPlayersByMap[existing->second], guid);
+
+        _realPlayerMapIndex[guid] = mapId;
+        _realPlayersByMap[mapId].push_back(guid);
+    }
+
+    if (std::find(players.begin(), players.end(), player) == players.end())
+        players.push_back(player);
+}
+
+void RandomPlayerbotMgr::UnregisterRealPlayer(ObjectGuid::LowType playerGuid)
+{
+    std::unique_lock<std::shared_mutex> lock(_realPlayersMutex);
+
+    auto itr = _realPlayerMapIndex.find(playerGuid);
+    if (itr == _realPlayerMapIndex.end())
+        return;
+
+    RemoveGuidFromMapBucket(_realPlayersByMap[itr->second], playerGuid);
+    _realPlayerMapIndex.erase(itr);
+}
+
+void RandomPlayerbotMgr::UpdateRealPlayerMap(Player* player)
+{
+    if (!player || player->GetSession()->IsBot())
+        return;
+
+    ObjectGuid::LowType const guid = player->GetGUID().GetCounter();
+    uint32 const newMapId = player->GetMapId();
+
+    std::unique_lock<std::shared_mutex> lock(_realPlayersMutex);
+
+    auto itr = _realPlayerMapIndex.find(guid);
+    if (itr == _realPlayerMapIndex.end())
+    {
+        _realPlayerMapIndex[guid] = newMapId;
+        _realPlayersByMap[newMapId].push_back(guid);
+        return;
+    }
+
+    if (itr->second == newMapId)
+        return;
+
+    RemoveGuidFromMapBucket(_realPlayersByMap[itr->second], guid);
+    itr->second = newMapId;
+    _realPlayersByMap[newMapId].push_back(guid);
+}
+
+void RandomPlayerbotMgr::ClearAllEventCaches()
+{
+    for (uint32 i = 0; i < EVENT_DATA_SHARD_COUNT; ++i)
+    {
+        std::lock_guard<std::mutex> lock(_eventDataShards[i].mutex);
+        _eventDataShards[i].eventCache.clear();
+        _eventDataShards[i].pendingWrites.clear();
+        _eventDataShards[i].nextChangeSeq = 0;
+    }
+
+    std::lock_guard<std::mutex> lock(_spilledEventWritesMutex);
+    _spilledEventWrites.clear();
+}
+
+void RandomPlayerbotMgr::PruneStaleRealPlayerGuids(std::vector<ObjectGuid::LowType> const& guids)
+{
+    if (guids.empty())
+        return;
+
+    std::unique_lock<std::shared_mutex> lock(_realPlayersMutex);
+
+    for (ObjectGuid::LowType guid : guids)
+    {
+        auto itr = _realPlayerMapIndex.find(guid);
+        if (itr == _realPlayerMapIndex.end())
+            continue;
+
+        RemoveGuidFromMapBucket(_realPlayersByMap[itr->second], guid);
+        _realPlayerMapIndex.erase(itr);
+    }
+}
+
+void RandomPlayerbotMgr::ReindexRealPlayerMap(Player* player)
+{
+    if (!player || player->GetSession()->IsBot())
+        return;
+
+    ObjectGuid::LowType const guid = player->GetGUID().GetCounter();
+    uint32 const mapId = player->GetMapId();
+
+    std::unique_lock<std::shared_mutex> lock(_realPlayersMutex);
+
+    auto itr = _realPlayerMapIndex.find(guid);
+    if (itr != _realPlayerMapIndex.end())
+    {
+        if (itr->second == mapId)
+            return;
+
+        RemoveGuidFromMapBucket(_realPlayersByMap[itr->second], guid);
+        itr->second = mapId;
+    }
+    else
+    {
+        _realPlayerMapIndex[guid] = mapId;
+    }
+
+    _realPlayersByMap[mapId].push_back(guid);
+}
+
+bool RandomPlayerbotMgr::ShouldBotForceActiveNearRealPlayers(Player* bot, bool checkMap, bool checkZone,
+                                                           bool checkRadius, float sqRange)
+{
+    if (!bot)
+        return false;
+
+    uint32 const botMapId = bot->GetMapId();
+    std::vector<ObjectGuid::LowType> candidates;
+
+    {
+        std::shared_lock<std::shared_mutex> lock(_realPlayersMutex);
+        auto itr = _realPlayersByMap.find(botMapId);
+        if (itr == _realPlayersByMap.end())
+            return false;
+
+        candidates = itr->second;
+    }
+
+    if (candidates.empty())
+        return false;
+
+    uint32 const botZoneId = checkZone ? bot->GetZoneId() : 0;
+    WorldPosition botPos(bot);
+    std::vector<ObjectGuid::LowType> staleGuids;
+    staleGuids.reserve(4);
+
+    for (ObjectGuid::LowType playerGuid : candidates)
+    {
+        Player* player = ObjectAccessor::FindPlayer(ObjectGuid::Create<HighGuid::Player>(playerGuid));
+        if (!player || !player->GetSession() || !player->IsInWorld() || player->IsDuringRemoveFromWorld())
+        {
+            staleGuids.push_back(playerGuid);
+            continue;
+        }
+
+        if (player->GetMapId() != botMapId)
+        {
+            ReindexRealPlayerMap(player);
+            continue;
+        }
+
+        bool isGM = player->IsGameMaster();
+
+        if (checkMap && !(isGM && !player->IsVisible()))
+        {
+            PruneStaleRealPlayerGuids(staleGuids);
+            return true;
+        }
+
+        if (checkZone && !(isGM && !player->IsVisible()) && player->GetZoneId() == botZoneId)
+        {
+            PruneStaleRealPlayerGuids(staleGuids);
+            return true;
+        }
+
+        if (checkRadius && (!isGM || player->isGMVisible()))
+        {
+            if (botPos.sqDistance(WorldPosition(player)) < sqRange)
+            {
+                PruneStaleRealPlayerGuids(staleGuids);
+                return true;
+            }
+
+            WorldObject* viewObj = player->GetViewpoint();
+            if (viewObj && viewObj != player && botPos.sqDistance(WorldPosition(viewObj)) < sqRange)
+            {
+                PruneStaleRealPlayerGuids(staleGuids);
+                return true;
+            }
+        }
+    }
+
+    PruneStaleRealPlayerGuids(staleGuids);
+    return false;
+}
+
+bool RandomPlayerbotMgr::IsBotFriendOfAnyRealPlayer(ObjectGuid const& botGuid)
+{
+    std::vector<ObjectGuid::LowType> candidates;
+
+    {
+        std::shared_lock<std::shared_mutex> lock(_realPlayersMutex);
+        candidates.reserve(_realPlayerMapIndex.size());
+        for (auto const& entry : _realPlayerMapIndex)
+            candidates.push_back(entry.first);
+    }
+
+    std::vector<ObjectGuid::LowType> staleGuids;
+    staleGuids.reserve(4);
+
+    for (ObjectGuid::LowType playerGuid : candidates)
+    {
+        Player* player = ObjectAccessor::FindPlayer(ObjectGuid::Create<HighGuid::Player>(playerGuid));
+        if (!player || !player->GetSession() || !player->IsInWorld() || player->IsDuringRemoveFromWorld() ||
+            player->GetSession()->isLogingOut())
+        {
+            staleGuids.push_back(playerGuid);
+            continue;
+        }
+
+        PlayerbotAI* playerAI = GET_PLAYERBOT_AI(player);
+        if (!playerAI || !playerAI->IsRealPlayer())
+            continue;
+
+        PlayerSocial* social = player->GetSocial();
+        if (social && social->HasFriend(botGuid))
+        {
+            PruneStaleRealPlayerGuids(staleGuids);
+            return true;
+        }
+    }
+
+    PruneStaleRealPlayerGuids(staleGuids);
+    return false;
 }
 
 std::string const RandomPlayerbotMgr::HandleRemoteCommand(std::string const request)
@@ -3680,7 +4329,7 @@ void RandomPlayerbotMgr::Remove(Player* bot)
     PlayerbotsDatabase.Execute(stmt);
 
     uint32 botId = owner.GetCounter();
-    eventCache.erase(botId);
+    PurgeEventCache(botId);
 
     LogoutPlayerBot(owner);
 }

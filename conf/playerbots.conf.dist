@@ -1387,6 +1387,14 @@ AiPlayerbot.MaxRandomBotRandomizeTime = 1209600
 # 默认：60
 AiPlayerbot.RandomBotsPerInterval = 60
 
+# 随机机器人事件（update/logout/teleport 等）批量写入数据库的间隔（秒）。
+# 内存缓存会立即更新；0 = 每次 SetEventValue 同步写库。
+# 默认：5
+AiPlayerbot.RandomBotEventBatchInterval = 5
+
+# 待写入事件达到该数量时立即刷盘。默认：64
+AiPlayerbot.RandomBotEventBatchMaxPending = 64
+
 # 启动/扩容完成后，在此秒数内降低每周期登录/入池速率，缓解登录风暴
 # 0 = 禁用。默认：120
 AiPlayerbot.RandomBotProvisioningLoginThrottleSeconds = 120
@@ -2196,6 +2204,10 @@ AiPlayerbot.TellWhenAvoidAoe = 0
 
 # 启用/禁用性能监视器
 AiPlayerbot.PerfMonEnabled = 0
+
+# 性能监视器各指标栈名条目总数上限。超出后忽略新的栈组合，防止 map 无限膨胀。
+# 0 = 不限制。默认：4096
+AiPlayerbot.PerfMonMaxEntries = 4096
 
 #
 #
