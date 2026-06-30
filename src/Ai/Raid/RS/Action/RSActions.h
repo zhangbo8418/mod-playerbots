@@ -264,7 +264,7 @@ inline bool RsHalionLeadingTooMuch(PlayerbotAI* botAI, Player* bot)
     return ownIndex <= RS_HALION_CORP_STOP_ALL_AT;
 }
 
-inline bool RsHalionInThrottledHalf(PlayerbotAI* botAI, Player* bot)
+inline bool RsHalionInThrottledHalf(PlayerbotAI* /*botAI*/, Player* bot)
 {
     Group* group = bot->GetGroup();
     if (!group)
@@ -296,7 +296,7 @@ inline bool RsHalionInThrottledHalf(PlayerbotAI* botAI, Player* bot)
     return rank < total / 2;
 }
 
-inline bool RsHalionP3TwilightAssigned(PlayerbotAI* botAI, Player* bot)
+inline bool RsHalionP3TwilightAssigned(PlayerbotAI* /*botAI*/, Player* bot)
 {
     std::lock_guard<std::recursive_mutex> lock(RubySanctumHelpers::stateMutex);
     if (PlayerbotAI::IsMainTank(bot))
