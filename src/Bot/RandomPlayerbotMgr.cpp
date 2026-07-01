@@ -386,7 +386,7 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
         SetEventValue(0, "cloak_show_pct", urand(0, 100) + 1, interval);
     }
 
-    GetBots();
+    SyncRandomBotPool(maxAllowedBotCount);
     AdjustBotCountToTarget(maxAllowedBotCount);
 
     if (sPlayerbotAIConfig.randomBotAccountCount == 0 &&
@@ -852,6 +852,15 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 hordeChars.push_back(charInfo);
         }
 
+        auto addValidInDuration = [&]() -> uint32
+        {
+            return (sPlayerbotAIConfig.enablePeriodicOnlineOffline ||
+                    sPlayerbotAIConfig.minRandomBots != sPlayerbotAIConfig.maxRandomBots)
+                       ? urand(sPlayerbotAIConfig.minRandomBotInWorldTime,
+                               sPlayerbotAIConfig.maxRandomBotInWorldTime)
+                       : sPlayerbotAIConfig.permanentlyInWorldTime;
+        };
+
         // Lambda to handle bot login logic
         auto tryLoginBot = [&](const CharacterInfo& charInfo) -> bool
         {
@@ -868,13 +877,7 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 return false;
             }
 
-            uint32 add_time = (sPlayerbotAIConfig.enablePeriodicOnlineOffline ||
-                               sPlayerbotAIConfig.minRandomBots != sPlayerbotAIConfig.maxRandomBots)
-                                  ? urand(sPlayerbotAIConfig.minRandomBotInWorldTime,
-                                          sPlayerbotAIConfig.maxRandomBotInWorldTime)
-                                  : sPlayerbotAIConfig.permanentlyInWorldTime;
-
-            SetEventValue(charInfo.guid, "add", 1, add_time);
+            SetEventValue(charInfo.guid, "add", 1, addValidInDuration());
             SetEventValue(charInfo.guid, "logout", 0, 0);
             currentBots.push_back(charInfo.guid);
 
@@ -917,6 +920,62 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
         // Guard against uint32 underflow if alliance quota exceeded the tick budget
         if (maxAllowedBotCount > botsNeededThisTick)
             maxAllowedBotCount = 0;
+
+        // PHASE 3.5: No idle chars left — recall bots from logout cooldown early.
+        if (maxAllowedBotCount)
+        {
+            uint32 recallBlockedByLogout = 0;
+            uint32 recallEligibleChars = 0;
+
+            for (CharacterInfo const& charInfo : allCharacters)
+            {
+                if (GetEventValue(charInfo.guid, "logout"))
+                {
+                    ++recallBlockedByLogout;
+                    continue;
+                }
+
+                if (GetEventValue(charInfo.guid, "add") ||
+                    GetPlayerBot(charInfo.guid) ||
+                    std::find(currentBots.begin(), currentBots.end(), charInfo.guid) != currentBots.end() ||
+                    (sPlayerbotAIConfig.disableDeathKnightLogin && charInfo.rClass == CLASS_DEATH_KNIGHT))
+                {
+                    continue;
+                }
+
+                ++recallEligibleChars;
+            }
+
+            if (!recallEligibleChars && recallBlockedByLogout)
+            {
+                auto tryRecallFromLogout = [&](CharacterInfo const& charInfo) -> bool
+                {
+                    if (GetPlayerBot(charInfo.guid) ||
+                        std::find(currentBots.begin(), currentBots.end(), charInfo.guid) != currentBots.end() ||
+                        (sPlayerbotAIConfig.disableDeathKnightLogin && charInfo.rClass == CLASS_DEATH_KNIGHT))
+                    {
+                        return false;
+                    }
+
+                    if (GetEventValue(charInfo.guid, "add") || !GetEventValue(charInfo.guid, "logout"))
+                        return false;
+
+                    SetEventValue(charInfo.guid, "logout", 0, 0);
+                    SetEventValue(charInfo.guid, "add", 1, addValidInDuration());
+                    currentBots.push_back(charInfo.guid);
+                    return true;
+                };
+
+                for (CharacterInfo const& charInfo : allCharacters)
+                {
+                    if (!maxAllowedBotCount)
+                        break;
+
+                    if (tryRecallFromLogout(charInfo))
+                        --maxAllowedBotCount;
+                }
+            }
+        }
 
         // PHASE 4: Log/diagnostics if maxAllowedBotCount is still not reached
         if (maxAllowedBotCount)
@@ -2502,18 +2561,49 @@ bool RandomPlayerbotMgr::IsAddclassBot(ObjectGuid::LowType bot)
     return false;
 }
 
-bool RandomPlayerbotMgr::CanDeactivateRandomBot(Player* player)
+bool RandomPlayerbotMgr::ShouldProtectRandomBotInPool(uint32 bot)
 {
-    if (!player)
-        return true;
-
-    if (!IsRandomBot(player))
+    Player* player = GetPlayerBot(ObjectGuid::Create<HighGuid::Player>(bot));
+    if (!player || IsAddclassBot(player))
         return false;
 
     if (player->InBattleground() || player->InBattlegroundQueue())
         return false;
 
-    if (player->GetGroup())
+    Group* group = player->GetGroup();
+    if (!group || group->isLFGGroup())
+        return false;
+
+    if (FindFirstRealConnectedPlayerInGroup(group, nullptr))
+        return true;
+
+    // Real player logged out but bots wait botLeaveGroupDelayWhenNoRealPlayer before leaving.
+    {
+        std::lock_guard<std::mutex> lock(m_groupsScheduledToLeaveMutex);
+        auto const it = m_groupsScheduledToLeave.find(group->GetGUID().GetCounter());
+        if (it != m_groupsScheduledToLeave.end() && it->second > time(nullptr))
+            return true;
+    }
+
+    return false;
+}
+
+bool RandomPlayerbotMgr::CanDeactivateRandomBot(Player* player)
+{
+    if (!player)
+        return true;
+
+    if (IsAddclassBot(player))
+        return false;
+
+    uint32 accountId = player->GetSession()->GetAccountId();
+    if (std::find(rndBotTypeAccounts.begin(), rndBotTypeAccounts.end(), accountId) == rndBotTypeAccounts.end())
+        return false;
+
+    if (player->InBattleground() || player->InBattlegroundQueue())
+        return false;
+
+    if (ShouldProtectRandomBotInPool(player->GetGUID().GetCounter()))
         return false;
 
     if (player->HasUnitState(UNIT_STATE_IN_FLIGHT))
@@ -2613,18 +2703,29 @@ void RandomPlayerbotMgr::AdjustBotCountToTarget(uint32 targetCount)
     }
 }
 
-void RandomPlayerbotMgr::GetBots()
+namespace
 {
-    uint32 maxAllowedBotCount = GetEventValue(0, "bot_count");
-    if (!maxAllowedBotCount)
-        maxAllowedBotCount = sPlayerbotAIConfig.maxRandomBots;
+bool IsRandomPoolAccount(uint32 accountId, std::vector<uint32> const& rndAccounts)
+{
+    return std::find(rndAccounts.begin(), rndAccounts.end(), accountId) != rndAccounts.end();
+}
 
-    if (!currentBots.empty() && cachedBotCountTarget == maxAllowedBotCount)
-        return;
+void ShuffleBots(std::vector<uint32>& bots)
+{
+    for (uint32 i = 0; i < bots.size(); ++i)
+        std::swap(bots[i], bots[urand(0, bots.size() - 1)]);
+}
 
-    currentBots.clear();
-    cachedBotCountTarget = maxAllowedBotCount;
+void PreferOnlineBots(std::vector<uint32>& bots, RandomPlayerbotMgr* mgr)
+{
+    std::stable_partition(bots.begin(), bots.end(), [&](uint32 bot) {
+        return mgr->GetPlayerBot(ObjectGuid::Create<HighGuid::Player>(bot)) != nullptr;
+    });
+}
+} // namespace
 
+void RandomPlayerbotMgr::CollectActiveAddBots(std::unordered_set<uint32>& out)
+{
     PlayerbotsDatabasePreparedStatement* stmt =
         PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_SEL_RANDOM_BOTS_BY_OWNER_AND_EVENT);
     stmt->SetData(0, 0);
@@ -2635,43 +2736,23 @@ void RandomPlayerbotMgr::GetBots()
         {
             Field* fields = result->Fetch();
             uint32 bot = fields[0].Get<uint32>();
-            if (GetEventValue(bot, "add"))
-                currentBots.push_back(bot);
+            ObjectGuid guid = ObjectGuid::Create<HighGuid::Player>(bot);
+            uint32 accountId = sCharacterCache->GetCharacterAccountIdByGuid(guid);
+            if (!accountId || !IsRandomPoolAccount(accountId, rndBotTypeAccounts))
+                continue;
 
-            if (currentBots.size() >= maxAllowedBotCount)
-                break;
+            if (GetEventValue(bot, "add"))
+                out.insert(bot);
         } while (result->NextRow());
     }
 
-    for (PlayerBotMap::const_iterator itr = GetPlayerBotsBegin(); itr != GetPlayerBotsEnd(); ++itr)
-    {
-        if (!itr->second || !IsRandomBot(itr->second))
-            continue;
-
-        uint32 bot = itr->first.GetCounter();
-        if (!GetEventValue(bot, "add"))
-            continue;
-
-        if (std::find(currentBots.begin(), currentBots.end(), bot) == currentBots.end())
-        {
-            currentBots.push_back(bot);
-            if (currentBots.size() >= maxAllowedBotCount)
-                break;
-        }
-    }
-
-    // Offline bots may have add=1 only in memory (batch DB / queued map-thread writes).
-    for (uint32 shardIdx = 0; shardIdx < EVENT_DATA_SHARD_COUNT && currentBots.size() < maxAllowedBotCount;
-         ++shardIdx)
+    for (uint32 shardIdx = 0; shardIdx < EVENT_DATA_SHARD_COUNT; ++shardIdx)
     {
         EventDataShard& shard = _eventDataShards[shardIdx];
         std::lock_guard<std::mutex> lock(shard.mutex);
 
         for (auto const& [botId, botCache] : shard.eventCache)
         {
-            if (currentBots.size() >= maxAllowedBotCount)
-                break;
-
             if (!botCache.loaded)
                 continue;
 
@@ -2683,12 +2764,157 @@ void RandomPlayerbotMgr::GetBots()
             if (e.validIn && (NowSeconds() - e.lastChangeTime) >= e.validIn)
                 continue;
 
-            if (std::find(currentBots.begin(), currentBots.end(), botId) != currentBots.end())
+            ObjectGuid guid = ObjectGuid::Create<HighGuid::Player>(botId);
+            uint32 accountId = sCharacterCache->GetCharacterAccountIdByGuid(guid);
+            if (!accountId || !IsRandomPoolAccount(accountId, rndBotTypeAccounts))
                 continue;
 
-            currentBots.push_back(botId);
+            out.insert(botId);
         }
     }
+}
+
+void RandomPlayerbotMgr::SyncRandomBotPool(uint32 targetCount)
+{
+    if (!targetCount)
+        return;
+
+    std::unordered_set<uint32> activeAddBots;
+    CollectActiveAddBots(activeAddBots);
+
+    bool const poolStable = !currentBots.empty() && cachedBotCountTarget == targetCount &&
+                            currentBots.size() >= targetCount;
+
+    if (poolStable)
+    {
+        time_t const now = time(nullptr);
+        if (!_poolOrphanSweepTimer)
+            _poolOrphanSweepTimer = now;
+
+        if (now - _poolOrphanSweepTimer < 30)
+            return;
+
+        _poolOrphanSweepTimer = now;
+
+        std::unordered_set<uint32> poolSet(currentBots.begin(), currentBots.end());
+        uint32 cleared = 0;
+
+        for (uint32 bot : activeAddBots)
+        {
+            if (poolSet.contains(bot))
+                continue;
+
+            if (ShouldProtectRandomBotInPool(bot))
+            {
+                currentBots.push_back(bot);
+                continue;
+            }
+
+            Player* player = GetPlayerBot(ObjectGuid::Create<HighGuid::Player>(bot));
+            if (player && !CanDeactivateRandomBot(player))
+                continue;
+
+            DeactivateRandomBot(bot, false);
+            ++cleared;
+        }
+
+        if (cleared)
+        {
+            LOG_INFO("playerbots",
+                     "Cleared {} orphaned random bot add mark(s) (pool {}/{}, {} had active add).",
+                     cleared, currentBots.size(), targetCount, activeAddBots.size());
+        }
+
+        return;
+    }
+
+    cachedBotCountTarget = targetCount;
+
+    std::unordered_set<uint32> newPoolSet;
+    std::list<uint32> newPool;
+
+    if (!currentBots.empty())
+    {
+        std::vector<uint32> protectedBots;
+        std::vector<uint32> flexibleBots;
+        protectedBots.reserve(currentBots.size());
+        flexibleBots.reserve(currentBots.size());
+
+        for (uint32 bot : currentBots)
+        {
+            if (!activeAddBots.contains(bot))
+                continue;
+
+            if (ShouldProtectRandomBotInPool(bot))
+                protectedBots.push_back(bot);
+            else
+                flexibleBots.push_back(bot);
+        }
+
+        for (uint32 bot : protectedBots)
+        {
+            newPool.push_back(bot);
+            newPoolSet.insert(bot);
+        }
+
+        for (uint32 bot : flexibleBots)
+        {
+            if (newPool.size() >= targetCount)
+                break;
+
+            newPool.push_back(bot);
+            newPoolSet.insert(bot);
+        }
+    }
+    else if (!activeAddBots.empty())
+    {
+        std::vector<uint32> restore(activeAddBots.begin(), activeAddBots.end());
+        ShuffleBots(restore);
+        PreferOnlineBots(restore, this);
+
+        for (uint32 bot : restore)
+        {
+            if (newPool.size() >= targetCount)
+                break;
+
+            newPool.push_back(bot);
+            newPoolSet.insert(bot);
+        }
+    }
+
+    for (uint32 bot : activeAddBots)
+    {
+        if (newPoolSet.contains(bot) || !ShouldProtectRandomBotInPool(bot))
+            continue;
+
+        newPool.push_back(bot);
+        newPoolSet.insert(bot);
+    }
+
+    currentBots.swap(newPool);
+
+    uint32 cleared = 0;
+    for (uint32 bot : activeAddBots)
+    {
+        if (newPoolSet.contains(bot) || ShouldProtectRandomBotInPool(bot))
+            continue;
+
+        Player* player = GetPlayerBot(ObjectGuid::Create<HighGuid::Player>(bot));
+        if (player && !CanDeactivateRandomBot(player))
+            continue;
+
+        DeactivateRandomBot(bot, false);
+        ++cleared;
+    }
+
+    if (cleared)
+    {
+        LOG_INFO("playerbots",
+                 "Synced random bot pool {}/{} and cleared {} orphaned add mark(s) ({} had active add).",
+                 currentBots.size(), targetCount, cleared, activeAddBots.size());
+    }
+
+    _poolOrphanSweepTimer = time(nullptr);
 }
 
 std::vector<uint32> RandomPlayerbotMgr::GetBgBots(uint32 bracket)

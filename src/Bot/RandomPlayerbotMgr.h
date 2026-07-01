@@ -299,9 +299,11 @@ private:
     uint32 SetEventValue(uint32 bot, std::string const& event, uint32 value, uint32 validIn,
                          std::string const& data = "");
     bool CanDeactivateRandomBot(Player* player);
+    bool ShouldProtectRandomBotInPool(uint32 bot);
     void DeactivateRandomBot(uint32 bot, bool applyOfflineCooldown = true);
     void AdjustBotCountToTarget(uint32 targetCount);
-    void GetBots();
+    void SyncRandomBotPool(uint32 targetCount);
+    void CollectActiveAddBots(std::unordered_set<uint32>& out);
     std::vector<uint32> GetBgBots(uint32 bracket);
     time_t BgCheckTimer;
     time_t LfgCheckTimer;
@@ -330,6 +332,7 @@ private:
     std::map<TeamId, std::map<BattlegroundTypeId, std::vector<uint32>>> BattleMastersCache;
     std::list<uint32> currentBots;
     uint32 cachedBotCountTarget = 0;
+    time_t _poolOrphanSweepTimer = 0;
     uint32 bgBotsCount;
     uint32 playersLevel;
 
