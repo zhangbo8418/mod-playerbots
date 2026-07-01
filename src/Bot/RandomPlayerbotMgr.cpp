@@ -855,11 +855,15 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
         // Lambda to handle bot login logic
         auto tryLoginBot = [&](const CharacterInfo& charInfo) -> bool
         {
-            if (GetEventValue(charInfo.guid, "add") ||
-                GetEventValue(charInfo.guid, "logout") ||
-                GetPlayerBot(charInfo.guid) ||
+            if (GetPlayerBot(charInfo.guid) ||
                 std::find(currentBots.begin(), currentBots.end(), charInfo.guid) != currentBots.end() ||
                 (sPlayerbotAIConfig.disableDeathKnightLogin && charInfo.rClass == CLASS_DEATH_KNIGHT))
+            {
+                return false;
+            }
+
+            if (GetEventValue(charInfo.guid, "add") ||
+                GetEventValue(charInfo.guid, "logout"))
             {
                 return false;
             }
@@ -2954,9 +2958,8 @@ void RandomPlayerbotMgr::PruneStaleEventCache()
 CachedEvent* RandomPlayerbotMgr::FindEventLocked(EventDataShard& shard, uint32 bot, std::string const& event,
                                                  std::unique_lock<std::mutex>& lock)
 {
-    BotEventCache& cache = shard.eventCache[bot];
-
-    if (!cache.loaded)
+    auto botCacheIt = shard.eventCache.find(bot);
+    if (botCacheIt == shard.eventCache.end() || !botCacheIt->second.loaded)
     {
         lock.unlock();
 
@@ -2997,8 +3000,10 @@ CachedEvent* RandomPlayerbotMgr::FindEventLocked(EventDataShard& shard, uint32 b
         if (!sharedCache.loaded)
             sharedCache = std::move(loadedCache);
 
-        cache = sharedCache;
+        botCacheIt = shard.eventCache.find(bot);
     }
+
+    BotEventCache& cache = botCacheIt->second;
 
     auto it = cache.events.find(event);
     if (it == cache.events.end())
@@ -4010,6 +4015,12 @@ void RemoveGuidFromMapBucket(std::vector<ObjectGuid::LowType>& bucket, ObjectGui
     if (it != bucket.end())
         bucket.erase(it);
 }
+
+void AppendGuidToMapBucket(std::vector<ObjectGuid::LowType>& bucket, ObjectGuid::LowType guid)
+{
+    if (std::find(bucket.begin(), bucket.end(), guid) == bucket.end())
+        bucket.push_back(guid);
+}
 } // namespace
 
 void RandomPlayerbotMgr::RegisterRealPlayer(Player* player)
@@ -4028,7 +4039,7 @@ void RandomPlayerbotMgr::RegisterRealPlayer(Player* player)
             RemoveGuidFromMapBucket(_realPlayersByMap[existing->second], guid);
 
         _realPlayerMapIndex[guid] = mapId;
-        _realPlayersByMap[mapId].push_back(guid);
+        AppendGuidToMapBucket(_realPlayersByMap[mapId], guid);
     }
 
     if (std::find(players.begin(), players.end(), player) == players.end())
@@ -4061,7 +4072,7 @@ void RandomPlayerbotMgr::UpdateRealPlayerMap(Player* player)
     if (itr == _realPlayerMapIndex.end())
     {
         _realPlayerMapIndex[guid] = newMapId;
-        _realPlayersByMap[newMapId].push_back(guid);
+        AppendGuidToMapBucket(_realPlayersByMap[newMapId], guid);
         return;
     }
 
@@ -4070,7 +4081,7 @@ void RandomPlayerbotMgr::UpdateRealPlayerMap(Player* player)
 
     RemoveGuidFromMapBucket(_realPlayersByMap[itr->second], guid);
     itr->second = newMapId;
-    _realPlayersByMap[newMapId].push_back(guid);
+    AppendGuidToMapBucket(_realPlayersByMap[newMapId], guid);
 }
 
 void RandomPlayerbotMgr::ClearAllEventCaches()
@@ -4100,8 +4111,13 @@ void RandomPlayerbotMgr::PruneStaleRealPlayerGuids(std::vector<ObjectGuid::LowTy
         if (itr == _realPlayerMapIndex.end())
             continue;
 
-        RemoveGuidFromMapBucket(_realPlayersByMap[itr->second], guid);
+        uint32 const mapId = itr->second;
+        RemoveGuidFromMapBucket(_realPlayersByMap[mapId], guid);
         _realPlayerMapIndex.erase(itr);
+
+        auto mapItr = _realPlayersByMap.find(mapId);
+        if (mapItr != _realPlayersByMap.end() && mapItr->second.empty())
+            _realPlayersByMap.erase(mapItr);
     }
 }
 
@@ -4129,7 +4145,7 @@ void RandomPlayerbotMgr::ReindexRealPlayerMap(Player* player)
         _realPlayerMapIndex[guid] = mapId;
     }
 
-    _realPlayersByMap[mapId].push_back(guid);
+    AppendGuidToMapBucket(_realPlayersByMap[mapId], guid);
 }
 
 bool RandomPlayerbotMgr::ShouldBotForceActiveNearRealPlayers(Player* bot, bool checkMap, bool checkZone,
@@ -4139,7 +4155,7 @@ bool RandomPlayerbotMgr::ShouldBotForceActiveNearRealPlayers(Player* bot, bool c
         return false;
 
     uint32 const botMapId = bot->GetMapId();
-    std::vector<ObjectGuid::LowType> candidates;
+    thread_local std::vector<ObjectGuid::LowType> candidates;
 
     {
         std::shared_lock<std::shared_mutex> lock(_realPlayersMutex);
@@ -4147,7 +4163,7 @@ bool RandomPlayerbotMgr::ShouldBotForceActiveNearRealPlayers(Player* bot, bool c
         if (itr == _realPlayersByMap.end())
             return false;
 
-        candidates = itr->second;
+        candidates.assign(itr->second.begin(), itr->second.end());
     }
 
     if (candidates.empty())
@@ -4210,10 +4226,11 @@ bool RandomPlayerbotMgr::ShouldBotForceActiveNearRealPlayers(Player* bot, bool c
 
 bool RandomPlayerbotMgr::IsBotFriendOfAnyRealPlayer(ObjectGuid const& botGuid)
 {
-    std::vector<ObjectGuid::LowType> candidates;
+    thread_local std::vector<ObjectGuid::LowType> candidates;
 
     {
         std::shared_lock<std::shared_mutex> lock(_realPlayersMutex);
+        candidates.clear();
         candidates.reserve(_realPlayerMapIndex.size());
         for (auto const& entry : _realPlayerMapIndex)
             candidates.push_back(entry.first);
