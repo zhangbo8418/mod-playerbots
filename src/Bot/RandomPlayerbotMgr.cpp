@@ -3582,7 +3582,8 @@ void RandomPlayerbotMgr::HandleCommand(uint32 type, std::string const text, Play
 //    - Schedule: group GUID -> leaveAt = now + BotLeaveGroupDelayWhenNoRealPlayer (0 = next tick).
 //    - Each tick in UpdateAIInternal, ProcessScheduledGroupLeaves runs:
 //      · If now >= leaveAt: re-check if the group has any connected real player;
-//      · If still none: only random bots in that group leave (IsRandomBot); alt/addclass are not kicked.
+//      · If still none: every AI-controlled member (random / addclass / pool-evicted bots) leaves. We do not
+//        gate on IsRandomBot here, otherwise bots no longer in currentBots would get stuck in the group.
 //
 // 3) Crash/restart (OnBotLoginInternal)
 //    - When a random bot logs in, if it is in a group and the group has no connected real player -> leave
@@ -3758,11 +3759,12 @@ void RandomPlayerbotMgr::ProcessScheduledGroupLeaves()
             Player* member = ObjectAccessor::FindPlayer(slot.guid);
             if (!member || member->InBattleground())
                 continue;
-            if (!IsRandomBot(member))
-                continue;
+            // Group already confirmed to have no connected real player above, so every
+            // AI-controlled member here should leave (do not gate on currentBots via IsRandomBot).
             PlayerbotAI* memberAI = GET_PLAYERBOT_AI(member);
-            if (memberAI && !memberAI->IsRealPlayer())
-                botsToLeave.push_back(member);
+            if (!memberAI || memberAI->IsRealPlayer())
+                continue;
+            botsToLeave.push_back(member);
         }
 
         for (Player* bot : botsToLeave)
