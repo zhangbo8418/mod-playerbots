@@ -8,6 +8,7 @@
 
 #include <mutex>
 #include <shared_mutex>
+#include <unordered_set>
 
 #include "NewRpgInfo.h"
 #include "ObjectGuid.h"
@@ -132,6 +133,8 @@ public:
     static void SavePlayerToDB(Player* player, bool create = false, bool logout = false);
     bool IsAddclassBot(Player* bot);
     bool IsAddclassBot(ObjectGuid::LowType bot);
+    // O(1) membership test against the RNDbot (type 1) account list.
+    bool IsRndBotTypeAccount(uint32 accountId) const;
     void Randomize(Player* bot);
     void Clear(Player* bot);
     void RandomizeFirst(Player* bot);
@@ -349,6 +352,8 @@ private:
     // Account lists
     std::vector<uint32> rndBotTypeAccounts;             // Accounts marked as RNDbot (type 1)
     std::vector<uint32> addClassTypeAccounts;           // Accounts marked as AddClass (type 2)
+    // Parallel membership index for rndBotTypeAccounts (kept in sync in AssignAccountTypes) for O(1) lookups.
+    std::unordered_set<uint32> rndBotTypeAccountsSet;
 
     mutable std::shared_mutex _realPlayersMutex;
     std::unordered_map<ObjectGuid::LowType, uint32> _realPlayerMapIndex;

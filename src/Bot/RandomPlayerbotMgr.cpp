@@ -597,6 +597,7 @@ void RandomPlayerbotMgr::AssignAccountTypes(bool allowAutoExpand)
     // Clear existing filtered lists
     rndBotTypeAccounts.clear();
     addClassTypeAccounts.clear();
+    rndBotTypeAccountsSet.clear();
 
     // First, get ALL randombot accounts from the database
     std::vector<uint32> allRandomBotAccounts;
@@ -725,8 +726,15 @@ void RandomPlayerbotMgr::AssignAccountTypes(bool allowAutoExpand)
     // Populate filtered account lists with ALL accounts of each type
     for (auto const& [accountId, accountType] : currentAssignments)
     {
-        if (accountType == 1) rndBotTypeAccounts.push_back(accountId);
-        else if (accountType == 2) addClassTypeAccounts.push_back(accountId);
+        if (accountType == 1)
+        {
+            rndBotTypeAccounts.push_back(accountId);
+            rndBotTypeAccountsSet.insert(accountId);
+        }
+        else if (accountType == 2)
+        {
+            addClassTypeAccounts.push_back(accountId);
+        }
     }
 
     LOG_INFO("playerbots", "Account type assignment complete: {} RNDbot accounts, {} AddClass accounts, {} unassigned",
@@ -2597,7 +2605,7 @@ bool RandomPlayerbotMgr::CanDeactivateRandomBot(Player* player)
         return false;
 
     uint32 accountId = player->GetSession()->GetAccountId();
-    if (std::find(rndBotTypeAccounts.begin(), rndBotTypeAccounts.end(), accountId) == rndBotTypeAccounts.end())
+    if (!IsRndBotTypeAccount(accountId))
         return false;
 
     if (player->InBattleground() || player->InBattlegroundQueue())
@@ -2705,11 +2713,6 @@ void RandomPlayerbotMgr::AdjustBotCountToTarget(uint32 targetCount)
 
 namespace
 {
-bool IsRandomPoolAccount(uint32 accountId, std::vector<uint32> const& rndAccounts)
-{
-    return std::find(rndAccounts.begin(), rndAccounts.end(), accountId) != rndAccounts.end();
-}
-
 void ShuffleBots(std::vector<uint32>& bots)
 {
     for (uint32 i = 0; i < bots.size(); ++i)
@@ -2723,6 +2726,11 @@ void PreferOnlineBots(std::vector<uint32>& bots, RandomPlayerbotMgr* mgr)
     });
 }
 } // namespace
+
+bool RandomPlayerbotMgr::IsRndBotTypeAccount(uint32 accountId) const
+{
+    return rndBotTypeAccountsSet.find(accountId) != rndBotTypeAccountsSet.end();
+}
 
 void RandomPlayerbotMgr::CollectActiveAddBots(std::unordered_set<uint32>& out)
 {
@@ -2738,7 +2746,7 @@ void RandomPlayerbotMgr::CollectActiveAddBots(std::unordered_set<uint32>& out)
             uint32 bot = fields[0].Get<uint32>();
             ObjectGuid guid = ObjectGuid::Create<HighGuid::Player>(bot);
             uint32 accountId = sCharacterCache->GetCharacterAccountIdByGuid(guid);
-            if (!accountId || !IsRandomPoolAccount(accountId, rndBotTypeAccounts))
+            if (!accountId || !IsRndBotTypeAccount(accountId))
                 continue;
 
             if (GetEventValue(bot, "add"))
@@ -2766,7 +2774,7 @@ void RandomPlayerbotMgr::CollectActiveAddBots(std::unordered_set<uint32>& out)
 
             ObjectGuid guid = ObjectGuid::Create<HighGuid::Player>(botId);
             uint32 accountId = sCharacterCache->GetCharacterAccountIdByGuid(guid);
-            if (!accountId || !IsRandomPoolAccount(accountId, rndBotTypeAccounts))
+            if (!accountId || !IsRndBotTypeAccount(accountId))
                 continue;
 
             out.insert(botId);
@@ -2833,25 +2841,31 @@ void RandomPlayerbotMgr::SyncRandomBotPool(uint32 targetCount)
     std::unordered_set<uint32> newPoolSet;
     std::list<uint32> newPool;
 
+    auto const isPoolBotOnline = [&](uint32 bot)
+    {
+        return GetPlayerBot(ObjectGuid::Create<HighGuid::Player>(bot)) != nullptr;
+    };
+
     if (!currentBots.empty())
     {
-        std::vector<uint32> protectedBots;
-        std::vector<uint32> flexibleBots;
-        protectedBots.reserve(currentBots.size());
+        std::vector<uint32> keepBots;      // online or real-player-protected: always retained
+        std::vector<uint32> flexibleBots;  // idle pool entries: retained only up to target
+        keepBots.reserve(currentBots.size());
         flexibleBots.reserve(currentBots.size());
 
         for (uint32 bot : currentBots)
         {
-            if (!activeAddBots.contains(bot))
-                continue;
-
-            if (ShouldProtectRandomBotInPool(bot))
-                protectedBots.push_back(bot);
-            else
+            // Online bots must stay tracked so ProcessBot can rotate/log them out even after their
+            // "add" mark expires. Dropping them here would orphan them into untracked zombie bots
+            // that never rotate and keep consuming CPU while the pool count silently shrinks.
+            if (isPoolBotOnline(bot) || ShouldProtectRandomBotInPool(bot))
+                keepBots.push_back(bot);
+            else if (activeAddBots.contains(bot))
                 flexibleBots.push_back(bot);
+            // else: offline entry with no active add mark -> truly orphaned, drop it.
         }
 
-        for (uint32 bot : protectedBots)
+        for (uint32 bot : keepBots)
         {
             newPool.push_back(bot);
             newPoolSet.insert(bot);
@@ -2889,6 +2903,27 @@ void RandomPlayerbotMgr::SyncRandomBotPool(uint32 targetCount)
 
         newPool.push_back(bot);
         newPoolSet.insert(bot);
+    }
+
+    // Recover already-orphaned online random bots (online yet missing from the pool) so they are tracked
+    // again and ProcessBot can manage their rotation/logout instead of leaving them running forever.
+    for (PlayerBotMap::const_iterator itr = GetPlayerBotsBegin(); itr != GetPlayerBotsEnd(); ++itr)
+    {
+        Player* onlineBot = itr->second;
+        if (!onlineBot)
+            continue;
+
+        uint32 const botId = itr->first.GetCounter();
+        if (newPoolSet.contains(botId))
+            continue;
+
+        WorldSession* session = onlineBot->GetSession();
+        uint32 const accountId = session ? session->GetAccountId() : 0;
+        if (!accountId || !IsRndBotTypeAccount(accountId))
+            continue;   // addclass/alt/real-player bots are not part of the random pool
+
+        newPool.push_back(botId);
+        newPoolSet.insert(botId);
     }
 
     currentBots.swap(newPool);
