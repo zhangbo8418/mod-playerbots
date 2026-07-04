@@ -242,10 +242,19 @@ namespace ai::buff
             {"%group_spell", groupName}
         };
 
-        std::string const message = PlayerbotTextMgr::instance().GetBotTextOrDefault(
+        Player* localePlayer = botAI->GetMaster();
+        if (!localePlayer)
+        {
+            std::vector<Player*> const realPlayers = botAI->GetRealPlayersInGroup();
+            if (!realPlayers.empty())
+                localePlayer = realPlayers.front();
+        }
+
+        std::string const message = botAI->GetLocalizedBotTextOrDefault(
             "missing_group_buff_reagent",
             "I am out of reagents for %group_spell and am casting %base_spell instead.",
-            placeholders);
+            placeholders,
+            localePlayer);
 
         Group* group = bot->GetGroup();
         if (!group)
